@@ -3,6 +3,7 @@ package com.codenzi.mathlabs
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.ViewGroup
@@ -53,21 +54,40 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
-        val layoutLanguageSettings: LinearLayout = findViewById(R.id.layoutLanguageSettings)
-        layoutLanguageSettings.setOnClickListener {
+        findViewById<LinearLayout>(R.id.layoutLanguageSettings).setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
-            val intent = Intent(this, LanguageSelectionActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, LanguageSelectionActivity::class.java))
         }
 
-        val layoutThemeSettings: LinearLayout = findViewById(R.id.layoutThemeSettings)
-        layoutThemeSettings.setOnClickListener {
+        findViewById<LinearLayout>(R.id.layoutThemeSettings).setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             showThemeDialog()
         }
 
-        // App Color kısmı kaldırıldığı için ilgili listener da silindi.
-        // val layoutAppColorSettings: LinearLayout = findViewById(R.id.layoutAppColorSettings)
+        // --- YENİ EKLENEN KISIM BAŞLANGICI ---
+
+        findViewById<LinearLayout>(R.id.layoutContactUs).setOnClickListener {
+            UIFeedbackHelper.provideFeedback(it)
+            val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                data = Uri.parse("mailto:") // Yalnızca e-posta uygulamaları bu intent'i açmalı
+                putExtra(Intent.EXTRA_EMAIL, arrayOf("mathlabs.feedback@gmail.com"))
+                putExtra(Intent.EXTRA_SUBJECT, "MathLabs Geri Bildirim")
+            }
+            try {
+                startActivity(Intent.createChooser(emailIntent, "E-posta gönder..."))
+            } catch (ex: android.content.ActivityNotFoundException) {
+                Toast.makeText(this, "Uygun bir e-posta uygulaması bulunamadı.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        findViewById<LinearLayout>(R.id.layoutPrivacyPolicy).setOnClickListener {
+            UIFeedbackHelper.provideFeedback(it)
+            val url = "https://www.google.com" // Buraya kendi gizlilik sözleşmesi linkinizi ekleyin
+            val privacyIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            startActivity(privacyIntent)
+        }
+
+        // --- YENİ EKLENEN KISIM SONU ---
     }
 
     private fun setupSwitches() {

@@ -49,12 +49,10 @@
                 app:cardCornerRadius="20dp"
                 app:cardElevation="2dp"
                 app:strokeWidth="0dp">
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
-
                     <LinearLayout
                         android:id="@+id/layoutThemeSettings"
                         android:layout_width="match_parent"
@@ -65,27 +63,23 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:padding="20dp">
-
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_settings_theme"
                             app:tint="?attr/colorPrimary"
                             android:contentDescription="@null"/>
-
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:layout_marginStart="20dp"
                             android:orientation="vertical">
-
                             <TextView
                                 style="?attr/textAppearanceTitleMedium"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/theme_title" />
-
                             <TextView
                                 style="?attr/textAppearanceBodyMedium"
                                 android:layout_width="wrap_content"
@@ -93,22 +87,18 @@
                                 android:text="@string/theme_desc"
                                 android:textColor="?attr/colorOnSurfaceVariant" />
                         </LinearLayout>
-
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_settings_chevron_right"
                             app:tint="?attr/colorOnSurfaceVariant"
                             android:contentDescription="@null"/>
-
                     </LinearLayout>
-
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginHorizontal="20dp"
                         android:background="?attr/colorOutlineVariant" />
-
                     <LinearLayout
                         android:id="@+id/layoutLanguageSettings"
                         android:layout_width="match_parent"
@@ -119,27 +109,23 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:padding="20dp">
-
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_settings_language"
                             app:tint="?attr/colorPrimary"
                             android:contentDescription="@null"/>
-
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:layout_marginStart="20dp"
                             android:orientation="vertical">
-
                             <TextView
                                 style="?attr/textAppearanceTitleMedium"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/language_settings" />
-
                             <TextView
                                 style="?attr/textAppearanceBodyMedium"
                                 android:layout_width="wrap_content"
@@ -147,14 +133,12 @@
                                 android:text="@string/language_desc"
                                 android:textColor="?attr/colorOnSurfaceVariant" />
                         </LinearLayout>
-
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_settings_chevron_right"
                             app:tint="?attr/colorOnSurfaceVariant"
                             android:contentDescription="@null"/>
-
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -175,34 +159,29 @@
                 app:cardCornerRadius="20dp"
                 app:cardElevation="2dp"
                 app:strokeWidth="0dp">
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:padding="20dp">
-
                     <ImageView
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/ic_settings_sound"
                         app:tint="?attr/colorPrimary"
                         android:contentDescription="@null"/>
-
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginStart="20dp"
                         android:orientation="vertical">
-
                         <TextView
                             style="?attr/textAppearanceTitleMedium"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/touch_sound" />
-
                         <TextView
                             style="?attr/textAppearanceBodyMedium"
                             android:layout_width="wrap_content"
@@ -210,12 +189,120 @@
                             android:text="@string/touch_sound_desc"
                             android:textColor="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
-
                     <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/switchTouchSound"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
+            <TextView
+                style="?attr/textAppearanceLabelLarge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="8dp"
+                android:text="@string/settings_category_about"
+                android:textColor="?attr/colorPrimary" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <LinearLayout
+                        android:id="@+id/layoutContactUs"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="20dp">
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_settings_email"
+                            app:tint="?attr/colorPrimary"
+                            android:contentDescription="@null"/>
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="20dp"
+                            android:orientation="vertical">
+                            <TextView
+                                style="?attr/textAppearanceTitleMedium"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/contact_us" />
+                            <TextView
+                                style="?attr/textAppearanceBodyMedium"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/contact_us_desc"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+                        </LinearLayout>
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_settings_chevron_right"
+                            app:tint="?attr/colorOnSurfaceVariant"
+                            android:contentDescription="@null"/>
+                    </LinearLayout>
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginHorizontal="20dp"
+                        android:background="?attr/colorOutlineVariant" />
+                    <LinearLayout
+                        android:id="@+id/layoutPrivacyPolicy"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="20dp">
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_settings_privacy"
+                            app:tint="?attr/colorPrimary"
+                            android:contentDescription="@null"/>
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="20dp"
+                            android:orientation="vertical">
+                            <TextView
+                                style="?attr/textAppearanceTitleMedium"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/privacy_policy" />
+                            <TextView
+                                style="?attr/textAppearanceBodyMedium"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/privacy_policy_desc"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+                        </LinearLayout>
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_settings_chevron_right"
+                            app:tint="?attr/colorOnSurfaceVariant"
+                            android:contentDescription="@null"/>
+                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

@@ -247,4 +247,10 @@
     <string name="theme_desc">Uygulamanın görünümünü aydınlık veya koyu modda kullanın.</string>
     <string name="language_desc">Uygulama dilini değiştirin.</string>
     <string name="touch_sound_desc">Arayüz elemanlarına dokunulduğunda sesli geri bildirim alın.</string>
+
+    <string name="settings_category_about">Hakkında</string>
+    <string name="contact_us">Bize Ulaşın</string>
+    <string name="contact_us_desc">Geri bildirim gönderin veya yardım alın.</string>
+    <string name="privacy_policy">Gizlilik Sözleşmesi</string>
+    <string name="privacy_policy_desc">Hizmet şartlarımızı okuyun.</string>
 </resources>
