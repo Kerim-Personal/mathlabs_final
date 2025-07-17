@@ -1,0 +1,36 @@
+# ===============================================
+# Build dosyaları ve cache'ler
+# ===============================================
+.gradle
+/build
+/captures
+.externalNativeBuild
+.cxx
+
+# ===============================================
+# Lokal (yerel) ayarlar ve hassas bilgiler
+# API anahtarları, proje ID'leri gibi bilgileri içerirler.
+# BU DOSYALAR ASLA PAYLAŞILMAMALIDIR!
+# ===============================================
+/local.properties
+google-services.json
+
+# ===============================================
+# Android Studio ve IntelliJ IDEA dosyaları
+# Her geliştiricinin kendi makinesine özel dosyalardır.
+# ===============================================
+*.iml
+.idea/
+# .idea/ altındaki tüm dosyaları yok sayar.
+# Aşağıdakiler en yaygın olanlarıdır ve üstteki tek satır ile halledilir:
+# .idea/caches
+# .idea/libraries
+# .idea/modules.xml
+# .idea/workspace.xml
+# .idea/navEditor.xml
+# .idea/assetWizardSettings.xml
+
+# ===============================================
+# macOS işletim sistemi dosyası
+# ===============================================
+.DS_Store

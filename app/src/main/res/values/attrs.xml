@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="colorPrimaryDynamic" format="color" />
+    <attr name="colorPrimaryDarkDynamic" format="color" />
+    <attr name="colorAccentDynamic" format="color" />
+    <attr name="colorPrimaryContainerDynamic" format="color" />
+    <attr name="colorOnPrimaryContainerDynamic" format="color" />
+    <attr name="colorSurfaceDynamic" format="color" />
+    <attr name="colorOnSurfaceDynamic" format="color" />
+    <attr name="colorSurfaceVariantDynamic" format="color" />
+    <attr name="colorOnSurfaceVariantDynamic" format="color" />
+</resources>

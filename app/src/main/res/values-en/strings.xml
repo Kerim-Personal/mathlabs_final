@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dil_seciniz">Select Language</string>
+    <string name="language_turkish">Türkçe</string>
+    <string name="language_english">English</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="language_settings">Language Settings</string>
+    <string name="action_settings">Settings</string>
+    <string name="touch_sound">Touch Sound</string>
+    <string name="haptic_feedback">Haptic Feedback</string>
+
+    <string name="course_selection_prompt">Please select a course:</string>
+    <string name="theme_settings">Appearance</string>
+    <string name="theme_title">App Theme</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_system_default">System Default</string>
+    <string name="expand_arrow_description">Expand or collapse arrow</string>
+    <string name="splash_text">Codenzi</string>
+    <string name="app_title_on_main_screen">MathLabs</string>
+    <string name="content_desc_foreground">foreground</string>
+    <string name="desc_turkish_flag">Turkish Flag</string>
+    <string name="desc_uk_flag">UK Flag</string>
+
+    <string name="name_prompt">Awesome! What is your name?</string>
+    <string name="name_hint">Your Name</string>
+    <string name="continue_button">Continue</string>
+    <string name="enter_valid_name_toast">Please enter a valid name.</string>
+
+    <string name="pdf_not_found">PDF file not found.</string>
+    <string name="pdf_loaded_toast">PDF Loaded (%1$d pages)</string>
+    <string name="error_toast">Error: %1$s</string>
+    <string name="page_load_error_toast">Error on page: %1$d - %2$s</string>
+    <string name="topic_pdf_not_found">%1$s - %2$s (PDF file not found)</string>
+
+    <string name="greeting_good_morning">Good morning, %1$s</string>
+    <string name="greeting_good_day">Good day, %1$s</string>
+    <string name="greeting_good_evening">Good evening, %1$s</string>
+    <string name="greeting_good_night">Good night, %1$s</string>
+
+    <string name="course_calculus">Calculus</string>
+    <string name="course_complex_analysis">Complex Analysis</string>
+    <string name="course_numerical_analysis">Numerical Analysis</string>
+    <string name="course_linear_algebra">Linear Algebra</string>
+    <string name="course_abstract_math">Abstract Mathematics</string>
+    <string name="course_algebra">Algebra</string>
+    <string name="course_number_theory">Number Theory</string>
+    <string name="course_differential_equations">Differential Equations</string>
+    <string name="course_pde">Partial Differential Equations</string>
+    <string name="course_analytic_geometry">Analytic Geometry</string>
+    <string name="course_differential_geometry">Differential Geometry</string>
+    <string name="course_topology">Topology</string>
+    <string name="course_probability">Probability</string>
+    <string name="course_functional_analysis">Functional Analysis</string>
+
+    <string name="topic_calculus_limit">Limits and Continuity</string>
+    <string name="topic_calculus_derivative_rules">Definition and Rules of Derivatives</string>
+    <string name="topic_calculus_derivative_apps">Applications of Derivatives (Extrema, Inflection)</string>
+    <string name="topic_calculus_mean_value">Mean Value Theorems</string>
+    <string name="topic_calculus_indefinite_integral">Indefinite Integral and Techniques</string>
+    <string name="topic_calculus_definite_integral">Definite Integral and Applications</string>
+    <string name="topic_calculus_sequences_series">Sequences and Series</string>
+    <string name="topic_calculus_power_series">Power Series (Taylor, Maclaurin)</string>
+    <string name="topic_calculus_multivariable">Multivariable Functions</string>
+    <string name="topic_calculus_partial_derivatives">Partial Derivatives and Lagrange Multipliers</string>
+    <string name="topic_calculus_multiple_integrals">Multiple Integrals and Applications (Volume, Surface Area)</string>
+    <string name="topic_calculus_vector_analysis">Vector Analysis (Gradient, Divergence, Stokes)</string>
+    <string name="topic_calculus_fourier">Fourier Transforms</string>
+    <string name="topic_calculus_metric_spaces">Introduction to Metric Spaces</string>
+
+    <string name="topic_complex_numbers">Complex Numbers and the Plane</string>
+    <string name="topic_complex_analytic_functions">Analytic Functions</string>
+    <string name="topic_complex_cauchy_riemann">Cauchy-Riemann Equations</string>
+    <string name="topic_complex_integration">Complex Integration</string>
+    <string name="topic_complex_cauchy_integral">Cauchy Integral Theorem and Formula</string>
+    <string name="topic_complex_taylor_laurent">Taylor and Laurent Series</string>
+    <string name="topic_complex_residue">Residue Theorem, Applications, and Contour Integral Techniques</string>
+    <string name="topic_complex_conformal">Conformal Mappings</string>
+    <string name="topic_complex_dynamic_systems">Complex Dynamic Systems</string>
+
+    <string name="topic_numerical_error_analysis">Error Analysis and Numerical Stability</string>
+    <string name="topic_numerical_root_finding">Methods for Finding Roots of Equations</string>
+    <string name="topic_numerical_linear_systems">Numerical Solution of Linear Systems</string>
+    <string name="topic_numerical_iterative_methods">Iterative Methods (Jacobi, Gauss-Seidel)</string> <string name="topic_numerical_interpolation">Interpolation and Polynomial Approximation</string>
+    <string name="topic_numerical_least_squares">Least Squares Method</string>
+    <string name="topic_numerical_differentiation_integration">Numerical Differentiation, Integration, and Differential Equations</string>
+    <string name="topic_numerical_matrix_decomposition">Matrix Decompositions (LU, QR, SVD)</string>
+    <string name="topic_numerical_optimization">Optimization Methods (Gradient Descent, Newton)</string>
+
+    <string name="topic_linear_matrices">Matrices and Determinants</string>
+    <string name="topic_linear_systems">Linear Equation Systems</string>
+    <string name="topic_linear_vector_spaces">Vector Spaces and Subspaces</string>
+    <string name="topic_linear_independence">Linear Independence, Basis, and Dimension</string>
+    <string name="topic_linear_transformations">Linear Transformations</string>
+    <string name="topic_linear_kernel_image">Kernel and Image</string>
+    <string name="topic_linear_eigenvalues">Eigenvalues and Eigenvectors</string>
+    <string name="topic_linear_diagonalization">Diagonalization</string>
+    <string name="topic_linear_inner_product">Inner Product Spaces, Orthogonality, and Gram-Schmidt</string>
+    <string name="topic_linear_tensors">Tensors and Their Applications</string>
+    <string name="topic_linear_numerical">Numerical Linear Algebra (Conjugate Gradient)</string>
+
+    <string name="topic_abstract_logic">Logic and Propositions</string>
+    <string name="topic_abstract_set_theory">Set Theory</string>
+    <string name="topic_abstract_proof_methods">Proof Methods</string>
+    <string name="topic_abstract_relations">Relations (Equivalence, Order)</string>
+    <string name="topic_abstract_functions">Functions (Injective, Surjective)</string>
+    <string name="topic_abstract_cardinality">Cardinality, Countability, and the Continuum Hypothesis</string>
+    <string name="topic_abstract_category_theory">Basic Category Theory</string>
+    <string name="topic_abstract_model_theory">Model Theory (Introduction)</string>
+
+    <string name="topic_algebra_groups">Groups and Subgroups</string>
+    <string name="topic_algebra_cyclic_groups">Cyclic Groups and Permutation Groups</string>
+    <string name="topic_algebra_lagrange">Lagrange\'s Theorem</string>
+    <string name="topic_algebra_normal_subgroups">Normal Subgroups and Quotient Groups</string>
+    <string name="topic_algebra_homomorphisms">Group Homomorphisms</string>
+    <string name="topic_algebra_rings_fields">Rings, Ideals, Fields, and Galois Theory</string>
+    <string name="topic_algebra_module_theory">Module Theory</string>
+
+    <string name="topic_number_divisibility">Divisibility and the Euclidean Algorithm</string>
+    <string name="topic_number_prime_numbers">Prime Numbers</string>
+    <string name="topic_number_modular_arithmetic">Modular Arithmetic</string>
+    <string name="topic_number_chinese_remainder">Chinese Remainder Theorem</string>
+    <string name="topic_number_fermat_euler">Fermat\'s and Euler\'s Theorems</string>
+    <string name="topic_number_diophantine">Diophantine Equations</string> <string name="topic_number_cryptography">Cryptography and Applications (RSA, Elliptic Curves)</string>
+    <string name="topic_number_quadratic_residues">Quadratic Residues and the Legendre Symbol</string>
+    <string name="topic_number_analytic_number_theory">Analytic Number Theory (Zeta Function, Prime Number Theorem)</string>
+
+    <string name="topic_diffeq_first_order">First-Order Equations</string>
+    <string name="topic_diffeq_higher_order">Higher-Order Linear Equations</string>
+    <string name="topic_diffeq_undetermined_coefficients">Method of Undetermined Coefficients</string>
+    <string name="topic_diffeq_variation_parameters">Variation of Parameters</string>
+    <string name="topic_diffeq_laplace">Laplace Transforms</string>
+    <string name="topic_diffeq_initial_value">Initial Value Problems</string>
+    <string name="topic_diffeq_systems">Linear and Nonlinear Systems of Equations</string>
+    <string name="topic_diffeq_chaotic_systems">Chaotic Systems</string>
+    <string name="topic_diffeq_numerical_solutions">Numerical Solution Methods</string>
+
+    <string name="topic_pde_concepts">Basic Concepts and Classification</string>
+    <string name="topic_pde_fourier">Fourier Series and Transforms</string>
+    <string name="topic_pde_separation_variables">Separation of Variables</string>
+    <string name="topic_pde_heat_equation">The Heat Equation</string>
+    <string name="topic_pde_wave_equation">The Wave Equation</string>
+    <string name="topic_pde_laplace_equation">Laplace\'s Equation</string>
+    <string name="topic_pde_green_functions">Green\'s Functions</string>
+    <string name="topic_pde_finite_element">Finite Element Method</string>
+
+    <string name="topic_analytic_geometry_coordinates">Coordinate Systems and Vectors</string>
+    <string name="topic_analytic_geometry_line_plane">Line and Plane Equations in Space</string>
+    <string name="topic_analytic_geometry_conic_sections">Conic Sections (Ellipse, Parabola, Hyperbola)</string>
+    <string name="topic_analytic_geometry_quadric_surfaces">Quadric Surfaces</string>
+    <string name="topic_analytic_geometry_transformations">Transformation Geometry and Symmetry Groups</string>
+    <string name="topic_analytic_geometry_projective">Projective Geometry</string>
+    <string name="topic_analytic_geometry_vector_fields">Vector Fields and Applications</string>
+
+    <string name="topic_diffgeo_curves">Theory of Curves</string>
+    <string name="topic_diffgeo_frenet_serret">Frenet-Serret Formulas</string>
+    <string name="topic_diffgeo_surfaces">Theory of Surfaces</string>
+    <string name="topic_diffgeo_fundamental_forms">First and Second Fundamental Forms</string>
+    <string name="topic_diffgeo_gaussian_curvature">Gaussian Curvature</string>
+    <string name="topic_diffgeo_gauss_bonnet">Gauss-Bonnet Theorem and Applications</string>
+    <string name="topic_diffgeo_riemann_geometry">Riemannian Geometry</string>
+    <string name="topic_diffgeo_manifolds">Theory of Manifolds</string>
+
+    <string name="topic_topology_spaces">Topological Spaces</string>
+    <string name="topic_topology_metric_spaces">Metric Spaces</string>
+    <string name="topic_topology_continuity">Continuity and Homeomorphisms</string>
+    <string name="topic_topology_connectedness">Connectedness</string>
+    <string name="topic_topology_compactness">Compactness</string>
+    <string name="topic_topology_fundamental_group">Fundamental Group, Homotopy, and Homology</string>
+    <string name="topic_topology_knot_theory">Knot Theory</string>
+    <string name="topic_topology_homology_cohomology">Homology and Cohomology</string>
+
+    <string name="topic_probability_counting">Counting Techniques and Axioms of Probability</string>
+    <string name="topic_probability_conditional">Conditional Probability and Bayes\' Theorem</string>
+    <string name="topic_probability_random_variables">Random Variables</string>
+    <string name="topic_probability_discrete_distributions">Discrete Distributions (Binomial, Poisson)</string>
+    <string name="topic_probability_continuous_distributions">Continuous Distributions (Exponential, Normal)</string>
+    <string name="topic_probability_expected_value">Expected Value and Variance</string>
+    <string name="topic_probability_limit_theorems">Limit Theorems and Stochastic Processes</string>
+    <string name="topic_probability_markov_chains">Markov Chains</string>
+    <string name="topic_probability_statistical_inference">Statistical Inference</string>
+
+    <string name="topic_functional_normed_spaces">Normed Spaces and Banach Spaces</string>
+    <string name="topic_functional_hilbert_spaces">Hilbert Spaces</string>
+    <string name="topic_functional_linear_operators">Linear Operators</string>
+    <string name="topic_functional_spectral_theory">Spectral Theory</string>
+    <string name="topic_functional_weak_topologies">Weak Topologies</string>
+    <string name="topic_functional_applications">Applications of Functional Analysis (Quantum Mechanics, Signal Processing)</string>
+
+    <string name="search_title">Search</string>
+
+    <string name="ai_assistant_button_desc">AI Assistant</string>
+    <string name="ai_chat_title">AI Study Assistant</string>
+    <string name="ai_chat_question_hint">Ask a question about the PDF...</string>
+    <string name="ai_chat_thinking">Thinking...</string>
+    <string name="ai_chat_error">Sorry, an error occurred. Please try again.</string>
+    <string name="ai_chat_info">"The answers are generated by artificial intelligence based on source content."</string> <string name="send_question_desc">Send question</string>
+
+    <string name="reading_mode_description">Reading Mode</string>
+    <string name="toggle_drawing_description">Toggle Drawing</string>
+    <string name="eraser_description">Eraser</string>
+    <string name="reading_mode_off_toast">Reading Mode: Off</string>
+    <string name="reading_mode_low_toast">Reading Mode: Low</string>
+    <string name="reading_mode_medium_toast">Reading Mode: Medium</string>
+    <string name="reading_mode_high_toast">Reading Mode: High</string>
+    <string name="drawing_mode_off_toast">Drawing Mode: Off</string>
+    <string name="drawing_mode_pencil_toast">Drawing Mode: Pencil</string>
+    <string name="drawing_mode_eraser_toast">Drawing Mode: Eraser</string>
+    <string name="all_drawings_cleared_toast">All drawings cleared!</string>
+    <string name="color_red_description">Red color</string>
+    <string name="color_blue_description">Blue color</string>
+    <string name="color_black_description">Black color</string>
+    <string name="size_small_description">Small size</string>
+    <string name="size_medium_description">Medium size</string>
+    <string name="size_large_description">Large size</string>
+
+    <string name="ai_assistant_api_key_not_configured">AI Assistant API key not configured.</string>
+    <string name="ai_feature_api_key_not_set">API key for AI feature not set.</string>
+    <string name="pdf_text_not_ready">PDF text not ready, please wait.</string>
+    <string name="please_enter_a_question">Please enter a question.</string>
+    <string name="pdf_load_failed_with_error">PDF failed to load: %1$s</string>
+    <string name="pdf_text_extraction_failed">Error extracting PDF text: %1$s</string>
+    <string name="pdf_text_blank_or_empty">Could not extract text from PDF or PDF is blank.</string>
+
+    <string name="app_color_title">App Color</string>
+    <string name="theme_color_serene_blue">Serene Blue</string>
+    <string name="theme_color_red">Red</string>
+    <string name="theme_color_green">Green</string>
+    <string name="theme_color_purple">Purple</string>
+    <string name="theme_color_orange">Orange</string>
+    <string name="theme_color_deep_purple">Deep Purple</string>
+    <string name="theme_color_indigo">Indigo</string>
+    <string name="theme_color_cyan">Cyan</string>
+    <string name="theme_color_pink">Pink</string>
+    <string name="theme_color_brown">Brown</string>
+    <string name="theme_color_unknown">Unknown Color</string>
+    <string name="ai_chat_error_with_details">Üzgünüm, bir hata oluştu: %1$s</string>
+    <string name="ai_assistant_rate_limit">AI Asistanını tekrar kullanmak için %1$d saat %2$d dakika bekleyiniz.</string>
+
+    <string name="ai_info_not_found">Specific information about your question could not be found in the PDF. Please try again with different words or a general topic.</string>
+</resources>
