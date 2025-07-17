@@ -5,41 +5,33 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
-import android.view.ViewGroup
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.SearchView
-import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.codenzi.mathlabs.databinding.ActivityMainBinding
+import com.google.android.material.appbar.AppBarLayout
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Calendar
+import kotlin.math.abs
 
-/**
- * Uygulamanın ana ekranını temsil eden Activity.
- * Hilt tarafından yönetilir (@AndroidEntryPoint) ve ViewModel'den gelen verilerle UI'ı günceller.
- */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
-    // View Binding nesnesi, XML layout'taki view'lara güvenli ve null-safe erişim sağlar.
     private lateinit var binding: ActivityMainBinding
     private lateinit var courseAdapter: CourseAdapter
-    // 'by viewModels()' Kotlin property delegate'i kullanarak Hilt uyumlu ViewModel'i oluşturur.
     private val viewModel: MainViewModel by viewModels()
+    private lateinit var toolbarTitle: TextView
 
-    // Ayarlar ekranından geri dönüldüğünde temayı/dili yeniden uygulamak için kullanılır.
     private val settingsLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // Dil veya tema değişikliği sonrası aktiviteyi yeniden oluştur.
-            // Bu, hem arayüzün (başlık, metin yönü vb.) hem de veri listesinin güncellenmesini sağlar.
             recreate()
         }
     }
@@ -48,38 +40,41 @@ class MainActivity : AppCompatActivity() {
         super.attachBaseContext(LocaleHelper.onAttach(newBase))
     }
 
-    private fun applyThemeAndColor() {
-        setTheme(ThemeManager.getThemeResId(this))
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
-        applyThemeAndColor()
+        val themeMode = SharedPreferencesManager.getTheme(this)
+        AppCompatDelegate.setDefaultNightMode(themeMode)
+        setTheme(R.style.Theme_Pdf)
+
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Kenardan kenara (edge-to-edge) görünümü etkinleştir.
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        toolbarTitle = binding.topToolbar.findViewById(R.id.toolbar_title)
 
-        // Toolbar'ı ayarla.
-        setSupportActionBar(binding.topToolbar)
-        supportActionBar?.title = getGreetingMessage(this)
-
-        // Toolbar'ın durum çubuğunun (status bar) altına itilmesini sağla.
-        ViewCompat.setOnApplyWindowInsetsListener(binding.topToolbar) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                topMargin = systemBars.top
-            }
-            WindowInsetsCompat.CONSUMED
-        }
-
+        setupToolbar()
         setupRecyclerView()
         observeViewModel()
 
-        // Veriyi yüklerken bu Activity'nin güncel Context'ini kullan.
-        // Bu, recreate() sonrası doğru dil kaynaklarının kullanılmasını sağlar.
         viewModel.loadCourses(this)
+    }
+
+    private fun setupToolbar() {
+        setSupportActionBar(binding.topToolbar)
+        supportActionBar?.setDisplayShowTitleEnabled(false)
+
+        toolbarTitle.text = getGreetingMessage(this)
+
+        binding.appBar.addOnOffsetChangedListener(AppBarLayout.OnOffsetChangedListener { appBarLayout, verticalOffset ->
+            val totalScrollRange = appBarLayout.totalScrollRange
+            val percentage = (abs(verticalOffset).toFloat() / totalScrollRange.toFloat())
+
+            // Toolbar küçüldükçe selamlama mesajını yumuşakça görünür yap, büyüdükçe kaybet.
+            toolbarTitle.alpha = percentage
+
+            // MathLabs başlığı ve ikonunu ters yönde kaybet/göster.
+            binding.expandedHeader.alpha = 1 - (percentage * 1.5f)
+        })
     }
 
     private fun getGreetingMessage(context: android.content.Context): String {
@@ -116,13 +111,10 @@ class MainActivity : AppCompatActivity() {
         binding.recyclerViewCourses.apply {
             layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = courseAdapter
-            setHasFixedSize(true)
         }
     }
 
     private fun observeViewModel() {
-        // ViewModel'deki 'courses' LiveData'sını gözlemle.
-        // Veri değiştiğinde, adapter'ın listesi otomatik olarak ve verimli bir şekilde güncellenir.
         viewModel.courses.observe(this) { courses ->
             courseAdapter.submitList(courses)
         }
@@ -137,7 +129,6 @@ class MainActivity : AppCompatActivity() {
             override fun onQueryTextSubmit(query: String?): Boolean = false
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                // Filtreleme işlemini doğrudan ViewModel'e delege et.
                 viewModel.filter(newText)
                 return true
             }

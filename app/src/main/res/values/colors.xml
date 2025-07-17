@@ -1,49 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="serene_blue_primary">#2A78A0</color>
-    <color name="serene_blue_dark">#1A5A7A</color>
-    <color name="serene_teal_accent">#68A2A8</color>
-    <color name="serene_surface_light">#FAFAFA</color>
-    <color name="serene_container_light">#FFFFFF</color>
-    <color name="serene_text_dark">#1A1C1E</color>
-    <color name="serene_surface_dark">#121212</color>
-    <color name="serene_container_dark">#1E1E1E</color>
-    <color name="serene_text_light">#E2E2E6</color>
-    <color name="gold_accent">#FFD700</color>
-    <color name="soft_light_blue_background">#E3F2FD</color>
-
     <color name="red">#F44336</color>
     <color name="blue">#2196F3</color>
     <color name="black">#000000</color>
 
-    <color name="theme_red_primary">#F44336</color>
-    <color name="theme_red_accent">#D32F2F</color>
-
-    <color name="theme_green_primary">#4CAF50</color>
-    <color name="theme_green_accent">#388E3C</color>
-
-    <color name="theme_purple_primary">#9C27B0</color>
-    <color name="theme_purple_accent">#7B1FA2</color>
-
-    <color name="theme_orange_primary">#FF9800</color>
-    <color name="theme_orange_accent">#F57C00</color>
-
-    <color name="theme_deep_purple_primary">#673AB7</color>
-    <color name="theme_deep_purple_accent">#512DA8</color>
-
-    <color name="theme_indigo_primary">#3F51B5</color>
-    <color name="theme_indigo_accent">#303F9F</color>
-
-    <color name="theme_cyan_primary">#00BCD4</color>
-    <color name="theme_cyan_accent">#0097A7</color>
-
-    <color name="theme_pink_primary">#E91E63</color>
-    <color name="theme_pink_accent">#C2185B</color>
-
-    <color name="theme_brown_primary">#795548</color>
-    <color name="theme_brown_accent">#5D4037</color>
-
-    <color name="theme_grey_primary">#9E9E9E</color>
-    <color name="theme_grey_accent">#616161</color>
-
+    <color name="serene_blue_primary">#2A78A0</color>
+    <color name="serene_blue_dark">#1A5A7A</color>
+    <color name="serene_teal_accent">#68A2A8</color>
+    <color name="serene_surface_light">#FDFBFF</color>
+    <color name="serene_container_light">#FFFFFF</color>
+    <color name="serene_text_dark">#1A1C1E</color>
+    <color name="serene_surface_dark">#1A1C1E</color>
+    <color name="serene_container_dark">#1E1E1E</color>
+    <color name="serene_text_light">#E2E2E6</color>
 </resources>

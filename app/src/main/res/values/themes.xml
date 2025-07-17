@@ -1,11 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.Pdf" parent="Theme.Pdf.SereneBlue_Light" />
-
-    <style name="Theme.Pdf.SereneBlue_Light" parent="Theme.Material3.Light.NoActionBar">
+    <style name="Theme.Pdf" parent="Theme.Material3.Light.NoActionBar">
         <item name="colorPrimary">@color/serene_blue_primary</item>
         <item name="colorOnPrimary">@color/serene_text_light</item>
         <item name="colorSecondary">@color/serene_teal_accent</item>
-        <item name="colorOnSecondary">@color/serene_text_dark</item>
         <item name="android:colorBackground">@color/serene_surface_light</item>
         <item name="colorSurface">@color/serene_surface_light</item>
         <item name="colorOnSurface">@color/serene_text_dark</item>
@@ -13,182 +10,33 @@
         <item name="colorOnPrimaryContainer">@color/serene_text_dark</item>
         <item name="colorSurfaceVariant">@color/serene_container_light</item>
         <item name="colorOnSurfaceVariant">@color/serene_text_dark</item>
-        <item name="android:statusBarColor">@color/serene_blue_primary</item>
-
-        <item name="colorPrimaryDynamic">@color/serene_text_light</item>
-        <item name="colorAccentDynamic">@color/serene_teal_accent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
     </style>
 
-    <style name="Theme.Pdf.Red_Light" parent="Theme.Material3.Light.NoActionBar">
-        <item name="colorPrimary">@color/theme_red_primary</item>
-        <item name="colorOnPrimary">@color/serene_text_light</item>
-        <item name="colorSecondary">@color/theme_red_accent</item>
-        <item name="colorOnSecondary">@color/serene_text_dark</item>
-        <item name="android:colorBackground">@color/serene_surface_light</item>
-        <item name="colorSurface">@color/serene_surface_light</item>
-        <item name="colorOnSurface">@color/serene_text_dark</item>
-        <item name="colorPrimaryContainer">@color/serene_container_light</item>
-        <item name="colorOnPrimaryContainer">@color/serene_text_dark</item>
-        <item name="colorSurfaceVariant">@color/serene_container_light</item>
-        <item name="colorOnSurfaceVariant">@color/serene_text_dark</item>
-        <item name="android:statusBarColor">@color/theme_red_primary</item>
-
-        <item name="colorPrimaryDynamic">@color/serene_text_light</item>
-        <item name="colorAccentDynamic">@color/theme_red_accent</item>
+    <style name="Theme.Pdf.SplashActivity" parent="Theme.Pdf">
+        <item name="android:windowBackground">?attr/colorPrimary</item>
+        <item name="android:statusBarColor">?attr/colorPrimary</item>
     </style>
 
-    <style name="Theme.Pdf.Green_Light" parent="Theme.Material3.Light.NoActionBar">
-        <item name="colorPrimary">@color/theme_green_primary</item>
-        <item name="colorOnPrimary">@color/serene_text_light</item>
-        <item name="colorSecondary">@color/theme_green_accent</item>
-        <item name="colorOnSecondary">@color/serene_text_dark</item>
-        <item name="android:colorBackground">@color/serene_surface_light</item>
-        <item name="colorSurface">@color/serene_surface_light</item>
-        <item name="colorOnSurface">@color/serene_text_dark</item>
-        <item name="colorPrimaryContainer">@color/serene_container_light</item>
-        <item name="colorOnPrimaryContainer">@color/serene_text_dark</item>
-        <item name="colorSurfaceVariant">@color/serene_container_light</item>
-        <item name="colorOnSurfaceVariant">@color/serene_text_dark</item>
-        <item name="android:statusBarColor">@color/theme_green_primary</item>
-
-        <item name="colorPrimaryDynamic">@color/serene_text_light</item>
-        <item name="colorAccentDynamic">@color/theme_green_accent</item>
-    </style>
-
-    <style name="Theme.Pdf.Purple_Light" parent="Theme.Material3.Light.NoActionBar">
-        <item name="colorPrimary">@color/theme_purple_primary</item>
-        <item name="colorOnPrimary">@color/serene_text_light</item>
-        <item name="colorSecondary">@color/theme_purple_accent</item>
-        <item name="colorOnSecondary">@color/serene_text_dark</item>
-        <item name="android:colorBackground">@color/serene_surface_light</item>
-        <item name="colorSurface">@color/serene_surface_light</item>
-        <item name="colorOnSurface">@color/serene_text_dark</item>
-        <item name="colorPrimaryContainer">@color/serene_container_light</item>
-        <item name="colorOnPrimaryContainer">@color/serene_text_dark</item>
-        <item name="colorSurfaceVariant">@color/serene_container_light</item>
-        <item name="colorOnSurfaceVariant">@color/serene_text_dark</item>
-        <item name="android:statusBarColor">@color/theme_purple_primary</item>
-
-        <item name="colorPrimaryDynamic">@color/serene_text_light</item>
-        <item name="colorAccentDynamic">@color/theme_purple_accent</item>
-    </style>
-
-    <style name="Theme.Pdf.Orange_Light" parent="Theme.Material3.Light.NoActionBar">
-        <item name="colorPrimary">@color/theme_orange_primary</item>
-        <item name="colorOnPrimary">@color/serene_text_light</item>
-        <item name="colorSecondary">@color/theme_orange_accent</item>
-        <item name="colorOnSecondary">@color/serene_text_dark</item>
-        <item name="android:colorBackground">@color/serene_surface_light</item>
-        <item name="colorSurface">@color/serene_surface_light</item>
-        <item name="colorOnSurface">@color/serene_text_dark</item>
-        <item name="colorPrimaryContainer">@color/serene_container_light</item>
-        <item name="colorOnPrimaryContainer">@color/serene_text_dark</item>
-        <item name="colorSurfaceVariant">@color/serene_container_light</item>
-        <item name="colorOnSurfaceVariant">@color/serene_text_dark</item>
-        <item name="android:statusBarColor">@color/theme_orange_primary</item>
-
-        <item name="colorPrimaryDynamic">@color/serene_text_light</item>
-        <item name="colorAccentDynamic">@color/theme_orange_accent</item>
-    </style>
-
-    <style name="Theme.Pdf.DeepPurple_Light" parent="Theme.Material3.Light.NoActionBar">
-        <item name="colorPrimary">@color/theme_deep_purple_primary</item>
-        <item name="colorOnPrimary">@color/serene_text_light</item>
-        <item name="colorSecondary">@color/theme_deep_purple_accent</item>
-        <item name="colorOnSecondary">@color/serene_text_dark</item>
-        <item name="android:colorBackground">@color/serene_surface_light</item>
-        <item name="colorSurface">@color/serene_surface_light</item>
-        <item name="colorOnSurface">@color/serene_text_dark</item>
-        <item name="colorPrimaryContainer">@color/serene_container_light</item>
-        <item name="colorOnPrimaryContainer">@color/serene_text_dark</item>
-        <item name="colorSurfaceVariant">@color/serene_container_light</item>
-        <item name="colorOnSurfaceVariant">@color/serene_text_dark</item>
-        <item name="android:statusBarColor">@color/theme_deep_purple_primary</item>
-
-        <item name="colorPrimaryDynamic">@color/serene_text_light</item>
-        <item name="colorAccentDynamic">@color/theme_deep_purple_accent</item>
-    </style>
-
-    <style name="Theme.Pdf.Indigo_Light" parent="Theme.Material3.Light.NoActionBar">
-        <item name="colorPrimary">@color/theme_indigo_primary</item>
-        <item name="colorOnPrimary">@color/serene_text_light</item>
-        <item name="colorSecondary">@color/theme_indigo_accent</item>
-        <item name="colorOnSecondary">@color/serene_text_dark</item>
-        <item name="android:colorBackground">@color/serene_surface_light</item>
-        <item name="colorSurface">@color/serene_surface_light</item>
-        <item name="colorOnSurface">@color/serene_text_dark</item>
-        <item name="colorPrimaryContainer">@color/serene_container_light</item>
-        <item name="colorOnPrimaryContainer">@color/serene_text_dark</item>
-        <item name="colorSurfaceVariant">@color/serene_container_light</item>
-        <item name="colorOnSurfaceVariant">@color/serene_text_dark</item>
-        <item name="android:statusBarColor">@color/theme_indigo_primary</item>
-
-        <item name="colorPrimaryDynamic">@color/serene_text_light</item>
-        <item name="colorAccentDynamic">@color/theme_indigo_accent</item>
-    </style>
-
-    <style name="Theme.Pdf.Cyan_Light" parent="Theme.Material3.Light.NoActionBar">
-        <item name="colorPrimary">@color/theme_cyan_primary</item>
-        <item name="colorOnPrimary">@color/serene_text_light</item>
-        <item name="colorSecondary">@color/theme_cyan_accent</item>
-        <item name="colorOnSecondary">@color/serene_text_dark</item>
-        <item name="android:colorBackground">@color/serene_surface_light</item>
-        <item name="colorSurface">@color/serene_surface_light</item>
-        <item name="colorOnSurface">@color/serene_text_dark</item>
-        <item name="colorPrimaryContainer">@color/serene_container_light</item>
-        <item name="colorOnPrimaryContainer">@color/serene_text_dark</item>
-        <item name="colorSurfaceVariant">@color/serene_container_light</item>
-        <item name="colorOnSurfaceVariant">@color/serene_text_dark</item>
-        <item name="android:statusBarColor">@color/theme_cyan_primary</item>
-
-        <item name="colorPrimaryDynamic">@color/serene_text_light</item>
-        <item name="colorAccentDynamic">@color/theme_cyan_accent</item>
-    </style>
-
-    <style name="Theme.Pdf.Pink_Light" parent="Theme.Material3.Light.NoActionBar">
-        <item name="colorPrimary">@color/theme_pink_primary</item>
-        <item name="colorOnPrimary">@color/serene_text_light</item>
-        <item name="colorSecondary">@color/theme_pink_accent</item>
-        <item name="colorOnSecondary">@color/serene_text_dark</item>
-        <item name="android:colorBackground">@color/serene_surface_light</item>
-        <item name="colorSurface">@color/serene_surface_light</item>
-        <item name="colorOnSurface">@color/serene_text_dark</item>
-        <item name="colorPrimaryContainer">@color/serene_container_light</item>
-        <item name="colorOnPrimaryContainer">@color/serene_text_dark</item>
-        <item name="colorSurfaceVariant">@color/serene_container_light</item>
-        <item name="colorOnSurfaceVariant">@color/serene_text_dark</item>
-        <item name="android:statusBarColor">@color/theme_pink_primary</item>
-
-        <item name="colorPrimaryDynamic">@color/serene_text_light</item>
-        <item name="colorAccentDynamic">@color/theme_pink_accent</item>
-    </style>
-
-    <style name="Theme.Pdf.Brown_Light" parent="Theme.Material3.Light.NoActionBar">
-        <item name="colorPrimary">@color/theme_brown_primary</item>
-        <item name="colorOnPrimary">@color/serene_text_light</item>
-        <item name="colorSecondary">@color/theme_brown_accent</item>
-        <item name="colorOnSecondary">@color/serene_text_dark</item>
-        <item name="android:colorBackground">@color/serene_surface_light</item>
-        <item name="colorSurface">@color/serene_surface_light</item>
-        <item name="colorOnSurface">@color/serene_text_dark</item>
-        <item name="colorPrimaryContainer">@color/serene_container_light</item>
-        <item name="colorOnPrimaryContainer">@color/serene_text_dark</item>
-        <item name="colorSurfaceVariant">@color/serene_container_light</item>
-        <item name="colorOnSurfaceVariant">@color/serene_text_dark</item>
-        <item name="android:statusBarColor">@color/theme_brown_primary</item>
-
-        <item name="colorPrimaryDynamic">@color/serene_text_light</item>
-        <item name="colorAccentDynamic">@color/theme_brown_accent</item>
-    </style>
-
-    <style name="Theme.Pdf.SplashActivity" parent="Theme.Material3.Light.NoActionBar">
-        <item name="android:windowBackground">@color/serene_blue_dark</item>
-        <item name="android:statusBarColor">@color/serene_blue_dark</item>
-    </style>
-
-    <style name="Theme.Pdf.PdfView" parent="Theme.Material3.Light.NoActionBar">
-        <item name="colorPrimary">@color/serene_blue_primary</item>
+    <style name="Theme.Pdf.PdfView" parent="Theme.Pdf">
         <item name="android:windowNoTitle">true</item>
         <item name="windowActionBar">false</item>
+    </style>
+
+    <style name="ExpandedAppBar" parent="@android:style/TextAppearance.Medium">
+        <item name="android:textSize">28sp</item>
+        <item name="android:textColor">@color/serene_text_light</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:shadowColor">#40000000</item>
+        <item name="android:shadowDx">1</item>
+        <item name="android:shadowDy">1</item>
+        <item name="android:shadowRadius">2</item>
+    </style>
+
+    <style name="CollapsedAppBar" parent="@android:style/TextAppearance.Medium">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/serene_text_light</item>
+        <item name="android:textStyle">normal</item>
     </style>
 </resources>

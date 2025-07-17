@@ -239,4 +239,12 @@
     <string name="ai_assistant_rate_limit">AI Asistanını tekrar kullanmak için %1$d saat %2$d dakika bekleyiniz.</string>
 
     <string name="ai_info_not_found">Specific information about your question could not be found in the PDF. Please try again with different words or a general topic.</string>
+    <string name="knowledge_awaits">Knowledge awaits you</string>
+
+    <string name="settings_category_general">General</string>
+    <string name="settings_category_feedback">Feedback</string>
+    <string name="theme_desc">Use the app in light or dark mode.</string>
+    <string name="language_desc">Change the app language.</string>
+    <string name="touch_sound_desc">Get sound feedback when interacting with interface elements.</string>
+
 </resources>

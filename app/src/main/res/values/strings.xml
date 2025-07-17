@@ -240,4 +240,11 @@
     <string name="ai_assistant_rate_limit">AI Asistanını tekrar kullanmak için %1$d saat %2$d dakika bekleyiniz.</string>
 
     <string name="ai_info_not_found">Sorunuzla ilgili spesifik bir bilgi PDF\'te bulunamadı. Lütfen daha farklı kelimelerle veya genel bir konu başlığı ile tekrar deneyin.</string>
+    <string name="knowledge_awaits">Bilgi seni bekliyor</string>
+
+    <string name="settings_category_general">Genel</string>
+    <string name="settings_category_feedback">Geri Bildirim</string>
+    <string name="theme_desc">Uygulamanın görünümünü aydınlık veya koyu modda kullanın.</string>
+    <string name="language_desc">Uygulama dilini değiştirin.</string>
+    <string name="touch_sound_desc">Arayüz elemanlarına dokunulduğunda sesli geri bildirim alın.</string>
 </resources>

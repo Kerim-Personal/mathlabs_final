@@ -1,6 +1,5 @@
 package com.codenzi.mathlabs
 
-
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -8,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -20,19 +20,15 @@ class NameEntryActivity : AppCompatActivity() {
         super.attachBaseContext(LocaleHelper.onAttach(newBase))
     }
 
-    private fun applyThemeAndColor() {
-        setTheme(ThemeManager.getThemeResId(this))
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
-        applyThemeAndColor()
+        val themeMode = SharedPreferencesManager.getTheme(this)
+        AppCompatDelegate.setDefaultNightMode(themeMode)
+        setTheme(R.style.Theme_Pdf)
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_name_entry)
 
-        // Modern tam ekran yöntemini etkinleştir
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
-        // İçeriğin sistem çubukları altına girmemesi için ana layout'a padding ver
         val rootView = findViewById<ViewGroup>(android.R.id.content).getChildAt(0)
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { view, insets ->
             val systemBarInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())

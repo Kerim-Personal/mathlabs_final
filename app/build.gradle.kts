@@ -84,18 +84,18 @@ android {
 }
 
 dependencies {
+    // ---- ÇEKİRDEK KÜTÜPHANELER ----
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material) // <-- HATA GİDEREN SATIR BU
+    implementation(libs.androidx.constraintlayout)
+
     // ---- Firebase Bağımlılıkları ----
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-storage-ktx")
 
     // ---- Ağ ve Önbellekleme ----
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
-    // ---- Çekirdek Kütüphaneler ----
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
-    implementation(libs.androidx.constraintlayout)
 
     // ---- Yaşam Döngüsü (Lifecycle) ve ViewModel ----
     implementation(libs.androidx.lifecycle.runtime.ktx)

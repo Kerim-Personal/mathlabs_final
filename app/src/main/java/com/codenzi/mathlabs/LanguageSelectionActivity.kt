@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -17,22 +18,17 @@ class LanguageSelectionActivity : AppCompatActivity() {
         super.attachBaseContext(LocaleHelper.onAttach(newBase))
     }
 
-    private fun applyThemeAndColor() {
-        setTheme(ThemeManager.getThemeResId(this))
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
-        applyThemeAndColor()
+        val themeMode = SharedPreferencesManager.getTheme(this)
+        AppCompatDelegate.setDefaultNightMode(themeMode)
+        setTheme(R.style.Theme_Pdf)
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_language_selection)
 
-        // Modern tam ekran yöntemini etkinleştir
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
-        // İçeriğin sistem çubukları altına girmemesi için ana layout'a padding ver
         val rootView = findViewById<ViewGroup>(android.R.id.content).getChildAt(0)
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { view, insets ->
-            // Düzeltilmiş satır aşağıda
             val systemBarInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.updatePadding(
                 left = systemBarInsets.left,
@@ -60,7 +56,6 @@ class LanguageSelectionActivity : AppCompatActivity() {
     private fun setLanguageAndProceed(languageCode: String) {
         LocaleHelper.persist(this, languageCode)
 
-        // 'Assignment' uyarısı için düzeltilmiş, daha kısa kod
         val intent = if (SharedPreferencesManager.getUserName(this) == null) {
             Intent(this, NameEntryActivity::class.java)
         } else {

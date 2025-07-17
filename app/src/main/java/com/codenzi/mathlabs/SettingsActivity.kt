@@ -4,10 +4,10 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.MenuItem
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -24,25 +24,18 @@ class SettingsActivity : AppCompatActivity() {
         super.attachBaseContext(LocaleHelper.onAttach(newBase))
     }
 
-    private fun applyGlobalThemeAndColor() {
-        val theme = SharedPreferencesManager.getTheme(this)
-        AppCompatDelegate.setDefaultNightMode(theme)
-        setTheme(ThemeManager.getThemeResId(this))
-        Log.d("ThemeDebug", "SettingsActivity - Tema uygulandı. Gece Modu: $theme")
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
-        Log.d("ThemeDebug", "SettingsActivity - onCreate çağrıldı.")
-        applyGlobalThemeAndColor()
+        val themeMode = SharedPreferencesManager.getTheme(this)
+        AppCompatDelegate.setDefaultNightMode(themeMode)
+        setTheme(R.style.Theme_Pdf)
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
 
-        // Modern tam ekran yöntemini etkinleştir
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         val toolbar: MaterialToolbar = findViewById(R.id.settingsToolbar)
 
-        // Toolbar'ın bildirim çubuğu altına girmemesi için
         ViewCompat.setOnApplyWindowInsetsListener(toolbar) { view, insets ->
             val systemBarInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
@@ -55,6 +48,11 @@ class SettingsActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = getString(R.string.settings_title)
 
+        setupClickListeners()
+        setupSwitches()
+    }
+
+    private fun setupClickListeners() {
         val layoutLanguageSettings: LinearLayout = findViewById(R.id.layoutLanguageSettings)
         layoutLanguageSettings.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
@@ -68,13 +66,8 @@ class SettingsActivity : AppCompatActivity() {
             showThemeDialog()
         }
 
-        val layoutAppColorSettings: LinearLayout = findViewById(R.id.layoutAppColorSettings)
-        layoutAppColorSettings.setOnClickListener {
-            UIFeedbackHelper.provideFeedback(it)
-            showAppColorDialog()
-        }
-
-        setupSwitches()
+        // App Color kısmı kaldırıldığı için ilgili listener da silindi.
+        // val layoutAppColorSettings: LinearLayout = findViewById(R.id.layoutAppColorSettings)
     }
 
     private fun setupSwitches() {
@@ -108,27 +101,8 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 if (selectedTheme != currentTheme) {
                     SharedPreferencesManager.saveTheme(this, selectedTheme)
-                    AppCompatDelegate.setDefaultNightMode(selectedTheme)
                     setResult(Activity.RESULT_OK)
                     recreate()
-                }
-                dialog.dismiss()
-            }
-            .create()
-            .show()
-    }
-
-    private fun showAppColorDialog() {
-        val themeColorNames = Array(ThemeManager.getAppColorThemeCount()) { i ->
-            ThemeManager.getAppColorThemeName(this, i)
-        }
-        val currentAppColorThemeIndex = SharedPreferencesManager.getAppColorTheme(this)
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.app_color_title))
-            .setSingleChoiceItems(themeColorNames, currentAppColorThemeIndex) { dialog, which ->
-                if (which != currentAppColorThemeIndex) {
-                    ThemeManager.applyAppColorTheme(this, which)
-                    setResult(Activity.RESULT_OK)
                 }
                 dialog.dismiss()
             }
@@ -139,16 +113,15 @@ class SettingsActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == android.R.id.home) {
             setResult(Activity.RESULT_OK)
-            Log.d("ThemeDebug", "SettingsActivity - Toolbar geri tuşu: RESULT_OK ayarlandı.")
             finish()
             return true
         }
         return super.onOptionsItemSelected(item)
     }
 
+    @Deprecated("This method has been deprecated in favor of using the OnBackPressedDispatcher.", ReplaceWith("onBackPressedDispatcher.onBackPressed()"))
     override fun onBackPressed() {
         setResult(Activity.RESULT_OK)
-        Log.d("ThemeDebug", "SettingsActivity - Fiziksel geri tuşu: RESULT_OK ayarlandı.")
         super.onBackPressed()
     }
 }

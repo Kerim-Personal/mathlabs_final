@@ -17,6 +17,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.graphics.toColorInt
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -91,13 +92,20 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         super.attachBaseContext(LocaleHelper.onAttach(newBase))
     }
 
-    private fun applyThemeAndColor() {
-        setTheme(ThemeManager.getThemeResId(this))
+    /**
+     * Bu aktivite için doğru temayı uygular.
+     * Önce genel aydınlık/karanlık mod ayarını, ardından bu aktiviteye özel stili yükler.
+     * Bu, çökme sorununu gideren ana düzeltmedir.
+     */
+    private fun applyAppTheme() {
+        val themeMode = SharedPreferencesManager.getTheme(this)
+        AppCompatDelegate.setDefaultNightMode(themeMode)
+        setTheme(R.style.Theme_Pdf_PdfView)
     }
 
     @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
-        applyThemeAndColor()
+        applyAppTheme() // TEMAYI ÖNCE UYGULA
         super.onCreate(savedInstanceState)
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         setContentView(R.layout.activity_pdf_view)
@@ -267,8 +275,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                             aiResponse = getString(R.string.ai_info_not_found)
                         } else {
                             val historyText = conversationHistory.joinToString("\n")
-
-                            // YENİ: Dil kontrolü ve dile göre prompt seçimi
                             val currentLanguage = SharedPreferencesManager.getLanguage(this@PdfViewActivity) ?: "tr"
                             val prompt: String
 
