@@ -35,8 +35,8 @@ class CourseRepository @Inject constructor() {
             .replace("Ö", "O")
             .replace("ç", "c")
             .replace("Ç", "C")
-            // PARANTEZLERİ VE DİĞER SEMBOLLERİ TEMİZLEYEN YENİ SATIR
-            .replace(Regex("[^a-zA-Z0-9 ]"), "") // Harf, rakam ve boşluk dışındaki her şeyi kaldırır
+            // KESME İŞARETİNİ KORUYAN VE DİĞER SEMBOLLERİ TEMİZLEYEN NİHAİ SATIR
+            .replace(Regex("[^a-zA-Z0-9' ]"), "") // Harf, rakam, kesme işareti ve boşluk dışındaki her şeyi kaldırır
         return normalized.lowercase(Locale.ROOT).replace(" ", "_")
     }
 
