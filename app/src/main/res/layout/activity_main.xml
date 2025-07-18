@@ -61,7 +61,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="@string/knowledge_awaits"
-                    android:textColor="?attr/colorOnPrimary"
+                    android:textColor="@color/serene_text_light"
                     android:textSize="16sp"
                     android:alpha="0.8"/>
 

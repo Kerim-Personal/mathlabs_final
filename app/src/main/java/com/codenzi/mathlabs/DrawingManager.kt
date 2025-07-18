@@ -2,6 +2,7 @@ package com.codenzi.mathlabs
 
 import android.content.Context
 import android.graphics.Color
+import android.os.SystemClock
 import android.view.View
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -33,6 +34,8 @@ class DrawingManager(
 ) {
     private var currentPdfName: String = ""
     private var currentPageIndex: Int = 0
+    private var eraserClickCount = 0
+    private var lastEraserClickTime: Long = 0
 
     init {
         setupClickListeners()
@@ -62,7 +65,28 @@ class DrawingManager(
 
     private fun setupClickListeners() {
         fabToggleDrawing.setOnClickListener { togglePenMode() }
-        fabEraser.setOnClickListener { toggleEraserMode() }
+
+        fabEraser.setOnClickListener {
+            val currentTime = SystemClock.elapsedRealtime()
+            if (currentTime - lastEraserClickTime < 1000) { // 1 saniyeden az bir süre içinde tıklandıysa
+                eraserClickCount++
+            } else {
+                eraserClickCount = 1
+            }
+            lastEraserClickTime = currentTime
+
+            if (eraserClickCount == 3) {
+                UIFeedbackHelper.provideFeedback(it)
+                coroutineScope.launch {
+                    dao.clearPage(currentPdfName, currentPageIndex)
+                    drawingView.clearAllDrawings()
+                }
+                showSnackbar(context.getString(R.string.all_drawings_cleared_toast))
+                eraserClickCount = 0 // Sayacı sıfırla
+            } else {
+                toggleEraserMode()
+            }
+        }
 
         fabClearAll.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)

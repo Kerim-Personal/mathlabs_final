@@ -70,7 +70,7 @@ class SettingsActivity : AppCompatActivity() {
             UIFeedbackHelper.provideFeedback(it)
             val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
                 data = Uri.parse("mailto:") // Yalnızca e-posta uygulamaları bu intent'i açmalı
-                putExtra(Intent.EXTRA_EMAIL, arrayOf("mathlabs.feedback@gmail.com"))
+                putExtra(Intent.EXTRA_EMAIL, arrayOf("info@codenzi.com"))
                 putExtra(Intent.EXTRA_SUBJECT, "MathLabs Geri Bildirim")
             }
             try {
@@ -82,7 +82,7 @@ class SettingsActivity : AppCompatActivity() {
 
         findViewById<LinearLayout>(R.id.layoutPrivacyPolicy).setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
-            val url = "https://www.google.com" // Buraya kendi gizlilik sözleşmesi linkinizi ekleyin
+            val url = "https://www.codenzi.com/privacy-math-labs.html" // Buraya kendi gizlilik sözleşmesi linkinizi ekleyin
             val privacyIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             startActivity(privacyIntent)
         }
