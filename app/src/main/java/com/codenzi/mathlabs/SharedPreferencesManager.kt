@@ -11,7 +11,6 @@ object SharedPreferencesManager {
     private const val PREFS_NAME = "app_prefs"
     private const val KEY_LANGUAGE = "selected_language"
     private const val KEY_LANGUAGE_SELECTED_FLAG = "language_selected_flag"
-    // KEY_HAPTIC_FEEDBACK sabiti kaldırıldı.
     private const val KEY_TOUCH_SOUND = "touch_sound_enabled"
     private const val KEY_THEME = "theme_preference"
     private const val KEY_USER_NAME = "user_name"
@@ -54,7 +53,8 @@ object SharedPreferencesManager {
     }
 
     fun getPenSizeType(context: Context): Int {
-        val size = getPreferences(context).getInt(KEY_PEN_SIZE_TYPE, DrawingModeType.MEDIUM.ordinal)
+        // HATA DÜZELTİLDİ: DrawingModeType yerine BrushSize kullanılıyor
+        val size = getPreferences(context).getInt(KEY_PEN_SIZE_TYPE, BrushSize.MEDIUM.ordinal)
         Log.d("ThemeDebug", "SharedPreferencesManager - Kalem boyutu alındı: $size")
         return size
     }
@@ -65,7 +65,8 @@ object SharedPreferencesManager {
     }
 
     fun getEraserSizeType(context: Context): Int {
-        val size = getPreferences(context).getInt(KEY_ERASER_SIZE_TYPE, DrawingModeType.MEDIUM.ordinal)
+        // HATA DÜZELTİLDİ: DrawingModeType yerine BrushSize kullanılıyor
+        val size = getPreferences(context).getInt(KEY_ERASER_SIZE_TYPE, BrushSize.MEDIUM.ordinal)
         Log.d("ThemeDebug", "SharedPreferencesManager - Silgi boyutu alındı: $size")
         return size
     }
@@ -102,8 +103,6 @@ object SharedPreferencesManager {
         Log.d("ThemeDebug", "SharedPreferencesManager - Dil seçildi alındı: $selected")
         return selected
     }
-
-    // setHapticFeedbackEnabled ve isHapticFeedbackEnabled fonksiyonları kaldırıldı.
 
     fun setTouchSoundEnabled(context: Context, enabled: Boolean) {
         getPreferences(context).edit().putBoolean(KEY_TOUCH_SOUND, enabled).apply()

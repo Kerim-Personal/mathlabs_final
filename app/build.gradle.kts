@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("kotlin-kapt")
+    id("kotlin-kapt") // KAPT plugin'i Hilt ve Room için gereklidir
     id("com.google.dagger.hilt.android")
     id("com.google.gms.google-services")
 }
@@ -87,7 +87,7 @@ dependencies {
     // ---- ÇEKİRDEK KÜTÜPHANELER ----
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.material) // <-- HATA GİDEREN SATIR BU
+    implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
 
     // ---- Firebase Bağımlılıkları ----
@@ -117,6 +117,11 @@ dependencies {
     // ---- Hilt - Dependency Injection ----
     implementation("com.google.dagger:hilt-android:2.51.1")
     kapt("com.google.dagger:hilt-android-compiler:2.51.1")
+
+    // ---- Room Veritabanı ----
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
 
     // ---- Jetpack Compose ----
     implementation(platform(libs.androidx.compose.bom))

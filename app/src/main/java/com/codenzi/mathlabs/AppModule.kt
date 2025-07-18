@@ -1,7 +1,10 @@
 package com.codenzi.mathlabs.di
 
 import android.content.Context
+import androidx.room.Room
 import com.codenzi.mathlabs.CourseRepository
+import com.codenzi.mathlabs.database.AppDatabase
+import com.codenzi.mathlabs.database.DrawingDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -13,11 +16,11 @@ import java.io.File
 import javax.inject.Singleton
 
 @Module
-@InstallIn(SingletonComponent::class) // Bu bağımlılıkların uygulama ömrü boyunca yaşayacağını belirtir
+@InstallIn(SingletonComponent::class)
 object AppModule {
 
     @Provides
-    @Singleton // Context'in tek bir örneğinin olmasını sağlar
+    @Singleton
     fun provideContext(@ApplicationContext context: Context): Context {
         return context
     }
@@ -28,15 +31,31 @@ object AppModule {
         return CourseRepository()
     }
 
+    // --- YENİ VERİTABANI SAĞLAYICILARI ---
+    @Provides
+    @Singleton
+    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
+        return Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            "mathlabs_database"
+        ).build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideDrawingDao(database: AppDatabase): DrawingDao {
+        return database.drawingDao()
+    }
+    // --- BİTİŞ ---
+
     @Provides
     @Singleton
     fun provideOkHttpClient(@ApplicationContext context: Context): OkHttpClient {
-        // Önbellek için bir klasör ve boyut belirle (100MB)
         val cacheSize = 100L * 1024 * 1024 // 100 MB
         val cacheDirectory = File(context.cacheDir, "http-cache")
         val cache = Cache(cacheDirectory, cacheSize)
 
-        // OkHttpClient'ı oluştur ve önbelleği ata
         return OkHttpClient.Builder()
             .cache(cache)
             .build()

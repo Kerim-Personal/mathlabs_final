@@ -45,6 +45,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:background="#00000000"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -60,29 +61,31 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_reading_mode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="16dp"
+        android:contentDescription="@string/reading_mode_description"
+        app:backgroundTint="?attr/colorPrimary"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:srcCompat="@drawable/ic_eye_solid"
+        app:tint="?attr/colorOnPrimary"
+        tools:visibility="visible" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_ai_chat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
         android:contentDescription="@string/ai_assistant_button_desc"
         android:visibility="gone"
         app:backgroundTint="?attr/colorPrimary"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@drawable/ic_ai_assistant"
-        app:tint="?attr/colorOnPrimary"
-        tools:visibility="visible" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_reading_mode"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:contentDescription="@string/reading_mode_description"
-        app:backgroundTint="?attr/colorPrimary"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:srcCompat="@drawable/ic_eye_solid"
         app:tint="?attr/colorOnPrimary"
         tools:visibility="visible" />
 
@@ -122,9 +125,9 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="1dp"
                     android:contentDescription="@string/toggle_drawing_description"
-                    app:fabSize="mini"
                     app:backgroundTint="?attr/colorPrimary"
                     app:elevation="0dp"
+                    app:fabSize="mini"
                     app:srcCompat="@drawable/ic_pencil"
                     app:tint="?attr/colorOnPrimary" />
 
@@ -133,9 +136,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/eraser_description"
-                    app:fabSize="mini"
                     app:backgroundTint="?attr/colorPrimary"
                     app:elevation="0dp"
+                    app:fabSize="mini"
                     app:srcCompat="@drawable/ic_eraser"
                     app:tint="?attr/colorOnPrimary" />
             </LinearLayout>
@@ -233,14 +236,43 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/all_drawings_cleared_toast"
-                    app:fabSize="mini"
                     app:backgroundTint="?attr/colorPrimary"
                     app:elevation="0dp"
+                    app:fabSize="mini"
                     app:srcCompat="@drawable/ic_delete_all"
                     app:tint="?attr/colorOnPrimary" />
             </LinearLayout>
 
         </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/pageCountCard"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        app:cardBackgroundColor="?attr/colorPrimary"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/fab_ai_chat"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:visibility="visible">
+
+        <TextView
+            android:id="@+id/pageCountText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"
+            android:textColor="?attr/colorOnPrimary"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            tools:text="1 / 85" />
+
     </com.google.android.material.card.MaterialCardView>
 
     <TextView

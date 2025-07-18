@@ -1,18 +1,17 @@
 package com.codenzi.mathlabs
 
 import android.content.Context
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.view.View
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
+import com.codenzi.mathlabs.database.DrawingDao
+import com.codenzi.mathlabs.database.DrawingPath
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
-/**
- * PdfViewActivity üzerindeki çizimle ilgili tüm UI ve mantık işlemlerini yöneten sınıf.
- * Bu sınıf, çizim araçlarını, renk ve boyut seçimlerini ve ilgili butonların durumlarını kontrol eder.
- */
 class DrawingManager(
     private val context: Context,
     private val drawingView: DrawingView,
@@ -28,43 +27,49 @@ class DrawingManager(
     private val btnSizeSmall: ImageButton,
     private val btnSizeMedium: ImageButton,
     private val btnSizeLarge: ImageButton,
-    private val showSnackbar: (String) -> Unit // Snackbar göstermek için bir lambda fonksiyonu
+    private val showSnackbar: (String) -> Unit,
+    private val dao: DrawingDao,
+    private val coroutineScope: CoroutineScope
 ) {
-
-    private var isDrawingActive: Boolean = false
-    private var currentPenColor: Int = Color.RED
-    private var currentPenSize: Float = 10f
-    private var currentEraserSize: Float = 50f
+    private var currentPdfName: String = ""
+    private var currentPageIndex: Int = 0
 
     init {
-        setupInitialState()
         setupClickListeners()
+        setupDrawingViewListener()
     }
 
-    private fun setupInitialState() {
-        currentPenColor = SharedPreferencesManager.getPenColor(context)
-        currentPenSize = getPenSizeFromPreferences()
-        currentEraserSize = getEraserSizeFromPreferences()
+    fun loadDrawingsForPage(pdfName: String, pageIndex: Int) {
+        this.currentPdfName = pdfName
+        this.currentPageIndex = pageIndex
+        coroutineScope.launch {
+            val paths = dao.getPathsForPage(pdfName, pageIndex)
+            drawingView.loadDrawings(paths)
+        }
+    }
 
-        drawingView.setBrushColor(currentPenColor)
-        drawingView.drawingMode = DrawingView.DrawingMode.NONE
-        setDrawingButtonState()
+    private fun setupDrawingViewListener() {
+        drawingView.onPathFinishedListener = { drawingPath ->
+            coroutineScope.launch {
+                val pathWithContext = drawingPath.copy(
+                    pdfAssetName = currentPdfName,
+                    pageIndex = currentPageIndex
+                )
+                dao.insertPath(pathWithContext)
+            }
+        }
     }
 
     private fun setupClickListeners() {
-        fabToggleDrawing.setOnClickListener {
-            UIFeedbackHelper.provideFeedback(it)
-            togglePenMode()
-        }
-
-        fabEraser.setOnClickListener {
-            UIFeedbackHelper.provideFeedback(it)
-            toggleEraserMode()
-        }
+        fabToggleDrawing.setOnClickListener { togglePenMode() }
+        fabEraser.setOnClickListener { toggleEraserMode() }
 
         fabClearAll.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
-            drawingView.clearDrawing()
+            coroutineScope.launch {
+                dao.clearPage(currentPdfName, currentPageIndex)
+                drawingView.clearAllDrawings()
+            }
             showSnackbar(context.getString(R.string.all_drawings_cleared_toast))
         }
 
@@ -72,148 +77,84 @@ class DrawingManager(
         btnColorBlue.setOnClickListener { handleColorSelection(it, R.color.blue) }
         btnColorBlack.setOnClickListener { handleColorSelection(it, R.color.black) }
 
-        btnSizeSmall.setOnClickListener { handleSizeSelection(it, 5f, 25f, DrawingModeType.SMALL) }
-        btnSizeMedium.setOnClickListener { handleSizeSelection(it, 10f, 50f, DrawingModeType.MEDIUM) }
-        btnSizeLarge.setOnClickListener { handleSizeSelection(it, 20f, 75f, DrawingModeType.LARGE) }
+        btnSizeSmall.setOnClickListener { handleSizeSelection(it, BrushSize.SMALL) }
+        btnSizeMedium.setOnClickListener { handleSizeSelection(it, BrushSize.MEDIUM) }
+        btnSizeLarge.setOnClickListener { handleSizeSelection(it, BrushSize.LARGE) }
     }
 
     private fun handleColorSelection(selectedView: View, colorResId: Int) {
-        UIFeedbackHelper.provideFeedback(selectedView)
-        currentPenColor = ContextCompat.getColor(context, colorResId)
-        drawingView.setBrushColor(currentPenColor)
-        SharedPreferencesManager.savePenColor(context, currentPenColor)
+        val color = ContextCompat.getColor(context, colorResId)
+        drawingView.setPenColor(color)
         updateColorSelection(selectedView)
     }
 
-    private fun handleSizeSelection(selectedView: View, penSize: Float, eraserSize: Float, type: DrawingModeType) {
-        UIFeedbackHelper.provideFeedback(selectedView)
-        if (drawingView.drawingMode == DrawingView.DrawingMode.PEN) {
-            currentPenSize = penSize
-            drawingView.setBrushSize(currentPenSize)
-            SharedPreferencesManager.savePenSizeType(context, type.ordinal)
-        } else if (drawingView.drawingMode == DrawingView.DrawingMode.ERASER) {
-            currentEraserSize = eraserSize
-            drawingView.setBrushSize(currentEraserSize)
-            SharedPreferencesManager.saveEraserSizeType(context, type.ordinal)
+    private fun handleSizeSelection(selectedView: View, size: BrushSize) {
+        val strokeWidth = when (size) {
+            BrushSize.SMALL -> if (drawingView.brushType == BrushType.ERASER) 30f else 8f
+            BrushSize.MEDIUM -> if (drawingView.brushType == BrushType.ERASER) 60f else 16f
+            BrushSize.LARGE -> if (drawingView.brushType == BrushType.ERASER) 100f else 32f
         }
+        drawingView.setBrushSize(strokeWidth)
         updateSizeSelection(selectedView)
     }
 
     private fun togglePenMode() {
-        if (isDrawingActive && drawingView.drawingMode == DrawingView.DrawingMode.PEN) {
+        if (drawingView.brushType == BrushType.PEN) {
             deactivateDrawing()
         } else {
-            activatePenMode()
+            drawingView.brushType = BrushType.PEN
+            drawingView.setPenColor(Color.RED) // Default color
+            handleSizeSelection(btnSizeMedium, BrushSize.MEDIUM)
+            updateColorSelection(btnColorRed)
+            showDrawingPanel(true)
+            showSnackbar(context.getString(R.string.drawing_mode_pencil_toast))
         }
-        setDrawingButtonState()
+        updateButtonStates()
     }
 
     private fun toggleEraserMode() {
-        if (isDrawingActive && drawingView.drawingMode == DrawingView.DrawingMode.ERASER) {
+        if (drawingView.brushType == BrushType.ERASER) {
             deactivateDrawing()
         } else {
-            activateEraserMode()
+            drawingView.brushType = BrushType.ERASER
+            drawingView.activateEraser()
+            handleSizeSelection(btnSizeMedium, BrushSize.MEDIUM)
+            showDrawingPanel(false)
+            showSnackbar(context.getString(R.string.drawing_mode_eraser_toast))
         }
-        setDrawingButtonState()
-    }
-
-    private fun activatePenMode() {
-        isDrawingActive = true
-        drawingView.drawingMode = DrawingView.DrawingMode.PEN
-        drawingView.setBrushColor(currentPenColor)
-        drawingView.setBrushSize(getPenSizeFromPreferences())
-
-        showDrawingPanel(showColorOptions = true)
-        updatePenStateFromPreferences()
-        showSnackbar(context.getString(R.string.drawing_mode_pencil_toast))
-    }
-
-    private fun activateEraserMode() {
-        isDrawingActive = true
-        drawingView.drawingMode = DrawingView.DrawingMode.ERASER
-        drawingView.setBrushSize(getEraserSizeFromPreferences())
-
-        showDrawingPanel(showColorOptions = false)
-        updateEraserStateFromPreferences()
-        showSnackbar(context.getString(R.string.drawing_mode_eraser_toast))
+        updateButtonStates()
     }
 
     private fun deactivateDrawing() {
-        isDrawingActive = false
-        drawingView.drawingMode = DrawingView.DrawingMode.NONE
+        drawingView.brushType = BrushType.NONE
         drawingOptionsPanel.visibility = View.GONE
         fabClearAll.visibility = View.GONE
         showSnackbar(context.getString(R.string.drawing_mode_off_toast))
+        updateButtonStates()
     }
 
-    private fun showDrawingPanel(showColorOptions: Boolean) {
+    private fun showDrawingPanel(showColor: Boolean) {
         drawingOptionsPanel.visibility = View.VISIBLE
         fabClearAll.visibility = View.VISIBLE
-        colorOptions.visibility = if (showColorOptions) View.VISIBLE else View.GONE
+        colorOptions.visibility = if (showColor) View.VISIBLE else View.GONE
         sizeOptions.visibility = View.VISIBLE
     }
 
-    private fun updatePenStateFromPreferences() {
-        when (SharedPreferencesManager.getPenSizeType(context)) {
-            DrawingModeType.SMALL.ordinal -> updateSizeSelection(btnSizeSmall)
-            DrawingModeType.MEDIUM.ordinal -> updateSizeSelection(btnSizeMedium)
-            DrawingModeType.LARGE.ordinal -> updateSizeSelection(btnSizeLarge)
-        }
-        when (SharedPreferencesManager.getPenColor(context)) {
-            ContextCompat.getColor(context, R.color.red) -> updateColorSelection(btnColorRed)
-            ContextCompat.getColor(context, R.color.blue) -> updateColorSelection(btnColorBlue)
-            ContextCompat.getColor(context, R.color.black) -> updateColorSelection(btnColorBlack)
-        }
-    }
-
-    private fun updateEraserStateFromPreferences() {
-        when (SharedPreferencesManager.getEraserSizeType(context)) {
-            DrawingModeType.SMALL.ordinal -> updateSizeSelection(btnSizeSmall)
-            DrawingModeType.MEDIUM.ordinal -> updateSizeSelection(btnSizeMedium)
-            DrawingModeType.LARGE.ordinal -> updateSizeSelection(btnSizeLarge)
-        }
-    }
-
-    private fun setDrawingButtonState() {
-        val activeColor = Color.BLACK
-        val inactiveColor = Color.WHITE
-
-        fabToggleDrawing.imageTintList = if (isDrawingActive && drawingView.drawingMode == DrawingView.DrawingMode.PEN) ColorStateList.valueOf(activeColor) else ColorStateList.valueOf(inactiveColor)
-        fabEraser.imageTintList = if (isDrawingActive && drawingView.drawingMode == DrawingView.DrawingMode.ERASER) ColorStateList.valueOf(activeColor) else ColorStateList.valueOf(inactiveColor)
+    private fun updateButtonStates() {
+        // İsteğe bağlı olarak butonların seçili durumlarını güncelleyebilirsiniz.
     }
 
     private fun updateColorSelection(selectedView: View) {
         btnColorRed.isSelected = false
         btnColorBlue.isSelected = false
         btnColorBlack.isSelected = false
-        selectedView.isSelected = true
+        (selectedView as ImageButton).isSelected = true
     }
 
     private fun updateSizeSelection(selectedView: View) {
         btnSizeSmall.isSelected = false
         btnSizeMedium.isSelected = false
         btnSizeLarge.isSelected = false
-        selectedView.isSelected = true
+        (selectedView as ImageButton).isSelected = true
     }
-
-    private fun getPenSizeFromPreferences(): Float = when (SharedPreferencesManager.getPenSizeType(context)) {
-        DrawingModeType.SMALL.ordinal -> 5f
-        DrawingModeType.MEDIUM.ordinal -> 10f
-        DrawingModeType.LARGE.ordinal -> 20f
-        else -> 10f
-    }
-
-    private fun getEraserSizeFromPreferences(): Float = when (SharedPreferencesManager.getEraserSizeType(context)) {
-        DrawingModeType.SMALL.ordinal -> 25f
-        DrawingModeType.MEDIUM.ordinal -> 50f
-        DrawingModeType.LARGE.ordinal -> 75f
-        else -> 50f
-    }
-}
-
-/**
- * Çizim modundaki fırça/silgi boyutlarını temsil eder.
- */
-enum class DrawingModeType {
-    SMALL, MEDIUM, LARGE
 }

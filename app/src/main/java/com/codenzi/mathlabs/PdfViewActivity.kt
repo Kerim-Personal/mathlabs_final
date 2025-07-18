@@ -24,9 +24,11 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
+import com.codenzi.mathlabs.database.DrawingDao
 import com.github.barteksc.pdfviewer.PDFView
 import com.github.barteksc.pdfviewer.listener.OnErrorListener
 import com.github.barteksc.pdfviewer.listener.OnLoadCompleteListener
+import com.github.barteksc.pdfviewer.listener.OnPageChangeListener
 import com.github.barteksc.pdfviewer.listener.OnPageErrorListener
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.android.material.appbar.MaterialToolbar
@@ -45,17 +47,18 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
 import java.io.InputStream
-import java.util.Comparator
 import java.util.Locale
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorListener, OnPageErrorListener {
+class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorListener, OnPageErrorListener, OnPageChangeListener {
 
     @Inject
     lateinit var okHttpClient: OkHttpClient
+    @Inject
+    lateinit var drawingDao: DrawingDao
 
-    // Değişkenler...
+    // Değişkenler
     private lateinit var pdfView: PDFView
     private lateinit var progressBar: ProgressBar
     private lateinit var fabAiChat: FloatingActionButton
@@ -64,9 +67,14 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private lateinit var pdfToolbar: MaterialToolbar
     private lateinit var notificationTextView: TextView
     private lateinit var drawingManager: DrawingManager
+    private lateinit var pageCountCard: com.google.android.material.card.MaterialCardView
+    private lateinit var pageCountText: TextView
+
     private var pdfAssetName: String? = null
     private var currentReadingModeLevel: Int = 0
-    private var fullPdfText: String? = null
+    private var pdfBytes: ByteArray? = null
+    private var currentPage: Int = 0
+    private var totalPages: Int = 0
     private val toastHandler = Handler(Looper.getMainLooper())
     private var toastRunnable: Runnable? = null
     private val conversationHistory = mutableListOf<String>()
@@ -92,11 +100,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         super.attachBaseContext(LocaleHelper.onAttach(newBase))
     }
 
-    /**
-     * Bu aktivite için doğru temayı uygular.
-     * Önce genel aydınlık/karanlık mod ayarını, ardından bu aktiviteye özel stili yükler.
-     * Bu, çökme sorununu gideren ana düzeltmedir.
-     */
     private fun applyAppTheme() {
         val themeMode = SharedPreferencesManager.getTheme(this)
         AppCompatDelegate.setDefaultNightMode(themeMode)
@@ -105,7 +108,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
 
     @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
-        applyAppTheme() // TEMAYI ÖNCE UYGULA
+        applyAppTheme()
         super.onCreate(savedInstanceState)
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         setContentView(R.layout.activity_pdf_view)
@@ -134,16 +137,20 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                     val response = okHttpClient.newCall(request).execute()
                     if (response.isSuccessful) {
                         val responseBody = response.body ?: throw IOException("Response body is null")
-                        val pdfBytes = responseBody.bytes()
-                        extractTextFromPdfStream(pdfBytes.inputStream())
+                        val downloadedBytes = responseBody.bytes()
+                        this@PdfViewActivity.pdfBytes = downloadedBytes
+
                         withContext(Dispatchers.Main) {
-                            pdfView.fromBytes(pdfBytes)
+                            pdfView.fromBytes(downloadedBytes)
                                 .defaultPage(0)
                                 .enableSwipe(true)
-                                .swipeHorizontal(false)
+                                .swipeHorizontal(true)
+                                .pageFling(true)
+                                .pageSnap(true)
                                 .onLoad(this@PdfViewActivity)
                                 .onError(this@PdfViewActivity)
                                 .onPageError(this@PdfViewActivity)
+                                .onPageChange(this@PdfViewActivity)
                                 .load()
                         }
                     } else {
@@ -166,86 +173,35 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         }
     }
 
-    private fun extractTextFromPdfStream(inputStream: InputStream) {
-        lifecycleScope.launch(Dispatchers.IO) {
+    private suspend fun extractTextForAI(): String {
+        val bytes = this.pdfBytes
+        if (bytes == null) {
+            Log.e("PdfTextExtraction", "Yapay zeka için metin çıkarılamadı: PDF byte'ları null.")
+            return ""
+        }
+
+        return withContext(Dispatchers.IO) {
+            var text = ""
             try {
                 PDFBoxResourceLoader.init(applicationContext)
-                inputStream.use { stream ->
-                    PDDocument.load(stream).use { document ->
-                        val stripper = PDFTextStripper()
-                        val text = stripper.getText(document)
-                        fullPdfText = text
-                        Log.d("PdfTextExtraction", "Metin başarıyla çıkarıldı.")
-                    }
+                PDDocument.load(bytes).use { document ->
+                    val stripper = PDFTextStripper()
+                    val boxCurrentPage = currentPage + 1
+
+                    stripper.startPage = (boxCurrentPage - 1).coerceAtLeast(1)
+                    stripper.endPage = (boxCurrentPage + 1).coerceAtMost(document.numberOfPages)
+
+                    text = stripper.getText(document)
                 }
             } catch (e: Exception) {
-                Log.e("PdfTextExtraction", "PDF metni çıkarılırken hata oluştu.", e)
-                withContext(Dispatchers.Main) {
-                    showAnimatedToast(getString(R.string.pdf_text_extraction_failed, e.localizedMessage))
-                }
+                Log.e("PdfTextExtraction", "Yapay zeka için metin çıkarılırken hata oluştu", e)
             }
+            text
         }
     }
-
-    private fun findRelevantChunks(question: String, context: String, maxChunks: Int = 3): String {
-        data class ScoredChunk(val text: String, val score: Int)
-        val questionLower = question.lowercase(Locale.getDefault())
-
-        val generalCommandRoots = listOf("anlat", "özet", "içerik", "konu", "sayfa", "hakkında", "tell", "summarize", "about", "content", "page")
-
-        val isGeneralQuery = generalCommandRoots.any { root -> questionLower.contains(root) }
-
-        if (isGeneralQuery) {
-            Log.d("ChunkFinder", "Genel komut algılandı. PDF'in başı döndürülüyor.")
-            return context.take(2000)
-        }
-
-        val specificKeywords = questionLower.split(" ").filter { it.length > 3 }.toSet()
-
-        if (specificKeywords.isEmpty() || context.isBlank()) {
-            return ""
-        }
-
-        Log.d("ChunkFinder", "Spesifik arama yapılıyor...")
-        val chunkSize = 500
-        val stepSize = 250
-        val scoredChunks = mutableListOf<ScoredChunk>()
-
-        var i = 0
-        while (i < context.length) {
-            val end = (i + chunkSize).coerceAtMost(context.length)
-            val chunkText = context.substring(i, end)
-
-            val foundKeywords = mutableSetOf<String>()
-            for (keyword in specificKeywords) {
-                if (chunkText.lowercase(Locale.getDefault()).contains(keyword)) {
-                    foundKeywords.add(keyword)
-                }
-            }
-            val score = foundKeywords.size
-            if (score > 0) {
-                scoredChunks.add(ScoredChunk(chunkText, score))
-            }
-            i += stepSize
-        }
-
-        if (scoredChunks.isEmpty()) {
-            return ""
-        }
-
-        val descendingComparator = object : Comparator<ScoredChunk> {
-            override fun compare(c1: ScoredChunk, c2: ScoredChunk): Int {
-                return c2.score.compareTo(c1.score)
-            }
-        }
-        scoredChunks.sortWith(descendingComparator)
-
-        return scoredChunks.take(maxChunks).joinToString("\n\n...\n\n") { it.text }
-    }
-
 
     private fun showAiChatDialog() {
-        if (fullPdfText == null) {
+        if (pdfBytes == null) {
             showAnimatedToast(getString(R.string.pdf_text_not_ready))
             return
         }
@@ -257,6 +213,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         val textViewAnswer = dialogView.findViewById<TextView>(R.id.textViewAnswer)
         val progressChat = dialogView.findViewById<ProgressBar>(R.id.progressChat)
         val dialog = builder.create()
+
         buttonSend.setOnClickListener {
             val question = editTextQuestion.text.toString().trim()
             if (question.isNotEmpty()) {
@@ -269,7 +226,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                 lifecycleScope.launch {
                     var aiResponse = ""
                     try {
-                        val relevantContext = findRelevantChunks(question, fullPdfText!!)
+                        val relevantContext = extractTextForAI()
 
                         if (relevantContext.isBlank()) {
                             aiResponse = getString(R.string.ai_info_not_found)
@@ -283,13 +240,13 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                                 Conversation History:
                                 $historyText
 
-                                --- Text Excerpts from the PDF ---
+                                --- Text Excerpts from the PDF (Current Pages) ---
                                 $relevantContext
                                 ------------------------------------
 
                                 Answer the user's LAST QUESTION based on the conversation history and the text excerpts.
                                 Respond in English and use Markdown format.
-                                If the answer is not in the text, say 'This information is not available in the PDF.'
+                                If the answer is not in the text, say 'This information is not available in the provided pages.'
 
                                 USER'S LAST QUESTION: "$question"
                                 """.trimIndent()
@@ -298,13 +255,13 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                                 Önceki Konuşma Geçmişi:
                                 $historyText
 
-                                --- PDF'ten Alınan Metin Parçaları ---
+                                --- PDF'ten Alınan Metin Parçaları (Mevcut Sayfalar) ---
                                 $relevantContext
                                 -----------------------
 
                                 Kullanıcının SON SORUSUNU önceki konuşmayı ve metin parçalarını dikkate alarak yanıtla: "$question"
                                 Cevabınızı Markdown formatında ve Türkçe olarak verin.
-                                Metinde cevap yoksa, 'Bu konu hakkında bilgi PDF'te bulunmuyor.' deyin.
+                                Metinde cevap yoksa, 'Bu bilgi sağlanan sayfalarda bulunmuyor.' deyin.
                                 """.trimIndent()
                             }
 
@@ -376,6 +333,9 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         fabReadingMode = findViewById(R.id.fab_reading_mode)
         eyeComfortOverlay = findViewById(R.id.eyeComfortOverlay)
         notificationTextView = findViewById(R.id.notificationTextView)
+        pageCountCard = findViewById(R.id.pageCountCard)
+        pageCountText = findViewById(R.id.pageCountText)
+
         drawingManager = DrawingManager(
             context = this,
             drawingView = findViewById(R.id.drawingView),
@@ -391,7 +351,9 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             btnSizeSmall = findViewById(R.id.btn_size_small),
             btnSizeMedium = findViewById(R.id.btn_size_medium),
             btnSizeLarge = findViewById(R.id.btn_size_large),
-            showSnackbar = { message -> showAnimatedToast(message) }
+            showSnackbar = { message -> showAnimatedToast(message) },
+            dao = drawingDao,
+            coroutineScope = lifecycleScope
         )
     }
 
@@ -408,6 +370,12 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         fabReadingMode.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             toggleReadingMode()
+        }
+        pageCountCard.setOnClickListener {
+            UIFeedbackHelper.provideFeedback(it)
+            if (totalPages > 0) {
+                showGoToPageDialog()
+            }
         }
     }
 
@@ -441,11 +409,18 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     }
 
     override fun loadComplete(nbPages: Int) {
+        this.totalPages = nbPages
         progressBar.visibility = View.GONE
         showAnimatedToast(getString(R.string.pdf_loaded_toast, nbPages))
         val fadeInAnimation = AnimationUtils.loadAnimation(applicationContext, R.anim.fade_in)
         fabAiChat.startAnimation(fadeInAnimation)
         fabAiChat.visibility = View.VISIBLE
+        pageCountCard.startAnimation(fadeInAnimation)
+        pageCountCard.visibility = View.VISIBLE
+
+        pdfAssetName?.let {
+            drawingManager.loadDrawingsForPage(it, 0)
+        }
     }
 
     override fun onError(t: Throwable?) {
@@ -492,5 +467,44 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             notificationTextView.startAnimation(fadeOut)
         }
         toastHandler.postDelayed(toastRunnable!!, 2000)
+    }
+
+    override fun onPageChanged(page: Int, pageCount: Int) {
+        this.currentPage = page
+        this.totalPages = pageCount
+        pageCountText.text = "${page + 1} / $pageCount"
+
+        pdfAssetName?.let {
+            drawingManager.loadDrawingsForPage(it, page)
+        }
+    }
+
+    private fun showGoToPageDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_go_to_page, null)
+        val editTextPageNumber = dialogView.findViewById<EditText>(R.id.editTextPageNumber)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.go_to_page_title))
+            .setView(dialogView)
+            .setPositiveButton(getString(R.string.go_to_page_go)) { d, _ ->
+                val pageStr = editTextPageNumber.text.toString()
+                if (pageStr.isNotEmpty()) {
+                    try {
+                        val pageNum = pageStr.toInt()
+                        if (pageNum in 1..totalPages) {
+                            pdfView.jumpTo(pageNum - 1, true)
+                            d.dismiss()
+                        } else {
+                            showAnimatedToast(getString(R.string.go_to_page_invalid_number, totalPages))
+                        }
+                    } catch (e: NumberFormatException) {
+                        showAnimatedToast(getString(R.string.go_to_page_enter_number))
+                    }
+                }
+            }
+            .setNegativeButton(getString(R.string.go_to_page_cancel), null)
+            .create()
+
+        dialog.show()
     }
 }

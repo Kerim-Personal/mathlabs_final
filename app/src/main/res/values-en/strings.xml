@@ -253,4 +253,12 @@
     <string name="privacy_policy">Privacy Policy</string>
     <string name="privacy_policy_desc">Read our terms of service.</string>
 
+    <string name="go_to_page_title">Go to Page</string>
+    <string name="go_to_page_hint">Page Number</string>
+    <string name="go_to_page_go">Go</string>
+    <string name="go_to_page_cancel">Cancel</string>
+    <string name="go_to_page_invalid_number">Please enter a number between 1 and %1$d.</string>
+    <string name="go_to_page_enter_number">Please enter a valid number.</string>
+
+    <string name="page_count_format">%1$d / %2$d</string>
 </resources>
