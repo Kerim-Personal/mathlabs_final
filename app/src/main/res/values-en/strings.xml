@@ -261,4 +261,6 @@
     <string name="go_to_page_enter_number">Please enter a valid number.</string>
 
     <string name="page_count_format">%1$d / %2$d</string>
+
+    <string name="topic_general_problem_solving">General Problem Solving</string>
 </resources>

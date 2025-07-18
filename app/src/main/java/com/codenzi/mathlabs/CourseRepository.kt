@@ -66,7 +66,19 @@ class CourseRepository @Inject constructor() {
                     pdfAssetName = pdfPathInFirebase, // Bu alan artık dil bazlı Firebase yolunu tutuyor
                     hasPdf = true // PDF'lerin Firebase'de var olduğunu varsayıyoruz
                 )
-            }
+            }.toMutableList()
+
+            // "Genel Soru Çözümü" konusunu ekle
+            val generalProblemSolvingTitle = context.getString(R.string.topic_general_problem_solving)
+            val generalProblemSolvingPath = normalizeAndFormatForAssetName(generalProblemSolvingTitle)
+            val generalProblemSolvingPdfPath = "$languageCode/$coursePath/$generalProblemSolvingPath.pdf"
+            topics.add(Topic(
+                title = generalProblemSolvingTitle,
+                pdfAssetName = generalProblemSolvingPdfPath,
+                hasPdf = true
+            ))
+
+
             Course(title = courseTitle, topics = topics)
         }
 

@@ -262,4 +262,6 @@
     <string name="go_to_page_enter_number">Lütfen geçerli bir sayı girin.</string>
 
     <string name="page_count_format">%1$d / %2$d</string>
+
+    <string name="topic_general_problem_solving">Genel Soru Çözümü</string>
 </resources>
