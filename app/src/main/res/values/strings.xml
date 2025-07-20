@@ -144,7 +144,7 @@
     <string name="topic_pde_heat_equation">Isı Denklemi</string>
     <string name="topic_pde_wave_equation">Dalga Denklemi</string>
     <string name="topic_pde_laplace_equation">Laplace Denklemi</string>
-    <string name="topic_pde_green_functions">Yeşil Fonksiyonları</string>
+    <string name="topic_pde_green_functions">Green Fonksiyonları</string>
     <string name="topic_pde_finite_element">Sonlu Elemanlar Yöntemi</string>
 
     <string name="topic_analytic_geometry_coordinates">Koordinat Sistemleri ve Vektörler</string>

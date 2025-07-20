@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">MathLabs</string>
     <string name="dil_seciniz">Select Language</string>
     <string name="language_turkish">Türkçe</string>
     <string name="language_english">English</string>
