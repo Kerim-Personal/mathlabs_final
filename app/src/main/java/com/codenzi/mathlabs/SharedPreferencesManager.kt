@@ -3,12 +3,18 @@ package com.codenzi.mathlabs
 import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Color
-import androidx.appcompat.app.AppCompatDelegate
 import android.util.Log
+import androidx.appcompat.app.AppCompatDelegate
+import java.util.Calendar
 
+/**
+ * Uygulamanın tüm SharedPreferences işlemlerini yöneten singleton nesne.
+ */
 object SharedPreferencesManager {
 
     private const val PREFS_NAME = "app_prefs"
+
+    // Anahtar (Key) Tanımlamaları
     private const val KEY_LANGUAGE = "selected_language"
     private const val KEY_LANGUAGE_SELECTED_FLAG = "language_selected_flag"
     private const val KEY_TOUCH_SOUND = "touch_sound_enabled"
@@ -20,131 +26,188 @@ object SharedPreferencesManager {
     private const val KEY_SELECTED_APP_COLOR_THEME = "selected_app_color_theme"
     private const val KEY_LAST_GEMINI_API_CALL_TIMESTAMP = "last_gemini_api_call_timestamp"
     private const val KEY_IS_FIRST_GEMINI_API_CALL = "is_first_gemini_api_call"
+    private const val KEY_USER_PREMIUM_STATUS = "user_premium_status"
+    private const val KEY_FREE_QUERY_COUNT = "free_query_count"
+    private const val KEY_FREE_LAST_RESET_TIMESTAMP = "free_last_reset_timestamp"
+    private const val KEY_PREMIUM_QUERY_COUNT = "premium_query_count"
+    private const val KEY_PREMIUM_LAST_RESET_TIMESTAMP = "premium_last_reset_timestamp"
+    private const val KEY_REWARDED_QUERY_COUNT = "rewarded_query_count"
+
 
     private fun getPreferences(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 
-    fun saveUserName(context: Context, name: String) {
-        getPreferences(context).edit().putString(KEY_USER_NAME, name).apply()
-        Log.d("ThemeDebug", "SharedPreferencesManager - Kullanıcı adı kaydedildi: $name")
-    }
-
-    fun getUserName(context: Context): String? {
-        val name = getPreferences(context).getString(KEY_USER_NAME, null)
-        Log.d("ThemeDebug", "SharedPreferencesManager - Kullanıcı adı alındı: $name")
-        return name
-    }
-
-    fun savePenColor(context: Context, color: Int) {
-        getPreferences(context).edit().putInt(KEY_PEN_COLOR, color).apply()
-        Log.d("ThemeDebug", "SharedPreferencesManager - Kalem rengi kaydedildi: $color")
-    }
-
-    fun getPenColor(context: Context): Int {
-        val color = getPreferences(context).getInt(KEY_PEN_COLOR, Color.RED)
-        Log.d("ThemeDebug", "SharedPreferencesManager - Kalem rengi alındı: $color")
-        return color
-    }
-
-    fun savePenSizeType(context: Context, sizeTypeOrdinal: Int) {
-        getPreferences(context).edit().putInt(KEY_PEN_SIZE_TYPE, sizeTypeOrdinal).apply()
-        Log.d("ThemeDebug", "SharedPreferencesManager - Kalem boyutu kaydedildi: $sizeTypeOrdinal")
-    }
-
-    fun getPenSizeType(context: Context): Int {
-        // HATA DÜZELTİLDİ: DrawingModeType yerine BrushSize kullanılıyor
-        val size = getPreferences(context).getInt(KEY_PEN_SIZE_TYPE, BrushSize.MEDIUM.ordinal)
-        Log.d("ThemeDebug", "SharedPreferencesManager - Kalem boyutu alındı: $size")
-        return size
-    }
-
-    fun saveEraserSizeType(context: Context, sizeTypeOrdinal: Int) {
-        getPreferences(context).edit().putInt(KEY_ERASER_SIZE_TYPE, sizeTypeOrdinal).apply()
-        Log.d("ThemeDebug", "SharedPreferencesManager - Silgi boyutu kaydedildi: $sizeTypeOrdinal")
-    }
-
-    fun getEraserSizeType(context: Context): Int {
-        // HATA DÜZELTİLDİ: DrawingModeType yerine BrushSize kullanılıyor
-        val size = getPreferences(context).getInt(KEY_ERASER_SIZE_TYPE, BrushSize.MEDIUM.ordinal)
-        Log.d("ThemeDebug", "SharedPreferencesManager - Silgi boyutu alındı: $size")
-        return size
-    }
-
-    fun saveAppColorTheme(context: Context, themeIndex: Int) {
-        getPreferences(context).edit().putInt(KEY_SELECTED_APP_COLOR_THEME, themeIndex).apply()
-        Log.d("ThemeDebug", "SharedPreferencesManager - Renk teması kaydedildi: $themeIndex")
-    }
-
-    fun getAppColorTheme(context: Context): Int {
-        val themeIndex = getPreferences(context).getInt(KEY_SELECTED_APP_COLOR_THEME, 0)
-        Log.d("ThemeDebug", "SharedPreferencesManager - Renk teması alındı: $themeIndex")
-        return themeIndex
-    }
-
+    // Dil ve Tema Ayarları
     fun saveLanguage(context: Context, language: String) {
         getPreferences(context).edit().putString(KEY_LANGUAGE, language).apply()
-        Log.d("ThemeDebug", "SharedPreferencesManager - Dil kaydedildi: $language")
     }
 
     fun getLanguage(context: Context): String? {
-        val language = getPreferences(context).getString(KEY_LANGUAGE, null)
-        Log.d("ThemeDebug", "SharedPreferencesManager - Dil alındı: $language")
-        return language
+        return getPreferences(context).getString(KEY_LANGUAGE, null)
     }
 
     fun setLanguageSelected(context: Context, selected: Boolean) {
         getPreferences(context).edit().putBoolean(KEY_LANGUAGE_SELECTED_FLAG, selected).apply()
-        Log.d("ThemeDebug", "SharedPreferencesManager - Dil seçildi: $selected")
     }
 
     fun isLanguageSelected(context: Context): Boolean {
-        val selected = getPreferences(context).getBoolean(KEY_LANGUAGE_SELECTED_FLAG, false)
-        Log.d("ThemeDebug", "SharedPreferencesManager - Dil seçildi alındı: $selected")
-        return selected
-    }
-
-    fun setTouchSoundEnabled(context: Context, enabled: Boolean) {
-        getPreferences(context).edit().putBoolean(KEY_TOUCH_SOUND, enabled).apply()
-        Log.d("ThemeDebug", "SharedPreferencesManager - Dokunma sesi: $enabled")
-    }
-
-    fun isTouchSoundEnabled(context: Context): Boolean {
-        val enabled = getPreferences(context).getBoolean(KEY_TOUCH_SOUND, true)
-        Log.d("ThemeDebug", "SharedPreferencesManager - Dokunma sesi alındı: $enabled")
-        return enabled
+        return getPreferences(context).getBoolean(KEY_LANGUAGE_SELECTED_FLAG, false)
     }
 
     fun saveTheme(context: Context, themeValue: Int) {
         getPreferences(context).edit().putInt(KEY_THEME, themeValue).apply()
-        Log.d("ThemeDebug", "SharedPreferencesManager - Tema kaydedildi: $themeValue")
     }
 
     fun getTheme(context: Context): Int {
-        val theme = getPreferences(context).getInt(KEY_THEME, AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-        Log.d("ThemeDebug", "SharedPreferencesManager - Tema alındı: $theme")
-        return theme
+        return getPreferences(context).getInt(KEY_THEME, AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
     }
 
+    fun saveAppColorTheme(context: Context, themeIndex: Int) {
+        getPreferences(context).edit().putInt(KEY_SELECTED_APP_COLOR_THEME, themeIndex).apply()
+    }
+
+    fun getAppColorTheme(context: Context): Int {
+        return getPreferences(context).getInt(KEY_SELECTED_APP_COLOR_THEME, 0)
+    }
+
+    // Kullanıcı Bilgileri ve Tercihleri
+    fun saveUserName(context: Context, name: String) {
+        getPreferences(context).edit().putString(KEY_USER_NAME, name).apply()
+    }
+
+    fun getUserName(context: Context): String? {
+        return getPreferences(context).getString(KEY_USER_NAME, null)
+    }
+
+    fun setTouchSoundEnabled(context: Context, enabled: Boolean) {
+        getPreferences(context).edit().putBoolean(KEY_TOUCH_SOUND, enabled).apply()
+    }
+
+    fun isTouchSoundEnabled(context: Context): Boolean {
+        return getPreferences(context).getBoolean(KEY_TOUCH_SOUND, true)
+    }
+
+    // Çizim Ayarları
+    fun savePenColor(context: Context, color: Int) {
+        getPreferences(context).edit().putInt(KEY_PEN_COLOR, color).apply()
+    }
+
+    fun getPenColor(context: Context): Int {
+        return getPreferences(context).getInt(KEY_PEN_COLOR, Color.RED)
+    }
+
+    fun savePenSizeType(context: Context, sizeTypeOrdinal: Int) {
+        getPreferences(context).edit().putInt(KEY_PEN_SIZE_TYPE, sizeTypeOrdinal).apply()
+    }
+
+    fun getPenSizeType(context: Context): Int {
+        return getPreferences(context).getInt(KEY_PEN_SIZE_TYPE, BrushSize.MEDIUM.ordinal)
+    }
+
+    fun saveEraserSizeType(context: Context, sizeTypeOrdinal: Int) {
+        getPreferences(context).edit().putInt(KEY_ERASER_SIZE_TYPE, sizeTypeOrdinal).apply()
+    }
+
+    fun getEraserSizeType(context: Context): Int {
+        return getPreferences(context).getInt(KEY_ERASER_SIZE_TYPE, BrushSize.MEDIUM.ordinal)
+    }
+
+    // Gemini API Kullanım Zaman Damgaları
     fun saveLastGeminiApiCallTimestamp(context: Context, timestamp: Long) {
         getPreferences(context).edit().putLong(KEY_LAST_GEMINI_API_CALL_TIMESTAMP, timestamp).apply()
-        Log.d("GeminiApiUsage", "Last Gemini API call timestamp saved: $timestamp")
     }
 
     fun getLastGeminiApiCallTimestamp(context: Context): Long {
-        val timestamp = getPreferences(context).getLong(KEY_LAST_GEMINI_API_CALL_TIMESTAMP, 0L)
-        Log.d("GeminiApiUsage", "Last Gemini API call timestamp retrieved: $timestamp")
-        return timestamp
+        return getPreferences(context).getLong(KEY_LAST_GEMINI_API_CALL_TIMESTAMP, 0L)
     }
 
     fun setIsFirstGeminiApiCall(context: Context, isFirst: Boolean) {
         getPreferences(context).edit().putBoolean(KEY_IS_FIRST_GEMINI_API_CALL, isFirst).apply()
-        Log.d("GeminiApiUsage", "isFirstGeminiApiCall set to: $isFirst")
     }
 
     fun getIsFirstGeminiApiCall(context: Context): Boolean {
-        val isFirst = getPreferences(context).getBoolean(KEY_IS_FIRST_GEMINI_API_CALL, true)
-        Log.d("GeminiApiUsage", "isFirstGeminiApiCall retrieved: $isFirst")
-        return isFirst
+        return getPreferences(context).getBoolean(KEY_IS_FIRST_GEMINI_API_CALL, true)
+    }
+
+    // Premium Durumu Yönetimi
+    // NOT: Bu bir yer tutucudur. Gerçek uygulamada Google Play Faturalandırma Kitaplığı ile entegrasyon gerekir.
+    fun setUserAsPremium(context: Context, isPremium: Boolean) {
+        getPreferences(context).edit().putBoolean(KEY_USER_PREMIUM_STATUS, isPremium).apply()
+    }
+
+    fun isUserPremium(context: Context): Boolean {
+        return getPreferences(context).getBoolean(KEY_USER_PREMIUM_STATUS, false)
+    }
+
+    // Ücretsiz Kullanıcı Sorgu Kotası Yönetimi
+    fun getFreeQueryCount(context: Context): Int {
+        val prefs = getPreferences(context)
+        val lastResetTimestamp = prefs.getLong(KEY_FREE_LAST_RESET_TIMESTAMP, 0L)
+        val currentTimestamp = System.currentTimeMillis()
+
+        val lastResetCal = Calendar.getInstance().apply { timeInMillis = lastResetTimestamp }
+        val currentCal = Calendar.getInstance().apply { timeInMillis = currentTimestamp }
+
+        // Yeni bir güne geçilmişse sayacı sıfırla
+        if (lastResetCal.get(Calendar.DAY_OF_YEAR) != currentCal.get(Calendar.DAY_OF_YEAR) ||
+            lastResetCal.get(Calendar.YEAR) != currentCal.get(Calendar.YEAR)) {
+            prefs.edit()
+                .putInt(KEY_FREE_QUERY_COUNT, 0)
+                .putLong(KEY_FREE_LAST_RESET_TIMESTAMP, currentTimestamp)
+                .apply()
+            return 0
+        }
+        return prefs.getInt(KEY_FREE_QUERY_COUNT, 0)
+    }
+
+    fun incrementFreeQueryCount(context: Context) {
+        val prefs = getPreferences(context)
+        val currentCount = getFreeQueryCount(context)
+        prefs.edit().putInt(KEY_FREE_QUERY_COUNT, currentCount + 1).apply()
+    }
+
+    // Premium Kullanıcı Sorgu Kotası Yönetimi
+    fun getPremiumQueryCount(context: Context): Int {
+        val prefs = getPreferences(context)
+        val lastResetTimestamp = prefs.getLong(KEY_PREMIUM_LAST_RESET_TIMESTAMP, 0L)
+        val currentTimestamp = System.currentTimeMillis()
+
+        val lastResetCal = Calendar.getInstance().apply { timeInMillis = lastResetTimestamp }
+        val currentCal = Calendar.getInstance().apply { timeInMillis = currentTimestamp }
+
+        // Yeni bir aya geçilmişse sayacı sıfırla
+        if (lastResetCal.get(Calendar.MONTH) != currentCal.get(Calendar.MONTH) ||
+            lastResetCal.get(Calendar.YEAR) != currentCal.get(Calendar.YEAR)) {
+            prefs.edit()
+                .putInt(KEY_PREMIUM_QUERY_COUNT, 0)
+                .putLong(KEY_PREMIUM_LAST_RESET_TIMESTAMP, currentTimestamp)
+                .apply()
+            return 0
+        }
+        return prefs.getInt(KEY_PREMIUM_QUERY_COUNT, 0)
+    }
+
+    fun incrementPremiumQueryCount(context: Context) {
+        val prefs = getPreferences(context)
+        val currentCount = getPremiumQueryCount(context)
+        prefs.edit().putInt(KEY_PREMIUM_QUERY_COUNT, currentCount + 1).apply()
+    }
+
+    // Ödüllü Sorgu Hakkı Yönetimi
+    fun getRewardedQueryCount(context: Context): Int {
+        return getPreferences(context).getInt(KEY_REWARDED_QUERY_COUNT, 0)
+    }
+
+    fun addRewardedQueries(context: Context, amount: Int) {
+        val currentCount = getRewardedQueryCount(context)
+        getPreferences(context).edit().putInt(KEY_REWARDED_QUERY_COUNT, currentCount + amount).apply()
+    }
+
+    fun useRewardedQuery(context: Context) {
+        val currentCount = getRewardedQueryCount(context)
+        if (currentCount > 0) {
+            getPreferences(context).edit().putInt(KEY_REWARDED_QUERY_COUNT, currentCount - 1).apply()
+        }
     }
 }

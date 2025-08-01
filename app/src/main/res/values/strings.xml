@@ -281,4 +281,16 @@
     <string name="yearly">Yıllık</string>
     <string name="price_period_monthly">/ay</string>
     <string name="price_period_yearly">/yıl</string>
+
+    <string name="ai_quota_exceeded">"%1$s AI sorgu limitinizi aştınız."</string>
+    <string name="period_daily">Günlük</string>
+    <string name="period_monthly">Aylık</string>
+
+    <string name="ai_quota_exceeded_title">Sorgu Hakkınız Bitti</string>
+    <string name="watch_ad_for_reward_prompt">3 ek sorgu hakkı kazanmak için kısa bir reklam izlemek ister misiniz?</string>
+    <string name="watch_ad_button">Reklam İzle</string>
+    <string name="cancel_button">İptal</string>
+    <string name="reward_granted_toast">+%1$d sorgu hakkı kazandınız!</string>
+    <string name="ad_not_ready_toast">Reklam henüz hazır değil. Lütfen daha sonra tekrar deneyin.</string>
+
 </resources>

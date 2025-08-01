@@ -56,6 +56,9 @@ android {
 
         val admobInterstitialUnitId = localProperties.getProperty("ADMOB_INTERSTITIAL_UNIT_ID") ?: ""
         resValue("string", "admob_interstitial_unit_id", admobInterstitialUnitId)
+
+        val admobRewardedUnitId = localProperties.getProperty("ADMOB_REWARDED_UNIT_ID") ?: ""
+        resValue("string", "admob_rewarded_unit_id", admobRewardedUnitId)
     }
 
     buildTypes {

@@ -281,4 +281,15 @@
     <string name="price_period_monthly">/month</string>
     <string name="price_period_yearly">/year</string>
 
+    <string name="ai_quota_exceeded">"You have exceeded your %1$s AI query limit."</string>
+    <string name="period_daily">Daily</string>
+    <string name="period_monthly">Monthly</string>
+
+    <string name="ai_quota_exceeded_title">Query Limit Reached</string>
+    <string name="watch_ad_for_reward_prompt">Would you like to watch a short ad to earn 3 extra queries?</string>
+    <string name="watch_ad_button">Watch Ad</string>
+    <string name="cancel_button">Cancel</string>
+    <string name="reward_granted_toast">You earned +%1$d queries!</string>
+    <string name="ad_not_ready_toast">The ad is not ready yet. Please try again later.</string>
+
 </resources>

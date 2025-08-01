@@ -20,9 +20,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.graphics.toColorInt
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
-import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.codenzi.mathlabs.database.DrawingDao
 import com.github.barteksc.pdfviewer.PDFView
@@ -52,7 +52,6 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
-import java.io.InputStream
 import java.util.Locale
 import javax.inject.Inject
 
@@ -76,7 +75,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private lateinit var pageCountCard: MaterialCardView
     private lateinit var pageCountText: TextView
     private lateinit var rootLayout: ViewGroup
-    private lateinit var adView: AdView // Banner reklam için AdView eklendi
+    private lateinit var adView: AdView
 
     private var pdfAssetName: String? = null
     private var currentReadingModeLevel: Int = 0
@@ -91,7 +90,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         val apiKey = BuildConfig.GEMINI_API_KEY
         if (apiKey.isEmpty()) {
             Log.e("GeminiAI", "API Anahtarı BuildConfig içerisinde bulunamadı veya geçersiz.")
-            showAnimatedToast(getString(R.string.ai_assistant_api_key_not_configured))
         }
         GenerativeModel(
             modelName = "gemini-1.5-flash",
@@ -120,30 +118,30 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         super.onCreate(savedInstanceState)
 
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
-
         setContentView(R.layout.activity_pdf_view)
         overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
 
-        // Banner reklamı başlat
         setupBannerAd()
-
         setupToolbar()
         handleWindowInsets()
-
         initializeViews()
         setupListeners()
+
         pdfAssetName = intent.getStringExtra(EXTRA_PDF_ASSET_NAME)
         val pdfTitle = intent.getStringExtra(EXTRA_PDF_TITLE) ?: getString(R.string.app_name)
         supportActionBar?.title = pdfTitle
+
         if (pdfAssetName != null) {
             displayPdfFromFirebaseWithOkHttp(pdfAssetName!!)
         } else {
             showAnimatedToast(getString(R.string.pdf_not_found))
             finish()
         }
+
+        // Ödüllü reklamı aktivite oluşturulurken yükle
+        RewardedAdManager.loadAd(this)
     }
 
-    // YENİ FONKSİYON: Banner reklamı ayarlar ve yükler
     private fun setupBannerAd() {
         MobileAds.initialize(this) {}
         adView = findViewById(R.id.adView)
@@ -152,45 +150,26 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
 
         adView.adListener = object : AdListener() {
             override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                // Reklam yüklenemezse, reklam alanını gizle
-                // ConstraintLayout, diğer elemanları otomatik olarak en alta çeker
                 super.onAdFailedToLoad(loadAdError)
                 adView.visibility = View.GONE
             }
         }
     }
 
-    // ... (diğer metodlar değişmedi)
     private fun handleWindowInsets() {
         rootLayout = findViewById(R.id.root_layout_pdf_view)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { view, insets ->
             val systemBarInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
 
-            // Toolbar için üst boşluk
             pdfToolbar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 topMargin = systemBarInsets.top
             }
 
-            // FAB'lar ve Sayfa Sayısı Kartı için alt boşluk
-            // Reklamın yüksekliği ve sistem çubuğu boşluğu dikkate alınarak ayarlanır
-            val adViewHeight = if (adView.visibility == View.VISIBLE) adView.height else 0
-            val bottomMarginValue = systemBarInsets.bottom + adViewHeight + (16 * resources.displayMetrics.density).toInt()
-
-            fabAiChat.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                bottomMargin = bottomMarginValue
-            }
-            fabReadingMode.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                bottomMargin = bottomMarginValue
-            }
-            pageCountCard.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                // Sayfa kartı FAB'ın üzerinde olduğu için ona da boşluk veriyoruz.
-                bottomMargin = bottomMarginValue + fabAiChat.height + (16 * resources.displayMetrics.density).toInt()
-            }
-
+            view.setPadding(view.paddingLeft, view.paddingTop, view.paddingRight, systemBarInsets.bottom)
             insets
         }
     }
-
 
     private fun displayPdfFromFirebaseWithOkHttp(storagePath: String) {
         progressBar.visibility = View.VISIBLE
@@ -201,8 +180,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                     val request = Request.Builder().url(uri.toString()).build()
                     val response = okHttpClient.newCall(request).execute()
                     if (response.isSuccessful) {
-                        val responseBody = response.body ?: throw IOException("Response body is null")
-                        val downloadedBytes = responseBody.bytes()
+                        val downloadedBytes = response.body?.bytes() ?: throw IOException("Response body is null")
                         this@PdfViewActivity.pdfBytes = downloadedBytes
 
                         withContext(Dispatchers.Main) {
@@ -239,37 +217,62 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     }
 
     private suspend fun extractTextForAI(): String {
-        val bytes = this.pdfBytes
-        if (bytes == null) {
+        val bytes = this.pdfBytes ?: return "".also {
             Log.e("PdfTextExtraction", "Yapay zeka için metin çıkarılamadı: PDF byte'ları null.")
-            return ""
         }
 
         return withContext(Dispatchers.IO) {
-            var text = ""
             try {
                 PDFBoxResourceLoader.init(applicationContext)
                 PDDocument.load(bytes).use { document ->
                     val stripper = PDFTextStripper()
                     val boxCurrentPage = currentPage + 1
-
                     stripper.startPage = (boxCurrentPage - 1).coerceAtLeast(1)
                     stripper.endPage = (boxCurrentPage + 1).coerceAtMost(document.numberOfPages)
-
-                    text = stripper.getText(document)
+                    stripper.getText(document)
                 }
             } catch (e: Exception) {
                 Log.e("PdfTextExtraction", "Yapay zeka için metin çıkarılırken hata oluştu", e)
+                ""
             }
-            text
         }
     }
 
-    private fun showAiChatDialog() {
+    private fun showWatchAdDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.
+
+            ai_quota_exceeded_title))
+            .setMessage(getString(R.string.watch_ad_for_reward_prompt))
+            .setPositiveButton(getString(R.string.watch_ad_button)) { dialog, _ ->
+                RewardedAdManager.showAd(
+                    activity = this,
+                    onRewardEarned = {
+                        SharedPreferencesManager.addRewardedQueries(this, 3)
+                        showAnimatedToast(getString(R.string.reward_granted_toast, 3))
+                        showAiChatDialog(isFromReward = true)
+                    },
+                    onAdFailedToShow = {
+                        showAnimatedToast(getString(R.string.ad_not_ready_toast))
+                    }
+                )
+                dialog.dismiss()
+            }
+            .setNegativeButton(getString(R.string.cancel_button), null)
+            .show()
+    }
+
+    private fun showAiChatDialog(isFromReward: Boolean = false) {
         if (pdfBytes == null) {
             showAnimatedToast(getString(R.string.pdf_text_not_ready))
             return
         }
+
+        if (!isFromReward && !AiQueryManager.canPerformQuery(this)) {
+            showWatchAdDialog()
+            return
+        }
+
         val builder = AlertDialog.Builder(this)
         val dialogView = layoutInflater.inflate(R.layout.dialog_ai_chat, null)
         builder.setView(dialogView)
@@ -282,48 +285,50 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         buttonSend.setOnClickListener {
             val question = editTextQuestion.text.toString().trim()
             if (question.isNotEmpty()) {
+                if (!AiQueryManager.canPerformQuery(this)) {
+                    // Güvenlik olarak tekrar kontrol et
+                    showWatchAdDialog()
+                    dialog.dismiss()
+                    return@setOnClickListener
+                }
+
                 textViewAnswer.text = ""
                 textViewAnswer.visibility = View.GONE
                 progressChat.visibility = View.VISIBLE
                 buttonSend.isEnabled = false
                 editTextQuestion.isEnabled = false
                 conversationHistory.add("Kullanıcı: $question")
+
+                AiQueryManager.incrementQueryCount(this)
+
                 lifecycleScope.launch {
                     var aiResponse = ""
                     try {
                         val relevantContext = extractTextForAI()
-
                         if (relevantContext.isBlank()) {
                             aiResponse = getString(R.string.ai_info_not_found)
                         } else {
                             val historyText = conversationHistory.joinToString("\n")
                             val currentLanguage = SharedPreferencesManager.getLanguage(this@PdfViewActivity) ?: "tr"
-                            val prompt: String
-
-                            if (currentLanguage == "en") {
-                                prompt = """
+                            val prompt = if (currentLanguage == "en") {
+                                """
                                 Conversation History:
                                 $historyText
-
                                 --- Text Excerpts from the PDF (Current Pages) ---
                                 $relevantContext
                                 ------------------------------------
-
                                 Answer the user's LAST QUESTION based on the conversation history and the text excerpts.
                                 Respond in English and use Markdown format.
                                 If the answer is not in the text, say 'This information is not available in the provided pages.'
-
                                 USER'S LAST QUESTION: "$question"
                                 """.trimIndent()
                             } else {
-                                prompt = """
+                                """
                                 Önceki Konuşma Geçmişi:
                                 $historyText
-
                                 --- PDF'ten Alınan Metin Parçaları (Mevcut Sayfalar) ---
                                 $relevantContext
                                 -----------------------
-
                                 Kullanıcının SON SORUSUNU önceki konuşmayı ve metin parçalarını dikkate alarak yanıtla: "$question"
                                 Cevabınızı Markdown formatında ve Türkçe olarak verin.
                                 Metinde cevap yoksa, 'Bu bilgi sağlanan sayfalarda bulunmuyor.' deyin.
@@ -331,7 +336,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                             }
 
                             val responseFlow = generativeModel.generateContentStream(prompt)
-                                .catch { e: Throwable ->
+                                .catch { e ->
                                     withContext(Dispatchers.Main) {
                                         textViewAnswer.text = getString(R.string.ai_chat_error_with_details, e.localizedMessage ?: "Unknown error")
                                         textViewAnswer.visibility = View.VISIBLE
@@ -361,6 +366,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                         }
                         while (conversationHistory.size > 6) {
                             conversationHistory.removeAt(0)
+                            conversationHistory.removeAt(0)
                         }
                         withContext(Dispatchers.Main) {
                             progressChat.visibility = View.GONE
@@ -379,7 +385,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
 
     private fun setupToolbar() {
         pdfToolbar = findViewById(R.id.pdfToolbar)
-        WindowCompat.setDecorFitsSystemWindows(window, false)
         setSupportActionBar(pdfToolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
@@ -524,7 +529,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             })
             notificationTextView.startAnimation(fadeOut)
         }
-        toastHandler.postDelayed(toastRunnable!!, 2000)
+        toastHandler.postDelayed(toastRunnable!!, 3000)
     }
 
     override fun onPageChanged(page: Int, pageCount: Int) {
