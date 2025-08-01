@@ -264,4 +264,21 @@
     <string name="page_count_format">%1$d / %2$d</string>
 
     <string name="topic_general_problem_solving">Genel Soru Çözümü</string>
+
+    <string name="settings_category_premium">Premium</string>
+    <string name="premium_features_title">Premium Özellikler</string>
+    <string name="premium_feature_downloads">Aylık 20 PDF indirme hakkı</string>
+    <string name="premium_feature_screenshot">Ekran görüntüsü alabilme</string>
+    <string name="premium_feature_no_ads">Reklamsız bir deneyim</string>
+    <string name="premium_feature_ai_queries">Aylık 1000 AI sorgu hakkı</string>
+    <string name="premium_monthly_plan">Aylık Plan</string>
+    <string name="premium_yearly_plan">Yıllık Plan</string>
+    <string name="premium_monthly_price">49.99 TL/ay</string>
+    <string name="premium_yearly_price">499.99 TL/yıl</string>
+    <string name="subscribe_button">Abone Ol</string>
+    <string name="premium_toast_message">Premium özellikler yakında!</string>
+    <string name="monthly">Aylık</string>
+    <string name="yearly">Yıllık</string>
+    <string name="price_period_monthly">/ay</string>
+    <string name="price_period_yearly">/yıl</string>
 </resources>

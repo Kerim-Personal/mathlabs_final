@@ -1,4 +1,4 @@
-// kerim-personal/mathlabs_final/mathlabs_final-f49787796173bd3b9413051b0018b2349ef86c8/app/src/main/java/com/codenzi/mathlabs/PdfViewActivity.kt
+// kerim-personal/mathlabs_final/mathlabs_final-f49787796173bd93b9413051b0018b2349ef86c8/app/src/main/java/com/codenzi/mathlabs/PdfViewActivity.kt
 
 package com.codenzi.mathlabs
 
@@ -10,7 +10,7 @@ import android.util.Log
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowManager
+import android.view.WindowManager // <-- Gerekli import
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.widget.Button
@@ -33,12 +33,6 @@ import com.github.barteksc.pdfviewer.listener.OnLoadCompleteListener
 import com.github.barteksc.pdfviewer.listener.OnPageChangeListener
 import com.github.barteksc.pdfviewer.listener.OnPageErrorListener
 import com.google.ai.client.generativeai.GenerativeModel
-import com.google.android.gms.ads.AdError
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.FullScreenContentCallback
-import com.google.android.gms.ads.LoadAdError
-import com.google.android.gms.ads.interstitial.InterstitialAd
-import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -55,6 +49,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
+import java.io.InputStream
 import java.util.Locale
 import javax.inject.Inject
 
@@ -87,7 +82,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private val toastHandler = Handler(Looper.getMainLooper())
     private var toastRunnable: Runnable? = null
     private val conversationHistory = mutableListOf<String>()
-    private var mInterstitialAd: InterstitialAd? = null
 
     private val generativeModel by lazy {
         val apiKey = BuildConfig.GEMINI_API_KEY
@@ -121,6 +115,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         applyAppTheme()
         super.onCreate(savedInstanceState)
 
+        // --- YENİDEN EKLENEN SATIR ---
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
         setContentView(R.layout.activity_pdf_view)
@@ -135,73 +130,25 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         val pdfTitle = intent.getStringExtra(EXTRA_PDF_TITLE) ?: getString(R.string.app_name)
         supportActionBar?.title = pdfTitle
         if (pdfAssetName != null) {
-            loadInterstitialAd()
+            displayPdfFromFirebaseWithOkHttp(pdfAssetName!!)
         } else {
             showAnimatedToast(getString(R.string.pdf_not_found))
             finish()
         }
     }
 
-    private fun loadInterstitialAd() {
-        progressBar.visibility = View.VISIBLE
-        val adRequest = AdRequest.Builder().build()
-        val adUnitId = getString(R.string.admob_interstitial_unit_id)
-
-        InterstitialAd.load(this, adUnitId, adRequest,
-            object : InterstitialAdLoadCallback() {
-                override fun onAdLoaded(interstitialAd: InterstitialAd) {
-                    mInterstitialAd = interstitialAd
-                    Log.d("AdMob", "Geçiş reklamı yüklendi.")
-                    showInterstitialAd()
-                }
-
-                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                    Log.e("AdMob", "Geçiş reklamı yüklenemedi: ${loadAdError.message}")
-                    mInterstitialAd = null
-                    // Reklam yüklenemese bile PDF'i göstermeye devam et
-                    displayPdfFromFirebaseWithOkHttp(pdfAssetName!!)
-                }
-            })
-    }
-
-    private fun showInterstitialAd() {
-        if (mInterstitialAd != null) {
-            mInterstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
-                override fun onAdDismissedFullScreenContent() {
-                    Log.d("AdMob", "Geçiş reklamı kapatıldı.")
-                    // Reklam kapatıldıktan sonra PDF'i yükle
-                    displayPdfFromFirebaseWithOkHttp(pdfAssetName!!)
-                }
-
-                override fun onAdFailedToShowFullScreenContent(adError: AdError) {
-                    Log.e("AdMob", "Geçiş reklamı gösterilemedi: ${adError.message}")
-                    // Reklam gösterilemezse bile PDF'i yükle
-                    displayPdfFromFirebaseWithOkHttp(pdfAssetName!!)
-                }
-
-                override fun onAdShowedFullScreenContent() {
-                    Log.d("AdMob", "Geçiş reklamı gösterildi.")
-                    mInterstitialAd = null
-                }
-            }
-            mInterstitialAd?.show(this)
-        } else {
-            Log.d("AdMob", "Geçiş reklamı gösterilmeye hazır değil.")
-            // Reklam hazır değilse bile PDF'i yükle
-            displayPdfFromFirebaseWithOkHttp(pdfAssetName!!)
-        }
-    }
-
-
+    // ... (diğer metodlar değişmedi)
     private fun handleWindowInsets() {
         rootLayout = findViewById(R.id.root_layout_pdf_view)
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { view, insets ->
             val systemBarInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
 
+            // Toolbar için üst boşluk
             pdfToolbar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 topMargin = systemBarInsets.top
             }
 
+            // FAB'lar ve Sayfa Sayısı Kartı için alt boşluk
             val bottomMarginValue = systemBarInsets.bottom + (16 * resources.displayMetrics.density).toInt()
 
             fabAiChat.updateLayoutParams<ViewGroup.MarginLayoutParams> {
@@ -211,6 +158,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                 bottomMargin = bottomMarginValue
             }
             pageCountCard.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                // Sayfa kartı FAB'ın üzerinde olduğu için ona da boşluk veriyoruz.
                 bottomMargin = bottomMarginValue + fabAiChat.height + (16 * resources.displayMetrics.density).toInt()
             }
 

@@ -7,7 +7,9 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -17,9 +19,14 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.switchmaterial.SwitchMaterial
 
 class SettingsActivity : AppCompatActivity() {
+
+    private lateinit var togglePlan: MaterialButtonToggleGroup
+    private lateinit var textViewPrice: TextView
+    private lateinit var textViewPricePeriod: TextView
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleHelper.onAttach(newBase))
@@ -49,8 +56,16 @@ class SettingsActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = getString(R.string.settings_title)
 
+        initializePremiumViews()
         setupClickListeners()
         setupSwitches()
+        setupPremiumPlanToggle()
+    }
+
+    private fun initializePremiumViews() {
+        togglePlan = findViewById(R.id.togglePlan)
+        textViewPrice = findViewById(R.id.textViewPrice)
+        textViewPricePeriod = findViewById(R.id.textViewPricePeriod)
     }
 
     private fun setupClickListeners() {
@@ -64,12 +79,10 @@ class SettingsActivity : AppCompatActivity() {
             showThemeDialog()
         }
 
-        // --- YENİ EKLENEN KISIM BAŞLANGICI ---
-
         findViewById<LinearLayout>(R.id.layoutContactUs).setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.parse("mailto:") // Yalnızca e-posta uygulamaları bu intent'i açmalı
+                data = Uri.parse("mailto:")
                 putExtra(Intent.EXTRA_EMAIL, arrayOf("info@codenzi.com"))
                 putExtra(Intent.EXTRA_SUBJECT, "MathLabs Geri Bildirim")
             }
@@ -82,12 +95,15 @@ class SettingsActivity : AppCompatActivity() {
 
         findViewById<LinearLayout>(R.id.layoutPrivacyPolicy).setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
-            val url = "https://www.codenzi.com/privacy-math-labs.html" // Buraya kendi gizlilik sözleşmesi linkinizi ekleyin
+            val url = "https://www.codenzi.com/privacy-math-labs.html"
             val privacyIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             startActivity(privacyIntent)
         }
 
-        // --- YENİ EKLENEN KISIM SONU ---
+        findViewById<Button>(R.id.buttonSubscribe).setOnClickListener {
+            UIFeedbackHelper.provideFeedback(it)
+            Toast.makeText(this, getString(R.string.premium_toast_message), Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun setupSwitches() {
@@ -96,6 +112,32 @@ class SettingsActivity : AppCompatActivity() {
         switchTouchSound.setOnCheckedChangeListener { buttonView, isChecked ->
             UIFeedbackHelper.provideFeedback(buttonView)
             SharedPreferencesManager.setTouchSoundEnabled(this, isChecked)
+        }
+    }
+
+    private fun setupPremiumPlanToggle() {
+        // Başlangıçta aylık plan seçili gelsin
+        togglePlan.check(R.id.buttonMonthly)
+        updatePriceDisplay(isMonthly = true)
+
+        togglePlan.addOnButtonCheckedListener { group, checkedId, isChecked ->
+            if (isChecked) {
+                UIFeedbackHelper.provideFeedback(group)
+                when (checkedId) {
+                    R.id.buttonMonthly -> updatePriceDisplay(isMonthly = true)
+                    R.id.buttonYearly -> updatePriceDisplay(isMonthly = false)
+                }
+            }
+        }
+    }
+
+    private fun updatePriceDisplay(isMonthly: Boolean) {
+        if (isMonthly) {
+            textViewPrice.text = getString(R.string.premium_monthly_price).substringBefore('/')
+            textViewPricePeriod.text = getString(R.string.price_period_monthly)
+        } else {
+            textViewPrice.text = getString(R.string.premium_yearly_price).substringBefore('/')
+            textViewPricePeriod.text = getString(R.string.price_period_yearly)
         }
     }
 
