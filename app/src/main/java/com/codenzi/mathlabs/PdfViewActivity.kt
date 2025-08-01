@@ -1,5 +1,3 @@
-// kerim-personal/mathlabs_final/mathlabs_final-f49787796173bd93b9413051b0018b2349ef86c8/app/src/main/java/com/codenzi/mathlabs/PdfViewActivity.kt
-
 package com.codenzi.mathlabs
 
 import android.content.Context
@@ -10,7 +8,7 @@ import android.util.Log
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowManager // <-- Gerekli import
+import android.view.WindowManager
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.widget.Button
@@ -22,9 +20,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.graphics.toColorInt
 import androidx.core.view.ViewCompat
-import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.codenzi.mathlabs.database.DrawingDao
 import com.github.barteksc.pdfviewer.PDFView
@@ -33,6 +31,11 @@ import com.github.barteksc.pdfviewer.listener.OnLoadCompleteListener
 import com.github.barteksc.pdfviewer.listener.OnPageChangeListener
 import com.github.barteksc.pdfviewer.listener.OnPageErrorListener
 import com.google.ai.client.generativeai.GenerativeModel
+import com.google.android.gms.ads.AdListener
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.MobileAds
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -73,6 +76,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private lateinit var pageCountCard: MaterialCardView
     private lateinit var pageCountText: TextView
     private lateinit var rootLayout: ViewGroup
+    private lateinit var adView: AdView // Banner reklam için AdView eklendi
 
     private var pdfAssetName: String? = null
     private var currentReadingModeLevel: Int = 0
@@ -115,11 +119,13 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         applyAppTheme()
         super.onCreate(savedInstanceState)
 
-        // --- YENİDEN EKLENEN SATIR ---
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
 
         setContentView(R.layout.activity_pdf_view)
         overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+
+        // Banner reklamı başlat
+        setupBannerAd()
 
         setupToolbar()
         handleWindowInsets()
@@ -137,6 +143,23 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         }
     }
 
+    // YENİ FONKSİYON: Banner reklamı ayarlar ve yükler
+    private fun setupBannerAd() {
+        MobileAds.initialize(this) {}
+        adView = findViewById(R.id.adView)
+        val adRequest = AdRequest.Builder().build()
+        adView.loadAd(adRequest)
+
+        adView.adListener = object : AdListener() {
+            override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                // Reklam yüklenemezse, reklam alanını gizle
+                // ConstraintLayout, diğer elemanları otomatik olarak en alta çeker
+                super.onAdFailedToLoad(loadAdError)
+                adView.visibility = View.GONE
+            }
+        }
+    }
+
     // ... (diğer metodlar değişmedi)
     private fun handleWindowInsets() {
         rootLayout = findViewById(R.id.root_layout_pdf_view)
@@ -149,7 +172,9 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             }
 
             // FAB'lar ve Sayfa Sayısı Kartı için alt boşluk
-            val bottomMarginValue = systemBarInsets.bottom + (16 * resources.displayMetrics.density).toInt()
+            // Reklamın yüksekliği ve sistem çubuğu boşluğu dikkate alınarak ayarlanır
+            val adViewHeight = if (adView.visibility == View.VISIBLE) adView.height else 0
+            val bottomMarginValue = systemBarInsets.bottom + adViewHeight + (16 * resources.displayMetrics.density).toInt()
 
             fabAiChat.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 bottomMargin = bottomMarginValue

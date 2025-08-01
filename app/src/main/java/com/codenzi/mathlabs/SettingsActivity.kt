@@ -71,7 +71,8 @@ class SettingsActivity : AppCompatActivity() {
     private fun setupClickListeners() {
         findViewById<LinearLayout>(R.id.layoutLanguageSettings).setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
-            startActivity(Intent(this, LanguageSelectionActivity::class.java))
+            // Dil seçimi için yeni bir aktivite başlatmak yerine dialog göster
+            showLanguageDialog()
         }
 
         findViewById<LinearLayout>(R.id.layoutThemeSettings).setOnClickListener {
@@ -165,6 +166,27 @@ class SettingsActivity : AppCompatActivity() {
                     SharedPreferencesManager.saveTheme(this, selectedTheme)
                     setResult(Activity.RESULT_OK)
                     recreate()
+                }
+                dialog.dismiss()
+            }
+            .create()
+            .show()
+    }
+
+    // YENİ EKLENEN FONKSİYON
+    private fun showLanguageDialog() {
+        val languages = arrayOf("Türkçe", "English")
+        val languageCodes = arrayOf("tr", "en")
+        val currentLanguageCode = SharedPreferencesManager.getLanguage(this)
+        val checkedItem = languageCodes.indexOf(currentLanguageCode).coerceAtLeast(0)
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.language_settings))
+            .setSingleChoiceItems(languages, checkedItem) { dialog, which ->
+                val selectedLanguageCode = languageCodes[which]
+                if (selectedLanguageCode != currentLanguageCode) {
+                    // LocaleHelper'daki yeni applyLanguage metodu çağrılıyor
+                    LocaleHelper.applyLanguage(this, selectedLanguageCode)
                 }
                 dialog.dismiss()
             }

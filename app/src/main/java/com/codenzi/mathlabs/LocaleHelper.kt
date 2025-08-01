@@ -18,32 +18,38 @@ object LocaleHelper {
         return context.createConfigurationContext(config)
     }
 
-    // Call this in attachBaseContext of Activities
+    /**
+     * Bu fonksiyon, aktivitelerin attachBaseContext metodunda çağrılmalıdır.
+     * Cihazın veya kullanıcının seçtiği dili yükler.
+     */
     fun onAttach(context: Context): Context {
         val storedLanguage = SharedPreferencesManager.getLanguage(context)
         val isLanguageExplicitlySelected = SharedPreferencesManager.isLanguageSelected(context)
 
         return if (isLanguageExplicitlySelected && storedLanguage != null) {
-            // If a language was explicitly selected before, use it
+            // Eğer daha önce bir dil seçilmişse, o dili kullan
             setLocale(context, storedLanguage)
         } else {
-            // If no language was explicitly selected, use the system's default language.
-            // This is primarily for the *very first launch* before a choice is made.
+            // Eğer hiç dil seçilmemişse (ilk açılış), sistemin varsayılan dilini kullan
             val defaultSystemLanguage = Locale.getDefault().language
             setLocale(context, defaultSystemLanguage)
         }
     }
 
-    // Call this when the language is actively changed by the user (e.g., in LanguageSelectionActivity)
+    /**
+     * Kullanıcının yaptığı dil seçimini SharedPreferences'a kaydeder.
+     */
     fun persist(context: Context, languageCode: String) {
         SharedPreferencesManager.saveLanguage(context, languageCode)
-        SharedPreferencesManager.setLanguageSelected(context, true) // Ensure this flag is set to true
+        SharedPreferencesManager.setLanguageSelected(context, true) // Dilin bilinçli olarak seçildiğini işaretler
     }
 
-    // Call this to apply the selected language and restart the *current* activity.
-    // This is typically used in SettingsActivity, NOT for the initial language selection.
+    /**
+     * Seçilen dili uygular ve mevcut aktiviteyi yeniden başlatarak
+     * değişikliğin anında yansımasını sağlar. Genellikle ayarlar ekranında kullanılır.
+     */
     fun applyLanguage(activity: Activity, languageCode: String) {
         persist(activity, languageCode)
-        activity.recreate() // Simply recreates the current activity to apply new locale
+        activity.recreate() // Mevcut aktiviteyi yeniden oluşturur
     }
 }
