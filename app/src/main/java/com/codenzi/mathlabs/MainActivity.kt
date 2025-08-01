@@ -15,6 +15,8 @@ import androidx.appcompat.widget.SearchView
 import androidx.core.view.WindowCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.codenzi.mathlabs.databinding.ActivityMainBinding
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.MobileAds
 import com.google.android.material.appbar.AppBarLayout
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Calendar
@@ -52,6 +54,11 @@ class MainActivity : AppCompatActivity() {
 
         toolbarTitle = binding.topToolbar.findViewById(R.id.toolbar_title)
 
+        MobileAds.initialize(this) {}
+
+        val adView = binding.adView
+        val adRequest = AdRequest.Builder().build()
+        adView.loadAd(adRequest)
         setupToolbar()
         setupRecyclerView()
         observeViewModel()

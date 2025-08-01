@@ -46,6 +46,16 @@ android {
             println("Info: GEMINI_API_KEY loaded from local.properties.")
             buildConfigField("String", "GEMINI_API_KEY", "\"${geminiApiKeyFromProperties.replace("\"", "\\\"")}\"")
         }
+
+        // AdMob kimliklerini local.properties'ten alıp string kaynağı olarak ekle
+        val admobAppId = localProperties.getProperty("ADMOB_APP_ID") ?: ""
+        resValue("string", "admob_app_id", admobAppId)
+
+        val admobBannerUnitId = localProperties.getProperty("ADMOB_BANNER_UNIT_ID") ?: ""
+        resValue("string", "admob_banner_unit_id", admobBannerUnitId)
+
+        val admobInterstitialUnitId = localProperties.getProperty("ADMOB_INTERSTITIAL_UNIT_ID") ?: ""
+        resValue("string", "admob_interstitial_unit_id", admobInterstitialUnitId)
     }
 
     buildTypes {
@@ -97,6 +107,7 @@ dependencies {
 
     // ---- Firebase Bağımlılıkları ----
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+    implementation("com.google.android.gms:play-services-ads:23.0.0")
     implementation("com.google.firebase:firebase-storage-ktx")
 
     // ---- Ağ ve Önbellekleme ----

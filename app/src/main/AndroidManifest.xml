@@ -14,10 +14,16 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Pdf"
-        android:largeHeap="true"> <activity
-        android:name="com.codenzi.mathlabs.NameEntryActivity"
-        android:exported="false"
-        android:theme="@style/Theme.Pdf" />
+        android:largeHeap="true">
+
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="@string/admob_app_id"/>
+
+        <activity
+            android:name="com.codenzi.mathlabs.NameEntryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Pdf" />
         <activity
             android:name="com.codenzi.mathlabs.SettingsActivity"
             android:exported="false"
