@@ -1,3 +1,5 @@
+// kerim-personal/mathlabs_final/mathlabs_final-f49787796173bd93b9413051b0018b2349ef86c8/app/build.gradle.kts
+
 import java.util.Properties
 import java.io.FileInputStream
 
@@ -48,7 +50,10 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // Proguard'ı etkinleştir
+            isMinifyEnabled = true
+            // Kaynakları küçült
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

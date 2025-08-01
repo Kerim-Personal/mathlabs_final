@@ -1,3 +1,5 @@
+// kerim-personal/mathlabs_final/mathlabs_final-f49787796173bd93b9413051b0018b2349ef86c8/app/src/main/java/com/codenzi/mathlabs/PdfViewActivity.kt
+
 package com.codenzi.mathlabs
 
 import android.content.Context
@@ -8,7 +10,7 @@ import android.util.Log
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowManager
+import android.view.WindowManager // <-- Gerekli import
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.widget.Button
@@ -32,6 +34,7 @@ import com.github.barteksc.pdfviewer.listener.OnPageChangeListener
 import com.github.barteksc.pdfviewer.listener.OnPageErrorListener
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
@@ -67,8 +70,9 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private lateinit var pdfToolbar: MaterialToolbar
     private lateinit var notificationTextView: TextView
     private lateinit var drawingManager: DrawingManager
-    private lateinit var pageCountCard: com.google.android.material.card.MaterialCardView
+    private lateinit var pageCountCard: MaterialCardView
     private lateinit var pageCountText: TextView
+    private lateinit var rootLayout: ViewGroup
 
     private var pdfAssetName: String? = null
     private var currentReadingModeLevel: Int = 0
@@ -110,10 +114,16 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     override fun onCreate(savedInstanceState: Bundle?) {
         applyAppTheme()
         super.onCreate(savedInstanceState)
-        //window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+
+        // --- YENİDEN EKLENEN SATIR ---
+        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+
         setContentView(R.layout.activity_pdf_view)
         overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+
         setupToolbar()
+        handleWindowInsets()
+
         initializeViews()
         setupListeners()
         pdfAssetName = intent.getStringExtra(EXTRA_PDF_ASSET_NAME)
@@ -126,6 +136,36 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             finish()
         }
     }
+
+    // ... (diğer metodlar değişmedi)
+    private fun handleWindowInsets() {
+        rootLayout = findViewById(R.id.root_layout_pdf_view)
+        ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { view, insets ->
+            val systemBarInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+
+            // Toolbar için üst boşluk
+            pdfToolbar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                topMargin = systemBarInsets.top
+            }
+
+            // FAB'lar ve Sayfa Sayısı Kartı için alt boşluk
+            val bottomMarginValue = systemBarInsets.bottom + (16 * resources.displayMetrics.density).toInt()
+
+            fabAiChat.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = bottomMarginValue
+            }
+            fabReadingMode.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = bottomMarginValue
+            }
+            pageCountCard.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                // Sayfa kartı FAB'ın üzerinde olduğu için ona da boşluk veriyoruz.
+                bottomMargin = bottomMarginValue + fabAiChat.height + (16 * resources.displayMetrics.density).toInt()
+            }
+
+            insets
+        }
+    }
+
 
     private fun displayPdfFromFirebaseWithOkHttp(storagePath: String) {
         progressBar.visibility = View.VISIBLE
@@ -315,13 +355,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private fun setupToolbar() {
         pdfToolbar = findViewById(R.id.pdfToolbar)
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        ViewCompat.setOnApplyWindowInsetsListener(pdfToolbar) { view, insets ->
-            val systemBarInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                topMargin = systemBarInsets.top
-            }
-            insets
-        }
         setSupportActionBar(pdfToolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
