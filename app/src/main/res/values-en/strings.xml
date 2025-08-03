@@ -305,8 +305,8 @@
     <string name="suggestion_question">Create a sample question</string>
     <string name="clear_chat_history">Clear Chat</string>
     <string name="reward_granted_toast_chat">You have earned +3 extra queries! You can send your question again now.</string>
-
-
+    <string name="premium_unlock_potential_title">Unlock Your Potential</string>
+    <string name="premium_unlock_potential_desc">Enjoy an ad-free experience, hundreds of AI queries, and much more by upgrading to Premium.</string>
 
 
 </resources>

@@ -307,8 +307,8 @@
     <string name="suggestion_question">Bir örnek soru oluştur</string>
     <string name="clear_chat_history">Sohbeti Temizle</string>
     <string name="reward_granted_toast_chat">+3 sorgu hakkı kazandınız! Şimdi sorunuzu tekrar gönderebilirsiniz.</string>
-
-
+    <string name="premium_unlock_potential_title">Potansiyelini Ortaya Çıkar</string>
+    <string name="premium_unlock_potential_desc">Premium\'a geçerek reklamsız bir deneyimin, yüzlerce yapay zeka sorgusunun ve çok daha fazlasının keyfini çıkarın.</string>
 
 
 

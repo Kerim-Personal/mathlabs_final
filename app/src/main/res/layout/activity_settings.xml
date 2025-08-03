@@ -78,7 +78,7 @@
                             style="?attr/textAppearanceHeadlineSmall"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Potansiyelini Ortaya Çıkar"
+                            android:text="@string/premium_unlock_potential_title"
                             android:textColor="?attr/colorOnPrimary"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -87,7 +87,7 @@
                         style="?attr/textAppearanceBodyMedium"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Premium'a geçerek reklamsız bir deneyimin, yüzlerce yapay zeka sorgusunun ve çok daha fazlasının keyfini çıkarın."
+                        android:text="@string/premium_unlock_potential_desc"
                         android:textColor="?attr/colorOnPrimary"
                         android:alpha="0.9"
                         android:layout_marginBottom="24dp"/>
