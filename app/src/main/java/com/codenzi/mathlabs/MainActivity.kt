@@ -2,11 +2,14 @@ package com.codenzi.mathlabs
 
 import android.app.Activity
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,6 +22,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.codenzi.mathlabs.databinding.ActivityMainBinding
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
@@ -36,8 +41,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var courseAdapter: CourseAdapter
     private val viewModel: MainViewModel by viewModels()
     private lateinit var toolbarTitle: TextView
+    private lateinit var adView: AdView
+    private lateinit var adContainerView: FrameLayout
+    private var initialLayoutComplete = false
 
-    // Geçiş reklamını tutmak için değişken
     private var mInterstitialAd: InterstitialAd? = null
     private val TAG = "MainActivity"
 
@@ -64,15 +71,19 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         toolbarTitle = binding.topToolbar.findViewById(R.id.toolbar_title)
+        adContainerView = binding.adViewContainer
 
         MobileAds.initialize(this) {}
 
-        // Premium durumuna göre banner reklamı yönetimi
-        if (!SharedPreferencesManager.isUserPremium(this)) {
-            val adRequest = AdRequest.Builder().build()
-            binding.adView.loadAd(adRequest)
-        } else {
-            binding.adView.visibility = View.GONE
+        adContainerView.viewTreeObserver.addOnGlobalLayoutListener {
+            if (!initialLayoutComplete) {
+                initialLayoutComplete = true
+                if (!SharedPreferencesManager.isUserPremium(this)) {
+                    loadBanner()
+                } else {
+                    adContainerView.visibility = View.GONE
+                }
+            }
         }
 
         setupToolbar()
@@ -81,10 +92,42 @@ class MainActivity : AppCompatActivity() {
 
         viewModel.loadCourses(this)
 
-        // Premium durumuna göre geçiş reklamı yüklemesi
         if (!SharedPreferencesManager.isUserPremium(this)) {
             loadInterstitialAd()
         }
+    }
+
+    private val adSize: AdSize
+        get() {
+            val adWidth: Int
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val windowMetrics = windowManager.currentWindowMetrics
+                val bounds = windowMetrics.bounds
+                var adWidthPixels = adContainerView.width.toFloat()
+                if (adWidthPixels == 0f) {
+                    adWidthPixels = bounds.width().toFloat()
+                }
+                val density = resources.displayMetrics.density
+                adWidth = (adWidthPixels / density).toInt()
+            } else {
+                val displayMetrics = DisplayMetrics()
+                @Suppress("DEPRECATION")
+                windowManager.defaultDisplay.getMetrics(displayMetrics)
+                val adWidthPixels = displayMetrics.widthPixels.toFloat()
+                val density = displayMetrics.density
+                adWidth = (adWidthPixels / density).toInt()
+            }
+            return AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this, adWidth)
+        }
+
+
+    private fun loadBanner() {
+        adView = AdView(this)
+        adView.adUnitId = getString(R.string.admob_banner_unit_id)
+        adContainerView.addView(adView)
+        adView.setAdSize(adSize)
+        val adRequest = AdRequest.Builder().build()
+        adView.loadAd(adRequest)
     }
 
     private fun loadInterstitialAd() {
@@ -153,25 +196,23 @@ class MainActivity : AppCompatActivity() {
 
                 val isPremium = SharedPreferencesManager.isUserPremium(this)
 
-                // Sadece premium olmayanlar için reklam göster ve reklam yüklenmişse
                 if (!isPremium && mInterstitialAd != null) {
                     mInterstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
                         override fun onAdDismissedFullScreenContent() {
                             navigateToPdfView(courseTitle, topic)
-                            loadInterstitialAd() // Yeni bir reklam yükle
+                            loadInterstitialAd()
                         }
 
                         override fun onAdFailedToShowFullScreenContent(adError: AdError) {
-                            navigateToPdfView(courseTitle, topic) // Hata olursa da devam et
+                            navigateToPdfView(courseTitle, topic)
                         }
 
                         override fun onAdShowedFullScreenContent() {
-                            mInterstitialAd = null // Reklam gösterildi, tekrar kullanılamaz
+                            mInterstitialAd = null
                         }
                     }
                     mInterstitialAd?.show(this)
                 } else {
-                    // Premium kullanıcılar veya reklam hazır değilse doğrudan PDF'i aç
                     navigateToPdfView(courseTitle, topic)
                 }
             }

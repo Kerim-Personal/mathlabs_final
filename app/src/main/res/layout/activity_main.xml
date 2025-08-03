@@ -101,14 +101,20 @@
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
         tools:listitem="@layout/item_course_with_topics" />
 
-    <com.google.android.gms.ads.AdView
-        android:id="@+id/adView"
-        android:layout_width="wrap_content"
+    <FrameLayout
+        android:id="@+id/ad_view_container"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
-        app:adSize="SMART_BANNER"
-        app:adUnitId="@string/admob_banner_unit_id"
         app:layout_anchor="@id/recyclerViewCourses"
-        app:layout_anchorGravity="bottom|center" />
+        app:layout_anchorGravity="bottom|center" >
 
+        <com.google.android.gms.ads.AdView
+            android:id="@+id/adView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            app:adSize="BANNER"
+            app:adUnitId="@string/admob_banner_unit_id" />
+    </FrameLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
