@@ -160,23 +160,25 @@
                         app:singleSelection="true"
                         app:selectionRequired="true"
                         app:checkedButton="@id/buttonMonthly">
-                        <Button
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/buttonMonthly"
                             style="?attr/materialButtonOutlinedStyle"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/monthly"
-                            android:textColor="?attr/colorOnPrimary"
+                            android:textColor="@color/toggle_button_text_color"
+                            app:backgroundTint="@color/toggle_button_background_color"
                             app:strokeColor="?attr/colorOnPrimary"/>
-                        <Button
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/buttonYearly"
                             style="?attr/materialButtonOutlinedStyle"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/yearly"
-                            android:textColor="?attr/colorOnPrimary"
+                            android:textColor="@color/toggle_button_text_color"
+                            app:backgroundTint="@color/toggle_button_background_color"
                             app:strokeColor="?attr/colorOnPrimary"/>
                     </com.google.android.material.button.MaterialButtonToggleGroup>
 
