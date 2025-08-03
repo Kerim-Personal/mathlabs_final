@@ -291,5 +291,22 @@
     <string name="cancel_button">Cancel</string>
     <string name="reward_granted_toast">You earned +%1$d queries!</string>
     <string name="ad_not_ready_toast">The ad is not ready yet. Please try again later.</string>
+    <string name="premium_pdf_limit_reached">You have reached your monthly PDF download limit.</string>
+    <string name="premium_required_toast">You need to be a Premium user to use this feature.</string>
+    <string name="download_pdf">Download</string>
+    <string name="downloading_pdf">Downloading PDF...</string>
+    <string name="download_successful">PDF saved successfully to your Downloads folder.</string>
+    <string name="download_failed">Failed to download PDF. Please ensure you have storage permissions.</string>
+    <string name="premium_feature_for_download">PDF download is a premium feature.</string>
+    <string name="pdf_already_downloaded">This PDF has already been downloaded.</string>
+    <string name="ai_assistant_thinking">Assistant is thinking...</string>
+    <string name="suggestion_summarize">Summarize this page</string>
+    <string name="suggestion_keywords">What are the key concepts?</string>
+    <string name="suggestion_question">Create a sample question</string>
+    <string name="clear_chat_history">Clear Chat</string>
+    <string name="reward_granted_toast_chat">You have earned +3 extra queries! You can send your question again now.</string>
+
+
+
 
 </resources>

@@ -27,6 +27,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var togglePlan: MaterialButtonToggleGroup
     private lateinit var textViewPrice: TextView
     private lateinit var textViewPricePeriod: TextView
+    private var premiumTitleClickCount = 0 // Tıklama sayacı için yeni değişken
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleHelper.onAttach(newBase))
@@ -60,6 +61,7 @@ class SettingsActivity : AppCompatActivity() {
         setupClickListeners()
         setupSwitches()
         setupPremiumPlanToggle()
+        setupDeveloperMode() // Gizli premium modu için yeni fonksiyon çağrısı
     }
 
     private fun initializePremiumViews() {
@@ -71,7 +73,6 @@ class SettingsActivity : AppCompatActivity() {
     private fun setupClickListeners() {
         findViewById<LinearLayout>(R.id.layoutLanguageSettings).setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
-            // Dil seçimi için yeni bir aktivite başlatmak yerine dialog göster
             showLanguageDialog()
         }
 
@@ -117,7 +118,6 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun setupPremiumPlanToggle() {
-        // Başlangıçta aylık plan seçili gelsin
         togglePlan.check(R.id.buttonMonthly)
         updatePriceDisplay(isMonthly = true)
 
@@ -128,6 +128,20 @@ class SettingsActivity : AppCompatActivity() {
                     R.id.buttonMonthly -> updatePriceDisplay(isMonthly = true)
                     R.id.buttonYearly -> updatePriceDisplay(isMonthly = false)
                 }
+            }
+        }
+    }
+
+    // YENİ EKLENEN FONKSİYON
+    private fun setupDeveloperMode() {
+        findViewById<TextView>(R.id.premiumFeaturesTitle).setOnClickListener {
+            premiumTitleClickCount++
+            if (premiumTitleClickCount == 5) {
+                val isPremium = !SharedPreferencesManager.isUserPremium(this)
+                SharedPreferencesManager.setUserAsPremium(this, isPremium)
+                val message = if (isPremium) "Geliştirici Modu: Premium Aktif!" else "Geliştirici Modu: Premium Devre Dışı!"
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+                premiumTitleClickCount = 0
             }
         }
     }
@@ -173,7 +187,6 @@ class SettingsActivity : AppCompatActivity() {
             .show()
     }
 
-    // YENİ EKLENEN FONKSİYON
     private fun showLanguageDialog() {
         val languages = arrayOf("Türkçe", "English")
         val languageCodes = arrayOf("tr", "en")
@@ -185,7 +198,6 @@ class SettingsActivity : AppCompatActivity() {
             .setSingleChoiceItems(languages, checkedItem) { dialog, which ->
                 val selectedLanguageCode = languageCodes[which]
                 if (selectedLanguageCode != currentLanguageCode) {
-                    // LocaleHelper'daki yeni applyLanguage metodu çağrılıyor
                     LocaleHelper.applyLanguage(this, selectedLanguageCode)
                 }
                 dialog.dismiss()

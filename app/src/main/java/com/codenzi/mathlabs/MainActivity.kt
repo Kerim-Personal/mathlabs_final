@@ -3,8 +3,10 @@ package com.codenzi.mathlabs
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,8 +17,13 @@ import androidx.appcompat.widget.SearchView
 import androidx.core.view.WindowCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.codenzi.mathlabs.databinding.ActivityMainBinding
+import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.FullScreenContentCallback
+import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.interstitial.InterstitialAd
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.material.appbar.AppBarLayout
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Calendar
@@ -29,6 +36,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var courseAdapter: CourseAdapter
     private val viewModel: MainViewModel by viewModels()
     private lateinit var toolbarTitle: TextView
+
+    // Geçiş reklamını tutmak için değişken
+    private var mInterstitialAd: InterstitialAd? = null
+    private val TAG = "MainActivity"
 
     private val settingsLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -56,14 +67,49 @@ class MainActivity : AppCompatActivity() {
 
         MobileAds.initialize(this) {}
 
-        val adView = binding.adView
-        val adRequest = AdRequest.Builder().build()
-        adView.loadAd(adRequest)
+        // Premium durumuna göre banner reklamı yönetimi
+        if (!SharedPreferencesManager.isUserPremium(this)) {
+            val adRequest = AdRequest.Builder().build()
+            binding.adView.loadAd(adRequest)
+        } else {
+            binding.adView.visibility = View.GONE
+        }
+
         setupToolbar()
         setupRecyclerView()
         observeViewModel()
 
         viewModel.loadCourses(this)
+
+        // Premium durumuna göre geçiş reklamı yüklemesi
+        if (!SharedPreferencesManager.isUserPremium(this)) {
+            loadInterstitialAd()
+        }
+    }
+
+    private fun loadInterstitialAd() {
+        val adRequest = AdRequest.Builder().build()
+        val adUnitId = getString(R.string.admob_interstitial_unit_id)
+
+        InterstitialAd.load(this, adUnitId, adRequest, object : InterstitialAdLoadCallback() {
+            override fun onAdFailedToLoad(adError: LoadAdError) {
+                Log.d(TAG, adError.toString())
+                mInterstitialAd = null
+            }
+
+            override fun onAdLoaded(interstitialAd: InterstitialAd) {
+                Log.d(TAG, "Ad was loaded.")
+                mInterstitialAd = interstitialAd
+            }
+        })
+    }
+
+    private fun navigateToPdfView(courseTitle: String, topic: Topic) {
+        val intent = Intent(this, PdfViewActivity::class.java).apply {
+            putExtra(PdfViewActivity.EXTRA_PDF_ASSET_NAME, topic.pdfAssetName)
+            putExtra(PdfViewActivity.EXTRA_PDF_TITLE, "$courseTitle - ${topic.title}")
+        }
+        startActivity(intent)
     }
 
     private fun setupToolbar() {
@@ -76,10 +122,7 @@ class MainActivity : AppCompatActivity() {
             val totalScrollRange = appBarLayout.totalScrollRange
             val percentage = (abs(verticalOffset).toFloat() / totalScrollRange.toFloat())
 
-            // Toolbar küçüldükçe selamlama mesajını yumuşakça görünür yap, büyüdükçe kaybet.
             toolbarTitle.alpha = percentage
-
-            // MathLabs başlığı ve ikonunu ters yönde kaybet/göster.
             binding.expandedHeader.alpha = 1 - (percentage * 1.5f)
         })
     }
@@ -107,11 +150,30 @@ class MainActivity : AppCompatActivity() {
             },
             onPdfClickListener = { courseTitle, topic ->
                 UIFeedbackHelper.provideFeedback(window.decorView.rootView)
-                val intent = Intent(this, PdfViewActivity::class.java).apply {
-                    putExtra(PdfViewActivity.EXTRA_PDF_ASSET_NAME, topic.pdfAssetName)
-                    putExtra(PdfViewActivity.EXTRA_PDF_TITLE, "$courseTitle - ${topic.title}")
+
+                val isPremium = SharedPreferencesManager.isUserPremium(this)
+
+                // Sadece premium olmayanlar için reklam göster ve reklam yüklenmişse
+                if (!isPremium && mInterstitialAd != null) {
+                    mInterstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
+                        override fun onAdDismissedFullScreenContent() {
+                            navigateToPdfView(courseTitle, topic)
+                            loadInterstitialAd() // Yeni bir reklam yükle
+                        }
+
+                        override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+                            navigateToPdfView(courseTitle, topic) // Hata olursa da devam et
+                        }
+
+                        override fun onAdShowedFullScreenContent() {
+                            mInterstitialAd = null // Reklam gösterildi, tekrar kullanılamaz
+                        }
+                    }
+                    mInterstitialAd?.show(this)
+                } else {
+                    // Premium kullanıcılar veya reklam hazır değilse doğrudan PDF'i aç
+                    navigateToPdfView(courseTitle, topic)
                 }
-                startActivity(intent)
             }
         )
 

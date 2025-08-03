@@ -33,6 +33,14 @@ class DrawingView @JvmOverloads constructor(
             }
         }
 
+    // --- YENİ EKLENEN KISIM ---
+    init {
+        // Silginin (Xfermode) doğru çalışması için bu view'da donanım hızlandırmayı kapatıyoruz.
+        // Siyah ekran sorununun çözümü budur.
+        setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+    }
+    // --- YENİ EKLENEN KISIM SONU ---
+
     // --- GÖRÜNÜM YAŞAM DÖNGÜSÜ ---
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -44,9 +52,7 @@ class DrawingView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        // Önce tamamlanmış ve kaydedilmiş yolları içeren bitmap'i çiz
         bufferBitmap?.let { canvas.drawBitmap(it, 0f, 0f, null) }
-        // Sonra, o anda çizilmekte olan yolu direkt olarak ana canvas'a çiz
         if (brushType != BrushType.NONE) {
             canvas.drawPath(currentPath, currentPaint)
         }
@@ -72,10 +78,8 @@ class DrawingView @JvmOverloads constructor(
 
     private fun touchUp() {
         if (!currentPath.isEmpty) {
-            // Çizim bitince, bu yolu bitmiş yolların çizileceği buffer'a ekle
             bufferCanvas?.drawPath(currentPath, currentPaint)
 
-            // Veritabanına kaydetmek için kopyalarını oluştur ve listeye ekle
             val pathToSave = Path(currentPath)
             val paintToSave = Paint(currentPaint)
             completedPaths.add(Pair(pathToSave, paintToSave))
@@ -177,8 +181,8 @@ class DrawingView @JvmOverloads constructor(
             style = Paint.Style.STROKE
             strokeJoin = Paint.Join.ROUND
             strokeCap = Paint.Cap.ROUND
-            strokeWidth = 16f // Varsayılan fırça boyutu
-            color = Color.RED // Varsayılan renk
+            strokeWidth = 16f
+            color = Color.RED
         }
     }
 }
@@ -186,7 +190,7 @@ class DrawingView @JvmOverloads constructor(
 object PathConverter {
     fun serialize(path: Path): String {
         val pathMeasure = PathMeasure(path, false)
-        if (pathMeasure.length == 0f) return "" // Boş yolları en başta kontrol et
+        if (pathMeasure.length == 0f) return ""
 
         val points = mutableListOf<FloatArray>()
         var distance = 0f
@@ -201,7 +205,6 @@ object PathConverter {
 
         if (points.isEmpty()) return ""
 
-        // Son noktayı da ekle
         val lastPos = FloatArray(2)
         pathMeasure.getPosTan(pathMeasure.length, lastPos, null)
         points.add(lastPos)

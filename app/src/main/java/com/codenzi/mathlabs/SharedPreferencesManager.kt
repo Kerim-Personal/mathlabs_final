@@ -32,6 +32,10 @@ object SharedPreferencesManager {
     private const val KEY_PREMIUM_QUERY_COUNT = "premium_query_count"
     private const val KEY_PREMIUM_LAST_RESET_TIMESTAMP = "premium_last_reset_timestamp"
     private const val KEY_REWARDED_QUERY_COUNT = "rewarded_query_count"
+    private const val KEY_PREMIUM_PDF_DOWNLOAD_COUNT = "premium_pdf_download_count"
+    private const val KEY_PREMIUM_PDF_LAST_RESET_TIMESTAMP = "premium_pdf_last_reset_timestamp"
+
+    private const val PREMIUM_PDF_DOWNLOAD_LIMIT = 20
 
 
     private fun getPreferences(context: Context): SharedPreferences {
@@ -209,5 +213,39 @@ object SharedPreferencesManager {
         if (currentCount > 0) {
             getPreferences(context).edit().putInt(KEY_REWARDED_QUERY_COUNT, currentCount - 1).apply()
         }
+    }
+
+    // Premium Kullanıcı PDF İndirme Kotası Yönetimi
+    fun getPremiumPdfDownloadCount(context: Context): Int {
+        val prefs = getPreferences(context)
+        val lastResetTimestamp = prefs.getLong(KEY_PREMIUM_PDF_LAST_RESET_TIMESTAMP, 0L)
+        val currentTimestamp = System.currentTimeMillis()
+
+        val lastResetCal = Calendar.getInstance().apply { timeInMillis = lastResetTimestamp }
+        val currentCal = Calendar.getInstance().apply { timeInMillis = currentTimestamp }
+
+        // Yeni bir aya geçilmişse sayacı sıfırla
+        if (lastResetCal.get(Calendar.MONTH) != currentCal.get(Calendar.MONTH) ||
+            lastResetCal.get(Calendar.YEAR) != currentCal.get(Calendar.YEAR)) {
+            prefs.edit()
+                .putInt(KEY_PREMIUM_PDF_DOWNLOAD_COUNT, 0)
+                .putLong(KEY_PREMIUM_PDF_LAST_RESET_TIMESTAMP, currentTimestamp)
+                .apply()
+            return 0
+        }
+        return prefs.getInt(KEY_PREMIUM_PDF_DOWNLOAD_COUNT, 0)
+    }
+
+    fun incrementPremiumPdfDownloadCount(context: Context) {
+        val prefs = getPreferences(context)
+        val currentCount = getPremiumPdfDownloadCount(context)
+        prefs.edit().putInt(KEY_PREMIUM_PDF_DOWNLOAD_COUNT, currentCount + 1).apply()
+    }
+
+    fun canDownloadPdf(context: Context): Boolean {
+        if (!isUserPremium(context)) {
+            return true // Premium olmayanlar için şimdilik bir kısıtlama yok
+        }
+        return getPremiumPdfDownloadCount(context) < PREMIUM_PDF_DOWNLOAD_LIMIT
     }
 }

@@ -10,10 +10,6 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 
-/**
- * Kursları ve konularını RecyclerView içinde göstermek için kullanılan Adapter.
- * Bu Adapter, aynı anda sadece bir kursun genişletilmesine izin verir.
- */
 class CourseAdapter(
     private val onTopicClickListener: (courseTitle: String, topicTitle: String) -> Unit,
     private val onPdfClickListener: (courseTitle: String, topic: Topic) -> Unit
@@ -31,25 +27,17 @@ class CourseAdapter(
                 val clickedPosition = bindingAdapterPosition
                 if (clickedPosition == RecyclerView.NO_POSITION) return@setOnClickListener
 
-                // *** YENİ MANTIK BAŞLANGICI ***
-                // O an genişletilmiş olan öğenin pozisyonunu bul.
-                // `currentList`, ListAdapter tarafından sağlanan güncel listedir.
                 val currentlyExpandedPosition = currentList.indexOfFirst { it.isExpanded }
 
-                // Eğer bir öğe açıksa VE bu öğe şu an tıklanandan farklıysa, önce onu kapat.
                 if (currentlyExpandedPosition != -1 && currentlyExpandedPosition != clickedPosition) {
                     val previouslyExpandedCourse = getItem(currentlyExpandedPosition)
                     previouslyExpandedCourse.isExpanded = false
-                    // Sadece kapanacak olan öğeyi güncelle, tüm listeyi değil.
                     notifyItemChanged(currentlyExpandedPosition)
                 }
 
-                // Tıklanan öğenin durumunu tersine çevir (açıksa kapat, kapalıysa aç).
                 val clickedCourse = getItem(clickedPosition)
                 clickedCourse.isExpanded = !clickedCourse.isExpanded
-                // Sadece tıklanan öğeyi güncelle.
                 notifyItemChanged(clickedPosition)
-                // *** YENİ MANTIK SONU ***
             }
         }
 
@@ -72,6 +60,8 @@ class CourseAdapter(
                     if (topic.hasPdf) {
                         pdfIconImageView.visibility = View.VISIBLE
                         topicView.setOnClickListener {
+                            // Tıklama olayını doğrudan MainActivity'e bildiriyoruz.
+                            // Premium kontrolü burada YAPILMAYACAK.
                             onPdfClickListener(course.title, topic)
                         }
                     } else {

@@ -291,6 +291,27 @@
     <string name="watch_ad_button">Reklam İzle</string>
     <string name="cancel_button">İptal</string>
     <string name="reward_granted_toast">+%1$d sorgu hakkı kazandınız!</string>
+
     <string name="ad_not_ready_toast">Reklam henüz hazır değil. Lütfen daha sonra tekrar deneyin.</string>
+    <string name="premium_pdf_limit_reached">Aylık PDF indirme limitinize ulaştınız.</string>
+    <string name="premium_required_toast">Bu özelliği kullanmak için Premium üye olmalısınız.</string>
+    <string name="download_pdf">İndir</string>
+    <string name="downloading_pdf">PDF indiriliyor...</string>
+    <string name="download_successful">PDF başarıyla İndirilenler klasörüne kaydedildi.</string>
+    <string name="download_failed">PDF indirilemedi. Lütfen depolama izniniz olduğundan emin olun.</string>
+    <string name="premium_feature_for_download">PDF indirme bir premium özelliktir.</string>
+    <string name="pdf_already_downloaded">Bu PDF zaten indirilmiş.</string>
+    <string name="ai_assistant_thinking">Asistan düşünüyor...</string>
+    <string name="suggestion_summarize">Bu sayfayı özetle</string>
+    <string name="suggestion_keywords">Anahtar kavramlar neler?</string>
+    <string name="suggestion_question">Bir örnek soru oluştur</string>
+    <string name="clear_chat_history">Sohbeti Temizle</string>
+    <string name="reward_granted_toast_chat">+3 sorgu hakkı kazandınız! Şimdi sorunuzu tekrar gönderebilirsiniz.</string>
+
+
+
+
+
+
 
 </resources>

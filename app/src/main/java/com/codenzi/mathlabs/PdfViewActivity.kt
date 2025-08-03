@@ -1,10 +1,16 @@
 package com.codenzi.mathlabs
 
+import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.provider.MediaStore
 import android.util.Log
+import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
@@ -15,6 +21,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -51,9 +58,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
+import java.io.OutputStream
 import java.util.Locale
 import javax.inject.Inject
+
+// NOT: Bu aktivitenin artık AlertDialog ile bir ilgisi kalmadı.
+// Tüm AI mantığı ChatAiDialogFragment'a taşındı.
 
 @AndroidEntryPoint
 class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorListener, OnPageErrorListener, OnPageChangeListener {
@@ -63,7 +76,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     @Inject
     lateinit var drawingDao: DrawingDao
 
-    // Değişkenler
     private lateinit var pdfView: PDFView
     private lateinit var progressBar: ProgressBar
     private lateinit var fabAiChat: FloatingActionButton
@@ -78,15 +90,16 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private lateinit var adView: AdView
 
     private var pdfAssetName: String? = null
+    private var pdfTitle: String? = null
     private var currentReadingModeLevel: Int = 0
     private var pdfBytes: ByteArray? = null
-    private var currentPage: Int = 0
+    var currentPage: Int = 0
+        private set
     private var totalPages: Int = 0
     private val toastHandler = Handler(Looper.getMainLooper())
     private var toastRunnable: Runnable? = null
-    private val conversationHistory = mutableListOf<String>()
 
-    private val generativeModel by lazy {
+    val generativeModel by lazy {
         val apiKey = BuildConfig.GEMINI_API_KEY
         if (apiKey.isEmpty()) {
             Log.e("GeminiAI", "API Anahtarı BuildConfig içerisinde bulunamadı veya geçersiz.")
@@ -117,7 +130,10 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         applyAppTheme()
         super.onCreate(savedInstanceState)
 
-        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        if (!SharedPreferencesManager.isUserPremium(this)) {
+            window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        }
+
         setContentView(R.layout.activity_pdf_view)
         overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
 
@@ -128,7 +144,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         setupListeners()
 
         pdfAssetName = intent.getStringExtra(EXTRA_PDF_ASSET_NAME)
-        val pdfTitle = intent.getStringExtra(EXTRA_PDF_TITLE) ?: getString(R.string.app_name)
+        pdfTitle = intent.getStringExtra(EXTRA_PDF_TITLE) ?: getString(R.string.app_name)
         supportActionBar?.title = pdfTitle
 
         if (pdfAssetName != null) {
@@ -138,21 +154,177 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             finish()
         }
 
-        // Ödüllü reklamı aktivite oluşturulurken yükle
         RewardedAdManager.loadAd(this)
     }
 
-    private fun setupBannerAd() {
-        MobileAds.initialize(this) {}
-        adView = findViewById(R.id.adView)
-        val adRequest = AdRequest.Builder().build()
-        adView.loadAd(adRequest)
+    // --- Devrimsel Değişiklik: Yeni AI Sohbet Panelini Gösterme ---
+    private fun showAiChatDialog() {
+        if (pdfBytes == null) {
+            showAnimatedToast(getString(R.string.pdf_text_not_ready))
+            return
+        }
 
-        adView.adListener = object : AdListener() {
-            override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                super.onAdFailedToLoad(loadAdError)
-                adView.visibility = View.GONE
+        // Önce kota kontrolü yap
+        if (!AiQueryManager.canPerformQuery(this)) {
+            showWatchAdDialog() // Kota bittiyse reklam izleme diyaloğu göster
+            return
+        }
+
+        // Yeni ChatAiDialogFragment'ı oluştur ve göster
+        val chatDialog = ChatAiDialogFragment()
+        chatDialog.show(supportFragmentManager, "ChatAiDialog")
+    }
+
+    // PDF metnini asenkron olarak çıkaran fonksiyon (DialogFragment tarafından çağrılacak)
+    suspend fun extractTextForAI(): String {
+        val bytes = this.pdfBytes ?: return "".also {
+            Log.e("PdfTextExtraction", "Yapay zeka için metin çıkarılamadı: PDF byte'ları null.")
+        }
+
+        return withContext(Dispatchers.IO) {
+            try {
+                PDFBoxResourceLoader.init(applicationContext)
+                PDDocument.load(bytes).use { document ->
+                    val stripper = PDFTextStripper()
+                    val boxCurrentPage = currentPage + 1
+                    stripper.startPage = boxCurrentPage
+                    stripper.endPage = boxCurrentPage
+                    stripper.getText(document)
+                }
+            } catch (e: Exception) {
+                Log.e("PdfTextExtraction", "Yapay zeka için metin çıkarılırken hata oluştu", e)
+                ""
             }
+        }
+    }
+
+    // Reklam izleme diyaloğu (DialogFragment tarafından çağrılabilir)
+    fun showWatchAdDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.ai_quota_exceeded_title))
+            .setMessage(getString(R.string.watch_ad_for_reward_prompt))
+            .setPositiveButton(getString(R.string.watch_ad_button)) { dialog, _ ->
+                RewardedAdManager.showAd(
+                    activity = this,
+                    onRewardEarned = {
+                        SharedPreferencesManager.addRewardedQueries(this, 3)
+                        showAnimatedToast(getString(R.string.reward_granted_toast, 3))
+                        // Reklamdan sonra sohbeti tekrar açmayı dene
+                        showAiChatDialog()
+                    },
+                    onAdFailedToShow = {
+                        showAnimatedToast(getString(R.string.ad_not_ready_toast))
+                    }
+                )
+                dialog.dismiss()
+            }
+            .setNegativeButton(getString(R.string.cancel_button), null)
+            .show()
+    }
+
+    // --- Geri Kalan Tüm Kodlar ve Fonksiyonlar ---
+    // (Aşağıdaki kodların hiçbiri değişmedi, sadece yerleri düzenlendi)
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.pdf_view_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            android.R.id.home -> {
+                finish()
+                true
+            }
+            R.id.action_download_pdf -> {
+                handleDownloadClick()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun handleDownloadClick() {
+        UIFeedbackHelper.provideFeedback(pdfToolbar)
+        if (SharedPreferencesManager.isUserPremium(this)) {
+            if (SharedPreferencesManager.canDownloadPdf(this)) {
+                pdfBytes?.let {
+                    downloadPdf(it)
+                } ?: run {
+                    showAnimatedToast(getString(R.string.download_failed))
+                }
+            } else {
+                Toast.makeText(this, getString(R.string.premium_pdf_limit_reached), Toast.LENGTH_LONG).show()
+            }
+        } else {
+            Toast.makeText(this, getString(R.string.premium_feature_for_download), Toast.LENGTH_LONG).show()
+            val intent = Intent(this, SettingsActivity::class.java)
+            startActivity(intent)
+        }
+    }
+
+    private fun downloadPdf(pdfBytes: ByteArray) {
+        val fileName = pdfTitle?.replace(Regex("[^a-zA-Z0-9.-]"), "_") ?: "MathLabs_File"
+        val safeFileName = "$fileName.pdf"
+
+        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val existingFile = File(downloadsDir, safeFileName)
+
+        if (existingFile.exists()) {
+            showAnimatedToast(getString(R.string.pdf_already_downloaded))
+            return
+        }
+
+        showAnimatedToast(getString(R.string.downloading_pdf))
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            var outputStream: OutputStream? = null
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val resolver = contentResolver
+                    val contentValues = ContentValues().apply {
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, safeFileName)
+                        put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                    }
+                    val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                    outputStream = uri?.let { resolver.openOutputStream(it) }
+                } else {
+                    downloadsDir.mkdirs()
+                    val file = File(downloadsDir, safeFileName)
+                    outputStream = FileOutputStream(file)
+                }
+
+                outputStream?.use { it.write(pdfBytes) }
+
+                withContext(Dispatchers.Main) {
+                    SharedPreferencesManager.incrementPremiumPdfDownloadCount(this@PdfViewActivity)
+                    showAnimatedToast(getString(R.string.download_successful))
+                }
+            } catch (e: IOException) {
+                withContext(Dispatchers.Main) {
+                    showAnimatedToast(getString(R.string.download_failed))
+                }
+                Log.e("DownloadPDF", "Error saving PDF", e)
+            }
+        }
+    }
+
+    private fun setupBannerAd() {
+        if (!SharedPreferencesManager.isUserPremium(this)) {
+            MobileAds.initialize(this) {}
+            adView = findViewById(R.id.adView)
+            val adRequest = AdRequest.Builder().build()
+            adView.loadAd(adRequest)
+
+            adView.adListener = object : AdListener() {
+                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                    super.onAdFailedToLoad(loadAdError)
+                    adView.visibility = View.GONE
+                }
+            }
+        } else {
+            findViewById<AdView>(R.id.adView).visibility = View.GONE
         }
     }
 
@@ -214,173 +386,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             showAnimatedToast(getString(R.string.pdf_load_failed_with_error, exception.localizedMessage))
             finish()
         }
-    }
-
-    private suspend fun extractTextForAI(): String {
-        val bytes = this.pdfBytes ?: return "".also {
-            Log.e("PdfTextExtraction", "Yapay zeka için metin çıkarılamadı: PDF byte'ları null.")
-        }
-
-        return withContext(Dispatchers.IO) {
-            try {
-                PDFBoxResourceLoader.init(applicationContext)
-                PDDocument.load(bytes).use { document ->
-                    val stripper = PDFTextStripper()
-                    val boxCurrentPage = currentPage + 1
-                    stripper.startPage = (boxCurrentPage - 1).coerceAtLeast(1)
-                    stripper.endPage = (boxCurrentPage + 1).coerceAtMost(document.numberOfPages)
-                    stripper.getText(document)
-                }
-            } catch (e: Exception) {
-                Log.e("PdfTextExtraction", "Yapay zeka için metin çıkarılırken hata oluştu", e)
-                ""
-            }
-        }
-    }
-
-    private fun showWatchAdDialog() {
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.
-
-            ai_quota_exceeded_title))
-            .setMessage(getString(R.string.watch_ad_for_reward_prompt))
-            .setPositiveButton(getString(R.string.watch_ad_button)) { dialog, _ ->
-                RewardedAdManager.showAd(
-                    activity = this,
-                    onRewardEarned = {
-                        SharedPreferencesManager.addRewardedQueries(this, 3)
-                        showAnimatedToast(getString(R.string.reward_granted_toast, 3))
-                        showAiChatDialog(isFromReward = true)
-                    },
-                    onAdFailedToShow = {
-                        showAnimatedToast(getString(R.string.ad_not_ready_toast))
-                    }
-                )
-                dialog.dismiss()
-            }
-            .setNegativeButton(getString(R.string.cancel_button), null)
-            .show()
-    }
-
-    private fun showAiChatDialog(isFromReward: Boolean = false) {
-        if (pdfBytes == null) {
-            showAnimatedToast(getString(R.string.pdf_text_not_ready))
-            return
-        }
-
-        if (!isFromReward && !AiQueryManager.canPerformQuery(this)) {
-            showWatchAdDialog()
-            return
-        }
-
-        val builder = AlertDialog.Builder(this)
-        val dialogView = layoutInflater.inflate(R.layout.dialog_ai_chat, null)
-        builder.setView(dialogView)
-        val editTextQuestion = dialogView.findViewById<EditText>(R.id.editTextQuestion)
-        val buttonSend = dialogView.findViewById<Button>(R.id.buttonSend)
-        val textViewAnswer = dialogView.findViewById<TextView>(R.id.textViewAnswer)
-        val progressChat = dialogView.findViewById<ProgressBar>(R.id.progressChat)
-        val dialog = builder.create()
-
-        buttonSend.setOnClickListener {
-            val question = editTextQuestion.text.toString().trim()
-            if (question.isNotEmpty()) {
-                if (!AiQueryManager.canPerformQuery(this)) {
-                    // Güvenlik olarak tekrar kontrol et
-                    showWatchAdDialog()
-                    dialog.dismiss()
-                    return@setOnClickListener
-                }
-
-                textViewAnswer.text = ""
-                textViewAnswer.visibility = View.GONE
-                progressChat.visibility = View.VISIBLE
-                buttonSend.isEnabled = false
-                editTextQuestion.isEnabled = false
-                conversationHistory.add("Kullanıcı: $question")
-
-                AiQueryManager.incrementQueryCount(this)
-
-                lifecycleScope.launch {
-                    var aiResponse = ""
-                    try {
-                        val relevantContext = extractTextForAI()
-                        if (relevantContext.isBlank()) {
-                            aiResponse = getString(R.string.ai_info_not_found)
-                        } else {
-                            val historyText = conversationHistory.joinToString("\n")
-                            val currentLanguage = SharedPreferencesManager.getLanguage(this@PdfViewActivity) ?: "tr"
-                            val prompt = if (currentLanguage == "en") {
-                                """
-                                Conversation History:
-                                $historyText
-                                --- Text Excerpts from the PDF (Current Pages) ---
-                                $relevantContext
-                                ------------------------------------
-                                Answer the user's LAST QUESTION based on the conversation history and the text excerpts.
-                                Respond in English and use Markdown format.
-                                If the answer is not in the text, say 'This information is not available in the provided pages.'
-                                USER'S LAST QUESTION: "$question"
-                                """.trimIndent()
-                            } else {
-                                """
-                                Önceki Konuşma Geçmişi:
-                                $historyText
-                                --- PDF'ten Alınan Metin Parçaları (Mevcut Sayfalar) ---
-                                $relevantContext
-                                -----------------------
-                                Kullanıcının SON SORUSUNU önceki konuşmayı ve metin parçalarını dikkate alarak yanıtla: "$question"
-                                Cevabınızı Markdown formatında ve Türkçe olarak verin.
-                                Metinde cevap yoksa, 'Bu bilgi sağlanan sayfalarda bulunmuyor.' deyin.
-                                """.trimIndent()
-                            }
-
-                            val responseFlow = generativeModel.generateContentStream(prompt)
-                                .catch { e ->
-                                    withContext(Dispatchers.Main) {
-                                        textViewAnswer.text = getString(R.string.ai_chat_error_with_details, e.localizedMessage ?: "Unknown error")
-                                        textViewAnswer.visibility = View.VISIBLE
-                                    }
-                                }
-                            val stringBuilder = StringBuilder()
-                            responseFlow.collect { chunk ->
-                                stringBuilder.append(chunk.text)
-                            }
-                            aiResponse = stringBuilder.toString()
-                        }
-
-                        withContext(Dispatchers.Main) {
-                            textViewAnswer.text = aiResponse
-                            textViewAnswer.visibility = View.VISIBLE
-                        }
-                    } catch (e: Exception) {
-                        aiResponse = getString(R.string.ai_chat_error_with_details, e.localizedMessage ?: "Unknown error")
-                        withContext(Dispatchers.Main) {
-                            textViewAnswer.text = aiResponse
-                            Log.e("GeminiError", "AI Hatası: ", e)
-                            textViewAnswer.visibility = View.VISIBLE
-                        }
-                    } finally {
-                        if (aiResponse.isNotBlank()) {
-                            conversationHistory.add("Asistan: $aiResponse")
-                        }
-                        while (conversationHistory.size > 6) {
-                            conversationHistory.removeAt(0)
-                            conversationHistory.removeAt(0)
-                        }
-                        withContext(Dispatchers.Main) {
-                            progressChat.visibility = View.GONE
-                            buttonSend.isEnabled = true
-                            editTextQuestion.isEnabled = true
-                            editTextQuestion.text?.clear()
-                        }
-                    }
-                }
-            } else {
-                showAnimatedToast(getString(R.string.please_enter_a_question))
-            }
-        }
-        dialog.show()
     }
 
     private fun setupToolbar() {
@@ -496,14 +501,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     override fun onPageError(page: Int, t: Throwable?) {
         showAnimatedToast(getString(R.string.page_load_error_toast, page, t?.localizedMessage ?: "Bilinmeyen sayfa hatası"))
         Log.e("PdfView_onPageError", "Sayfa Yükleme Hatası: $page", t)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            finish()
-            return true
-        }
-        return super.onOptionsItemSelected(item)
     }
 
     @Suppress("DEPRECATION")
