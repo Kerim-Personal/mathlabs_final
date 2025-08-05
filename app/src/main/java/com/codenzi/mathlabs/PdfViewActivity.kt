@@ -9,6 +9,7 @@ import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
@@ -17,8 +18,8 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
-import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -38,10 +39,9 @@ import com.github.barteksc.pdfviewer.listener.OnLoadCompleteListener
 import com.github.barteksc.pdfviewer.listener.OnPageChangeListener
 import com.github.barteksc.pdfviewer.listener.OnPageErrorListener
 import com.google.ai.client.generativeai.GenerativeModel
-import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
-import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.card.MaterialCardView
@@ -53,7 +53,6 @@ import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -62,11 +61,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
-import java.util.Locale
 import javax.inject.Inject
-
-// NOT: Bu aktivitenin artık AlertDialog ile bir ilgisi kalmadı.
-// Tüm AI mantığı ChatAiDialogFragment'a taşındı.
 
 @AndroidEntryPoint
 class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorListener, OnPageErrorListener, OnPageChangeListener {
@@ -88,6 +83,9 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private lateinit var pageCountText: TextView
     private lateinit var rootLayout: ViewGroup
     private lateinit var adView: AdView
+    private lateinit var adContainerView: FrameLayout
+    private var initialLayoutComplete = false
+
 
     private var pdfAssetName: String? = null
     private var pdfTitle: String? = null
@@ -137,11 +135,22 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         setContentView(R.layout.activity_pdf_view)
         overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
 
-        setupBannerAd()
-        setupToolbar()
-        handleWindowInsets()
         initializeViews()
+        setupToolbar()
+        handleWindowInsets() // Insets işlemleri view'lar yüklendikten sonra yapılmalı
         setupListeners()
+
+        // Reklam Konteynerini Hazırla
+        adContainerView.viewTreeObserver.addOnGlobalLayoutListener {
+            if (!initialLayoutComplete) {
+                initialLayoutComplete = true // Bu bloğun tekrar çalışmasını engelle
+                if (!SharedPreferencesManager.isUserPremium(this)) {
+                    loadBanner()
+                } else {
+                    adContainerView.visibility = View.GONE
+                }
+            }
+        }
 
         pdfAssetName = intent.getStringExtra(EXTRA_PDF_ASSET_NAME)
         pdfTitle = intent.getStringExtra(EXTRA_PDF_TITLE) ?: getString(R.string.app_name)
@@ -157,25 +166,85 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         RewardedAdManager.loadAd(this)
     }
 
-    // --- Devrimsel Değişiklik: Yeni AI Sohbet Panelini Gösterme ---
+    // --- Banner Reklam Fonksiyonları ---
+
+    private val adSize: AdSize
+        get() {
+            val adWidth: Int
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val windowMetrics = windowManager.currentWindowMetrics
+                val bounds = windowMetrics.bounds
+                var adWidthPixels = adContainerView.width.toFloat()
+                if (adWidthPixels == 0f) {
+                    adWidthPixels = bounds.width().toFloat()
+                }
+                val density = resources.displayMetrics.density
+                adWidth = (adWidthPixels / density).toInt()
+            } else {
+                val displayMetrics = DisplayMetrics()
+                @Suppress("DEPRECATION")
+                windowManager.defaultDisplay.getMetrics(displayMetrics)
+                val adWidthPixels = displayMetrics.widthPixels.toFloat()
+                val density = displayMetrics.density
+                adWidth = (adWidthPixels / density).toInt()
+            }
+            return AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this, adWidth)
+        }
+
+    private fun loadBanner() {
+        MobileAds.initialize(this) {}
+        adView = AdView(this)
+        adView.adUnitId = getString(R.string.admob_banner_unit_id)
+        adContainerView.addView(adView)
+        adView.setAdSize(adSize)
+        val adRequest = AdRequest.Builder().build()
+        adView.loadAd(adRequest)
+    }
+
+    // --- Kenardan Kenara Tasarım (Edge-to-Edge) İçin Inset Yönetimi ---
+
+    private fun handleWindowInsets() {
+        rootLayout = findViewById(R.id.root_layout_pdf_view)
+        // Uygulamanın sistem çubuklarının (status bar, navigation bar) arkasına çizim yapmasını sağlar
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { _, insets ->
+            val systemBarInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+
+            // 1. Üstteki status bar boşluğunu toolbar'a margin olarak uygula
+            pdfToolbar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                topMargin = systemBarInsets.top
+            }
+
+            // 2. KESİN ÇÖZÜM: Alttaki navigation bar boşluğunu reklam konteynerine
+            //    'bottomMargin' olarak uygula. Bu, banner'ın en alta doğru şekilde
+            //    yapışmasını ve sadece sistem çubuğu kadar yukarıda durmasını sağlar.
+            adContainerView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = systemBarInsets.bottom
+            }
+
+            // Insets'leri diğer view'ların da kullanabilmesi için tüketmeden geri döndür.
+            insets
+        }
+    }
+
+
+    // --- Yapay Zeka Sohbet Fonksiyonları ---
     private fun showAiChatDialog() {
         if (pdfBytes == null) {
             showAnimatedToast(getString(R.string.pdf_text_not_ready))
             return
         }
 
-        // Önce kota kontrolü yap
         if (!AiQueryManager.canPerformQuery(this)) {
-            showWatchAdDialog() // Kota bittiyse reklam izleme diyaloğu göster
+            showWatchAdDialog()
             return
         }
 
-        // Yeni ChatAiDialogFragment'ı oluştur ve göster
         val chatDialog = ChatAiDialogFragment()
         chatDialog.show(supportFragmentManager, "ChatAiDialog")
     }
 
-    // PDF metnini asenkron olarak çıkaran fonksiyon (DialogFragment tarafından çağrılacak)
     suspend fun extractTextForAI(): String {
         val bytes = this.pdfBytes ?: return "".also {
             Log.e("PdfTextExtraction", "Yapay zeka için metin çıkarılamadı: PDF byte'ları null.")
@@ -198,7 +267,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         }
     }
 
-    // Reklam izleme diyaloğu (DialogFragment tarafından çağrılabilir)
     fun showWatchAdDialog() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.ai_quota_exceeded_title))
@@ -209,7 +277,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                     onRewardEarned = {
                         SharedPreferencesManager.addRewardedQueries(this, 3)
                         showAnimatedToast(getString(R.string.reward_granted_toast, 3))
-                        // Reklamdan sonra sohbeti tekrar açmayı dene
                         showAiChatDialog()
                     },
                     onAdFailedToShow = {
@@ -222,8 +289,12 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             .show()
     }
 
-    // --- Geri Kalan Tüm Kodlar ve Fonksiyonlar ---
-    // (Aşağıdaki kodların hiçbiri değişmedi, sadece yerleri düzenlendi)
+
+    // --- Menü ve Toolbar Fonksiyonları ---
+    private fun setupToolbar() {
+        setSupportActionBar(pdfToolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+    }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.pdf_view_menu, menu)
@@ -241,6 +312,86 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                 true
             }
             else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+
+    // --- PDF İşlemleri (Yükleme, İndirme, Görüntüleme) ---
+    private fun initializeViews() {
+        pdfToolbar = findViewById(R.id.pdfToolbar)
+        pdfView = findViewById(R.id.pdfView)
+        progressBar = findViewById(R.id.progressBarPdf)
+        fabAiChat = findViewById(R.id.fab_ai_chat)
+        fabReadingMode = findViewById(R.id.fab_reading_mode)
+        eyeComfortOverlay = findViewById(R.id.eyeComfortOverlay)
+        notificationTextView = findViewById(R.id.notificationTextView)
+        pageCountCard = findViewById(R.id.pageCountCard)
+        pageCountText = findViewById(R.id.pageCountText)
+        adContainerView = findViewById(R.id.ad_view_container_pdf)
+
+        drawingManager = DrawingManager(
+            context = this,
+            drawingView = findViewById(R.id.drawingView),
+            fabToggleDrawing = findViewById(R.id.fab_toggle_drawing),
+            fabEraser = findViewById(R.id.fab_eraser),
+            fabClearAll = findViewById(R.id.fab_clear_all),
+            drawingOptionsPanel = findViewById(R.id.drawingOptionsPanel),
+            colorOptions = findViewById(R.id.colorOptions),
+            sizeOptions = findViewById(R.id.sizeOptions),
+            btnColorRed = findViewById(R.id.btn_color_red),
+            btnColorBlue = findViewById(R.id.btn_color_blue),
+            btnColorBlack = findViewById(R.id.btn_color_black),
+            btnSizeSmall = findViewById(R.id.btn_size_small),
+            btnSizeMedium = findViewById(R.id.btn_size_medium),
+            btnSizeLarge = findViewById(R.id.btn_size_large),
+            showSnackbar = { message -> showAnimatedToast(message) },
+            dao = drawingDao,
+            coroutineScope = lifecycleScope
+        )
+    }
+
+    private fun displayPdfFromFirebaseWithOkHttp(storagePath: String) {
+        progressBar.visibility = View.VISIBLE
+        val storageRef = Firebase.storage.reference.child(storagePath)
+        storageRef.downloadUrl.addOnSuccessListener { uri ->
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    val request = Request.Builder().url(uri.toString()).build()
+                    val response = okHttpClient.newCall(request).execute()
+                    if (response.isSuccessful) {
+                        val downloadedBytes = response.body?.bytes() ?: throw IOException("Response body is null")
+                        this@PdfViewActivity.pdfBytes = downloadedBytes
+
+                        withContext(Dispatchers.Main) {
+                            pdfView.fromBytes(downloadedBytes)
+                                .defaultPage(0)
+                                .enableSwipe(true)
+                                .swipeHorizontal(true)
+                                .pageFling(true)
+                                .pageSnap(true)
+                                .onLoad(this@PdfViewActivity)
+                                .onError(this@PdfViewActivity)
+                                .onPageError(this@PdfViewActivity)
+                                .onPageChange(this@PdfViewActivity)
+                                .load()
+                        }
+                    } else {
+                        throw IOException("Sunucudan beklenmeyen kod: $response")
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        progressBar.visibility = View.GONE
+                        Log.e("OkHttpError", "PDF indirme hatası: $storagePath", e)
+                        showAnimatedToast(getString(R.string.pdf_load_failed_with_error, e.localizedMessage))
+                        finish()
+                    }
+                }
+            }
+        }.addOnFailureListener { exception ->
+            progressBar.visibility = View.GONE
+            Log.e("FirebaseStorage", "Download URL alınamadı: $storagePath", exception)
+            showAnimatedToast(getString(R.string.pdf_load_failed_with_error, exception.localizedMessage))
+            finish()
         }
     }
 
@@ -310,120 +461,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         }
     }
 
-    private fun setupBannerAd() {
-        if (!SharedPreferencesManager.isUserPremium(this)) {
-            MobileAds.initialize(this) {}
-            adView = findViewById(R.id.adView)
-            val adRequest = AdRequest.Builder().build()
-            adView.loadAd(adRequest)
-
-            adView.adListener = object : AdListener() {
-                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                    super.onAdFailedToLoad(loadAdError)
-                    adView.visibility = View.GONE
-                }
-            }
-        } else {
-            findViewById<AdView>(R.id.adView).visibility = View.GONE
-        }
-    }
-
-    private fun handleWindowInsets() {
-        rootLayout = findViewById(R.id.root_layout_pdf_view)
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { view, insets ->
-            val systemBarInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-
-            pdfToolbar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                topMargin = systemBarInsets.top
-            }
-
-            view.setPadding(view.paddingLeft, view.paddingTop, view.paddingRight, systemBarInsets.bottom)
-            insets
-        }
-    }
-
-    private fun displayPdfFromFirebaseWithOkHttp(storagePath: String) {
-        progressBar.visibility = View.VISIBLE
-        val storageRef = Firebase.storage.reference.child(storagePath)
-        storageRef.downloadUrl.addOnSuccessListener { uri ->
-            lifecycleScope.launch(Dispatchers.IO) {
-                try {
-                    val request = Request.Builder().url(uri.toString()).build()
-                    val response = okHttpClient.newCall(request).execute()
-                    if (response.isSuccessful) {
-                        val downloadedBytes = response.body?.bytes() ?: throw IOException("Response body is null")
-                        this@PdfViewActivity.pdfBytes = downloadedBytes
-
-                        withContext(Dispatchers.Main) {
-                            pdfView.fromBytes(downloadedBytes)
-                                .defaultPage(0)
-                                .enableSwipe(true)
-                                .swipeHorizontal(true)
-                                .pageFling(true)
-                                .pageSnap(true)
-                                .onLoad(this@PdfViewActivity)
-                                .onError(this@PdfViewActivity)
-                                .onPageError(this@PdfViewActivity)
-                                .onPageChange(this@PdfViewActivity)
-                                .load()
-                        }
-                    } else {
-                        throw IOException("Sunucudan beklenmeyen kod: $response")
-                    }
-                } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
-                        progressBar.visibility = View.GONE
-                        Log.e("OkHttpError", "PDF indirme hatası: $storagePath", e)
-                        showAnimatedToast(getString(R.string.pdf_load_failed_with_error, e.localizedMessage))
-                        finish()
-                    }
-                }
-            }
-        }.addOnFailureListener { exception ->
-            progressBar.visibility = View.GONE
-            Log.e("FirebaseStorage", "Download URL alınamadı: $storagePath", exception)
-            showAnimatedToast(getString(R.string.pdf_load_failed_with_error, exception.localizedMessage))
-            finish()
-        }
-    }
-
-    private fun setupToolbar() {
-        pdfToolbar = findViewById(R.id.pdfToolbar)
-        setSupportActionBar(pdfToolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-    }
-
-    private fun initializeViews() {
-        pdfView = findViewById(R.id.pdfView)
-        progressBar = findViewById(R.id.progressBarPdf)
-        fabAiChat = findViewById(R.id.fab_ai_chat)
-        fabReadingMode = findViewById(R.id.fab_reading_mode)
-        eyeComfortOverlay = findViewById(R.id.eyeComfortOverlay)
-        notificationTextView = findViewById(R.id.notificationTextView)
-        pageCountCard = findViewById(R.id.pageCountCard)
-        pageCountText = findViewById(R.id.pageCountText)
-
-        drawingManager = DrawingManager(
-            context = this,
-            drawingView = findViewById(R.id.drawingView),
-            fabToggleDrawing = findViewById(R.id.fab_toggle_drawing),
-            fabEraser = findViewById(R.id.fab_eraser),
-            fabClearAll = findViewById(R.id.fab_clear_all),
-            drawingOptionsPanel = findViewById(R.id.drawingOptionsPanel),
-            colorOptions = findViewById(R.id.colorOptions),
-            sizeOptions = findViewById(R.id.sizeOptions),
-            btnColorRed = findViewById(R.id.btn_color_red),
-            btnColorBlue = findViewById(R.id.btn_color_blue),
-            btnColorBlack = findViewById(R.id.btn_color_black),
-            btnSizeSmall = findViewById(R.id.btn_size_small),
-            btnSizeMedium = findViewById(R.id.btn_size_medium),
-            btnSizeLarge = findViewById(R.id.btn_size_large),
-            showSnackbar = { message -> showAnimatedToast(message) },
-            dao = drawingDao,
-            coroutineScope = lifecycleScope
-        )
-    }
+    // --- Kullanıcı Arayüzü (UI) ve Yardımcı Fonksiyonlar ---
 
     private fun setupListeners() {
         fabAiChat.setOnClickListener {
@@ -476,69 +514,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         }
     }
 
-    override fun loadComplete(nbPages: Int) {
-        this.totalPages = nbPages
-        progressBar.visibility = View.GONE
-        showAnimatedToast(getString(R.string.pdf_loaded_toast, nbPages))
-        val fadeInAnimation = AnimationUtils.loadAnimation(applicationContext, R.anim.fade_in)
-        fabAiChat.startAnimation(fadeInAnimation)
-        fabAiChat.visibility = View.VISIBLE
-        pageCountCard.startAnimation(fadeInAnimation)
-        pageCountCard.visibility = View.VISIBLE
-
-        pdfAssetName?.let {
-            drawingManager.loadDrawingsForPage(it, 0)
-        }
-    }
-
-    override fun onError(t: Throwable?) {
-        progressBar.visibility = View.GONE
-        showAnimatedToast(getString(R.string.error_toast, t?.localizedMessage ?: "Bilinmeyen PDF hatası"))
-        Log.e("PdfView_onError", "PDF Yükleme Hatası", t)
-        finish()
-    }
-
-    override fun onPageError(page: Int, t: Throwable?) {
-        showAnimatedToast(getString(R.string.page_load_error_toast, page, t?.localizedMessage ?: "Bilinmeyen sayfa hatası"))
-        Log.e("PdfView_onPageError", "Sayfa Yükleme Hatası: $page", t)
-    }
-
-    @Suppress("DEPRECATION")
-    override fun finish() {
-        super.finish()
-        overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
-    }
-
-    private fun showAnimatedToast(message: String) {
-        toastRunnable?.let { toastHandler.removeCallbacks(it) }
-        notificationTextView.text = message
-        val fadeIn = AnimationUtils.loadAnimation(this, R.anim.fade_in)
-        notificationTextView.startAnimation(fadeIn)
-        notificationTextView.visibility = View.VISIBLE
-        toastRunnable = Runnable {
-            val fadeOut = AnimationUtils.loadAnimation(this, R.anim.fade_out)
-            fadeOut.setAnimationListener(object : Animation.AnimationListener {
-                override fun onAnimationStart(animation: Animation?) {}
-                override fun onAnimationEnd(animation: Animation?) {
-                    notificationTextView.visibility = View.GONE
-                }
-                override fun onAnimationRepeat(animation: Animation?) {}
-            })
-            notificationTextView.startAnimation(fadeOut)
-        }
-        toastHandler.postDelayed(toastRunnable!!, 3000)
-    }
-
-    override fun onPageChanged(page: Int, pageCount: Int) {
-        this.currentPage = page
-        this.totalPages = pageCount
-        pageCountText.text = "${page + 1} / $pageCount"
-
-        pdfAssetName?.let {
-            drawingManager.loadDrawingsForPage(it, page)
-        }
-    }
-
     private fun showGoToPageDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_go_to_page, null)
         val editTextPageNumber = dialogView.findViewById<EditText>(R.id.editTextPageNumber)
@@ -566,5 +541,72 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             .create()
 
         dialog.show()
+    }
+
+    private fun showAnimatedToast(message: String) {
+        toastRunnable?.let { toastHandler.removeCallbacks(it) }
+        notificationTextView.text = message
+        val fadeIn = AnimationUtils.loadAnimation(this, R.anim.fade_in)
+        notificationTextView.startAnimation(fadeIn)
+        notificationTextView.visibility = View.VISIBLE
+        toastRunnable = Runnable {
+            val fadeOut = AnimationUtils.loadAnimation(this, R.anim.fade_out)
+            fadeOut.setAnimationListener(object : Animation.AnimationListener {
+                override fun onAnimationStart(animation: Animation?) {}
+                override fun onAnimationEnd(animation: Animation?) {
+                    notificationTextView.visibility = View.GONE
+                }
+                override fun onAnimationRepeat(animation: Animation?) {}
+            })
+            notificationTextView.startAnimation(fadeOut)
+        }
+        toastHandler.postDelayed(toastRunnable!!, 3000)
+    }
+
+    // --- PDFView Kütüphanesi Geri Çağırma (Callback) Fonksiyonları ---
+
+    override fun loadComplete(nbPages: Int) {
+        this.totalPages = nbPages
+        progressBar.visibility = View.GONE
+        showAnimatedToast(getString(R.string.pdf_loaded_toast, nbPages))
+        val fadeInAnimation = AnimationUtils.loadAnimation(applicationContext, R.anim.fade_in)
+        fabAiChat.startAnimation(fadeInAnimation)
+        fabAiChat.visibility = View.VISIBLE
+        pageCountCard.startAnimation(fadeInAnimation)
+        pageCountCard.visibility = View.VISIBLE
+
+        pdfAssetName?.let {
+            drawingManager.loadDrawingsForPage(it, 0)
+        }
+    }
+
+    override fun onError(t: Throwable?) {
+        progressBar.visibility = View.GONE
+        showAnimatedToast(getString(R.string.error_toast, t?.localizedMessage ?: "Bilinmeyen PDF hatası"))
+        Log.e("PdfView_onError", "PDF Yükleme Hatası", t)
+        finish()
+    }
+
+    override fun onPageError(page: Int, t: Throwable?) {
+        showAnimatedToast(getString(R.string.page_load_error_toast, page, t?.localizedMessage ?: "Bilinmeyen sayfa hatası"))
+        Log.e("PdfView_onPageError", "Sayfa Yükleme Hatası: $page", t)
+    }
+
+    override fun onPageChanged(page: Int, pageCount: Int) {
+        this.currentPage = page
+        this.totalPages = pageCount
+        pageCountText.text = "${page + 1} / $pageCount"
+
+        pdfAssetName?.let {
+            drawingManager.loadDrawingsForPage(it, page)
+        }
+    }
+
+    // --- Activity Yaşam Döngüsü (Lifecycle) Fonksiyonları ---
+
+    @Suppress("DEPRECATION")
+    override fun finish() {
+        super.finish()
+        overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
     }
 }

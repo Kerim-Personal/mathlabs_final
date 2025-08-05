@@ -30,15 +30,20 @@ class SplashActivity : AppCompatActivity() {
         startTypingAnimation()
 
         handler.postDelayed({
-            if (!SharedPreferencesManager.isLanguageSelected(this)) {
-                val systemLanguage = java.util.Locale.getDefault().language
-                LocaleHelper.persist(this, systemLanguage)
-            }
+            // YENİ AKIŞ:
+            // 1. Kullanıcı daha önce bir dil seçti mi?
+            val isLanguageSelected = SharedPreferencesManager.isLanguageSelected(this)
 
-            val intent = if (SharedPreferencesManager.getUserName(this) == null) {
-                Intent(this, NameEntryActivity::class.java)
+            val intent = if (isLanguageSelected) {
+                // Dil seçilmişse, isim girilmiş mi diye kontrol et.
+                if (SharedPreferencesManager.getUserName(this) == null) {
+                    Intent(this, NameEntryActivity::class.java)
+                } else {
+                    Intent(this, MainActivity::class.java)
+                }
             } else {
-                Intent(this, MainActivity::class.java)
+                // Eğer hiç dil seçilmemişse, doğrudan Dil Seçim Ekranı'na yönlendir.
+                Intent(this, LanguageSelectionActivity::class.java)
             }
 
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

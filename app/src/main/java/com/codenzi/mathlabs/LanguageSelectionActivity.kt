@@ -54,13 +54,16 @@ class LanguageSelectionActivity : AppCompatActivity() {
     }
 
     private fun setLanguageAndProceed(languageCode: String) {
+        // YENİ EKLENEN SATIR:
+        // Dilin artık kullanıcı tarafından bilinçli olarak seçildiğini kaydet.
+        SharedPreferencesManager.setLanguageSelected(this, true)
+
         LocaleHelper.persist(this, languageCode)
 
-        val intent = if (SharedPreferencesManager.getUserName(this) == null) {
-            Intent(this, NameEntryActivity::class.java)
-        } else {
-            Intent(this, MainActivity::class.java)
-        }
+        // Dil seçimi yeni bir kullanıcı tarafından yapıldığı için,
+        // kullanıcı adının daha önce kaydedilip kaydedilmediğini kontrol etmeye gerek yok.
+        // Doğrudan isim girme ekranına yönlendir.
+        val intent = Intent(this, NameEntryActivity::class.java)
 
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)

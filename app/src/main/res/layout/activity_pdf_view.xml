@@ -20,11 +20,19 @@
         app:navigationIcon="@drawable/ic_arrow_back"
         app:titleTextColor="?attr/colorOnPrimary" />
 
+    <FrameLayout
+        android:id="@+id/ad_view_container_pdf"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
     <com.github.barteksc.pdfviewer.PDFView
         android:id="@+id/pdfView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@+id/adView"
+        app:layout_constraintBottom_toTopOf="@+id/ad_view_container_pdf"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/pdfToolbar" />
@@ -60,16 +68,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.google.android.gms.ads.AdView
-        android:id="@+id/adView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:adSize="SMART_BANNER"
-        app:adUnitId="@string/admob_banner_unit_id"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_reading_mode"
         android:layout_width="wrap_content"
@@ -78,7 +76,7 @@
         android:layout_marginBottom="16dp"
         android:contentDescription="@string/reading_mode_description"
         app:backgroundTint="?attr/colorPrimary"
-        app:layout_constraintBottom_toTopOf="@id/adView"
+        app:layout_constraintBottom_toTopOf="@id/ad_view_container_pdf"
         app:layout_constraintStart_toStartOf="parent"
         app:srcCompat="@drawable/ic_eye_solid"
         app:tint="?attr/colorOnPrimary"
@@ -93,7 +91,7 @@
         android:contentDescription="@string/ai_assistant_button_desc"
         android:visibility="gone"
         app:backgroundTint="?attr/colorPrimary"
-        app:layout_constraintBottom_toTopOf="@id/adView"
+        app:layout_constraintBottom_toTopOf="@id/ad_view_container_pdf"
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@drawable/ic_ai_assistant"
         app:tint="?attr/colorOnPrimary"
@@ -125,7 +123,6 @@
             android:textSize="14sp"
             android:textStyle="bold"
             tools:text="1 / 85" />
-
     </com.google.android.material.card.MaterialCardView>
 
     <TextView
@@ -159,7 +156,6 @@
         app:layout_constraintTop_toBottomOf="@+id/pdfToolbar"
         app:strokeWidth="0dp"
         tools:visibility="visible">
-
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -167,7 +163,6 @@
             android:gravity="center"
             android:orientation="horizontal"
             android:padding="1dp">
-
             <LinearLayout
                 android:id="@+id/drawingToolButtons"
                 android:layout_width="wrap_content"
@@ -175,7 +170,6 @@
                 android:gravity="center"
                 android:orientation="vertical"
                 android:padding="1dp">
-
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
                     android:id="@+id/fab_toggle_drawing"
                     android:layout_width="wrap_content"
@@ -187,7 +181,6 @@
                     app:fabSize="mini"
                     app:srcCompat="@drawable/ic_pencil"
                     app:tint="?attr/colorOnPrimary" />
-
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
                     android:id="@+id/fab_eraser"
                     android:layout_width="wrap_content"
@@ -199,7 +192,6 @@
                     app:srcCompat="@drawable/ic_eraser"
                     app:tint="?attr/colorOnPrimary" />
             </LinearLayout>
-
             <LinearLayout
                 android:id="@+id/drawingOptionsPanel"
                 android:layout_width="wrap_content"
@@ -210,7 +202,6 @@
                 android:paddingEnd="4dp"
                 android:visibility="gone"
                 tools:visibility="visible">
-
                 <LinearLayout
                     android:id="@+id/colorOptions"
                     android:layout_width="wrap_content"
@@ -218,7 +209,6 @@
                     android:layout_marginBottom="4dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
-
                     <ImageButton
                         android:id="@+id/btn_color_red"
                         android:layout_width="48dp"
@@ -226,7 +216,6 @@
                         android:layout_marginEnd="4dp"
                         android:background="@drawable/circle_red"
                         android:contentDescription="@string/color_red_description" />
-
                     <ImageButton
                         android:id="@+id/btn_color_blue"
                         android:layout_width="48dp"
@@ -234,7 +223,6 @@
                         android:layout_marginEnd="4dp"
                         android:background="@drawable/circle_blue"
                         android:contentDescription="@string/color_blue_description" />
-
                     <ImageButton
                         android:id="@+id/btn_color_black"
                         android:layout_width="48dp"
@@ -242,14 +230,12 @@
                         android:background="@drawable/circle_black"
                         android:contentDescription="@string/color_black_description" />
                 </LinearLayout>
-
                 <LinearLayout
                     android:id="@+id/sizeOptions"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
-
                     <ImageButton
                         android:id="@+id/btn_size_small"
                         android:layout_width="48dp"
@@ -257,7 +243,6 @@
                         android:layout_marginEnd="4dp"
                         android:background="@drawable/circle_size_small"
                         android:contentDescription="@string/size_small_description" />
-
                     <ImageButton
                         android:id="@+id/btn_size_medium"
                         android:layout_width="48dp"
@@ -265,7 +250,6 @@
                         android:layout_marginEnd="4dp"
                         android:background="@drawable/circle_size_medium"
                         android:contentDescription="@string/size_medium_description" />
-
                     <ImageButton
                         android:id="@+id/btn_size_large"
                         android:layout_width="48dp"
@@ -273,9 +257,7 @@
                         android:background="@drawable/circle_size_large"
                         android:contentDescription="@string/size_large_description" />
                 </LinearLayout>
-
             </LinearLayout>
-
             <LinearLayout
                 android:id="@+id/clearAllButtonContainer"
                 android:layout_width="wrap_content"
@@ -287,7 +269,6 @@
                 android:paddingEnd="4dp"
                 android:visibility="gone"
                 tools:visibility="visible">
-
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
                     android:id="@+id/fab_clear_all"
                     android:layout_width="wrap_content"
@@ -299,7 +280,6 @@
                     app:srcCompat="@drawable/ic_delete_all"
                     app:tint="?attr/colorOnPrimary" />
             </LinearLayout>
-
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
