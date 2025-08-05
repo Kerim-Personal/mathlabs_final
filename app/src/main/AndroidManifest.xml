@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.codenzi.mathlabs">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="com.android.vending.BILLING" />
 
     <application
-        android:name="com.codenzi.mathlabs.PdfApplication"
+        android:name=".PdfApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -14,41 +16,37 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Pdf"
-        android:largeHeap="true">
-
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="@string/admob_app_id"/>
+        tools:targetApi="31">
 
         <activity
-            android:name="com.codenzi.mathlabs.NameEntryActivity"
+            android:name=".LanguageSelectionActivity"
             android:exported="false"
             android:theme="@style/Theme.Pdf" />
         <activity
-            android:name="com.codenzi.mathlabs.SettingsActivity"
+            android:name=".NameEntryActivity"
             android:exported="false"
             android:theme="@style/Theme.Pdf" />
         <activity
-            android:name="com.codenzi.mathlabs.SplashActivity"
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Pdf" />
+        <activity
+            android:name=".SplashActivity"
             android:exported="true"
-            android:theme="@style/Theme.Pdf.SplashActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            android:theme="@style/Theme.Pdf.SplashActivity">  <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
         </activity>
         <activity
-            android:name="com.codenzi.mathlabs.LanguageSelectionActivity"
-            android:exported="false"
+            android:name=".MainActivity"
+            android:exported="true"
             android:theme="@style/Theme.Pdf" />
         <activity
-            android:name="com.codenzi.mathlabs.PdfViewActivity"
+            android:name=".PdfViewActivity"
+            android:configChanges="orientation|screenSize"
             android:exported="false"
             android:theme="@style/Theme.Pdf.PdfView" />
-        <activity
-            android:name="com.codenzi.mathlabs.MainActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Pdf" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -59,6 +57,10 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="@string/admob_app_id" />
     </application>
 
 </manifest>

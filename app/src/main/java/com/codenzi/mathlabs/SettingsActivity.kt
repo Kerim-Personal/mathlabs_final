@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
+import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
@@ -18,16 +19,32 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
+import androidx.lifecycle.lifecycleScope
+import com.android.billingclient.api.ProductDetails
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.switchmaterial.SwitchMaterial
 
 class SettingsActivity : AppCompatActivity() {
 
+    // XML dosyanızdaki view'lar için değişken tanımlamaları
     private lateinit var togglePlan: MaterialButtonToggleGroup
     private lateinit var textViewPrice: TextView
     private lateinit var textViewPricePeriod: TextView
-    private var premiumTitleClickCount = 0 // Tıklama sayacı için yeni değişken
+    private lateinit var buttonSubscribe: Button
+    private lateinit var switchTouchSound: SwitchMaterial
+    private lateinit var layoutThemeSettings: LinearLayout
+    private lateinit var layoutLanguageSettings: LinearLayout
+    private lateinit var layoutContactUs: LinearLayout
+    private lateinit var layoutPrivacyPolicy: LinearLayout
+    private lateinit var premiumFeaturesTitle: TextView
+
+    private lateinit var billingManager: BillingManager
+    private var monthlyPlanDetails: ProductDetails? = null
+    private var yearlyPlanDetails: ProductDetails? = null
+
+    // Geliştirici modunu aktif etmek için tıklama sayacı
+    private var premiumTitleClickCount = 0
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleHelper.onAttach(newBase))
@@ -42,9 +59,7 @@ class SettingsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_settings)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
         val toolbar: MaterialToolbar = findViewById(R.id.settingsToolbar)
-
         ViewCompat.setOnApplyWindowInsetsListener(toolbar) { view, insets ->
             val systemBarInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
@@ -57,31 +72,62 @@ class SettingsActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = getString(R.string.settings_title)
 
-        initializePremiumViews()
+        initializeViews()
+        setupBilling()
         setupClickListeners()
         setupSwitches()
         setupPremiumPlanToggle()
-        setupDeveloperMode() // Gizli premium modu için yeni fonksiyon çağrısı
+        setupDeveloperMode()
     }
 
-    private fun initializePremiumViews() {
+    private fun initializeViews() {
         togglePlan = findViewById(R.id.togglePlan)
         textViewPrice = findViewById(R.id.textViewPrice)
         textViewPricePeriod = findViewById(R.id.textViewPricePeriod)
+        buttonSubscribe = findViewById(R.id.buttonSubscribe)
+        switchTouchSound = findViewById(R.id.switchTouchSound)
+        layoutThemeSettings = findViewById(R.id.layoutThemeSettings)
+        layoutLanguageSettings = findViewById(R.id.layoutLanguageSettings)
+        layoutContactUs = findViewById(R.id.layoutContactUs)
+        layoutPrivacyPolicy = findViewById(R.id.layoutPrivacyPolicy)
+        premiumFeaturesTitle = findViewById(R.id.premiumFeaturesTitle)
+    }
+
+    private fun setupBilling() {
+        billingManager = BillingManager(this, lifecycleScope)
+        billingManager.productDetails.observe(this) { detailsMap ->
+            monthlyPlanDetails = detailsMap["monthly_premium_plan"]
+            yearlyPlanDetails = detailsMap["yearly_premium_plan"]
+            updatePriceDisplay()
+        }
+        billingManager.isPremium.observe(this) { isPremium ->
+            updatePremiumUI(isPremium)
+        }
+        billingManager.checkPurchases()
+    }
+
+    private fun updatePremiumUI(isPremium: Boolean) {
+        if (isPremium) {
+            buttonSubscribe.text = getString(R.string.premium_active)
+            buttonSubscribe.isEnabled = false
+        } else {
+            buttonSubscribe.text = getString(R.string.subscribe_now)
+            buttonSubscribe.isEnabled = true
+        }
     }
 
     private fun setupClickListeners() {
-        findViewById<LinearLayout>(R.id.layoutLanguageSettings).setOnClickListener {
-            UIFeedbackHelper.provideFeedback(it)
-            showLanguageDialog()
-        }
-
-        findViewById<LinearLayout>(R.id.layoutThemeSettings).setOnClickListener {
+        layoutThemeSettings.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             showThemeDialog()
         }
 
-        findViewById<LinearLayout>(R.id.layoutContactUs).setOnClickListener {
+        layoutLanguageSettings.setOnClickListener {
+            UIFeedbackHelper.provideFeedback(it)
+            showLanguageDialog()
+        }
+
+        layoutContactUs.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
                 data = Uri.parse("mailto:")
@@ -95,21 +141,30 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
-        findViewById<LinearLayout>(R.id.layoutPrivacyPolicy).setOnClickListener {
+        layoutPrivacyPolicy.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             val url = "https://www.codenzi.com/privacy-math-labs.html"
             val privacyIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             startActivity(privacyIntent)
         }
 
-        findViewById<Button>(R.id.buttonSubscribe).setOnClickListener {
+        buttonSubscribe.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
-            Toast.makeText(this, getString(R.string.premium_toast_message), Toast.LENGTH_SHORT).show()
+            val selectedPlanDetails = if (togglePlan.checkedButtonId == R.id.buttonMonthly) {
+                monthlyPlanDetails
+            } else {
+                yearlyPlanDetails
+            }
+
+            selectedPlanDetails?.let {
+                billingManager.launchPurchaseFlow(this, it)
+            } ?: run {
+                Toast.makeText(this, "Abonelik planı detayları henüz yüklenmedi.", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     private fun setupSwitches() {
-        val switchTouchSound: SwitchMaterial = findViewById(R.id.switchTouchSound)
         switchTouchSound.isChecked = SharedPreferencesManager.isTouchSoundEnabled(this)
         switchTouchSound.setOnCheckedChangeListener { buttonView, isChecked ->
             UIFeedbackHelper.provideFeedback(buttonView)
@@ -119,55 +174,52 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun setupPremiumPlanToggle() {
         togglePlan.check(R.id.buttonMonthly)
-        updatePriceDisplay(isMonthly = true)
+        updatePriceDisplay()
 
-        togglePlan.addOnButtonCheckedListener { group, checkedId, isChecked ->
-            if (isChecked) {
-                UIFeedbackHelper.provideFeedback(group)
-                when (checkedId) {
-                    R.id.buttonMonthly -> updatePriceDisplay(isMonthly = true)
-                    R.id.buttonYearly -> updatePriceDisplay(isMonthly = false)
-                }
-            }
+        togglePlan.addOnButtonCheckedListener { group, _, _ ->
+            UIFeedbackHelper.provideFeedback(group)
+            updatePriceDisplay()
         }
     }
 
-    // YENİ EKLENEN FONKSİYON
+    private fun updatePriceDisplay() {
+        val isMonthly = togglePlan.checkedButtonId == R.id.buttonMonthly
+        val planDetails = if (isMonthly) monthlyPlanDetails else yearlyPlanDetails
+
+        planDetails?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.let {
+            textViewPrice.text = it.formattedPrice
+            textViewPricePeriod.text = if (isMonthly) getString(R.string.price_period_monthly) else getString(R.string.price_period_yearly)
+        } ?: run {
+            val defaultPrice = if(isMonthly) getString(R.string.premium_monthly_price) else getString(R.string.premium_yearly_price)
+            textViewPrice.text = defaultPrice.substringBefore('/')
+            textViewPricePeriod.text = if (isMonthly) getString(R.string.price_period_monthly) else getString(R.string.price_period_yearly)
+        }
+    }
+
     private fun setupDeveloperMode() {
-        findViewById<TextView>(R.id.premiumFeaturesTitle).setOnClickListener {
+        premiumFeaturesTitle.setOnClickListener {
             premiumTitleClickCount++
-            if (premiumTitleClickCount == 5) {
-                val isPremium = !SharedPreferencesManager.isUserPremium(this)
-                SharedPreferencesManager.setUserAsPremium(this, isPremium)
-                val message = if (isPremium) "Geliştirici Modu: Premium Aktif!" else "Geliştirici Modu: Premium Devre Dışı!"
+            if (premiumTitleClickCount >= 5) {
+                val currentPremiumStatus = SharedPreferencesManager.isUserPremium(this)
+                val newPremiumStatus = !currentPremiumStatus
+                SharedPreferencesManager.setUserAsPremium(this, newPremiumStatus)
+                val message = if (newPremiumStatus) "Geliştirici Modu: Premium Aktif!" else "Geliştirici Modu: Premium Devre Dışı!"
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+                updatePremiumUI(newPremiumStatus) // UI'ı anında güncelle
                 premiumTitleClickCount = 0
             }
         }
     }
 
-    private fun updatePriceDisplay(isMonthly: Boolean) {
-        if (isMonthly) {
-            textViewPrice.text = getString(R.string.premium_monthly_price).substringBefore('/')
-            textViewPricePeriod.text = getString(R.string.price_period_monthly)
-        } else {
-            textViewPrice.text = getString(R.string.premium_yearly_price).substringBefore('/')
-            textViewPricePeriod.text = getString(R.string.price_period_yearly)
-        }
-    }
-
     private fun showThemeDialog() {
-        val themes = arrayOf(
-            getString(R.string.theme_light),
-            getString(R.string.theme_dark),
-            getString(R.string.theme_system_default)
-        )
+        val themes = arrayOf(getString(R.string.theme_light), getString(R.string.theme_dark), getString(R.string.theme_system_default))
         val currentTheme = SharedPreferencesManager.getTheme(this)
         val checkedItem = when (currentTheme) {
             AppCompatDelegate.MODE_NIGHT_NO -> 0
             AppCompatDelegate.MODE_NIGHT_YES -> 1
             else -> 2
         }
+
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.theme_title))
             .setSingleChoiceItems(themes, checkedItem) { dialog, which ->
@@ -183,6 +235,7 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 dialog.dismiss()
             }
+            .setNegativeButton(getString(R.string.cancel), null)
             .create()
             .show()
     }
@@ -202,6 +255,7 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 dialog.dismiss()
             }
+            .setNegativeButton(getString(R.string.cancel), null)
             .create()
             .show()
     }
