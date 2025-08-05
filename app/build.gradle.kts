@@ -159,6 +159,9 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // Google Play Faturalandırma Kütüphanesi
+    implementation("com.android.billingclient:billing-ktx:6.2.1")
 }
 
 kapt {

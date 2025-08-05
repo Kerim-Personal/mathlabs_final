@@ -1,3 +1,4 @@
+// kerim-personal/mathlabs_final/mathlabs_final-fc4db8886de96aa10a2d2cc3b8c6c3634d9f4003/app/src/main/java/com/codenzi/mathlabs/PdfViewActivity.kt
 package com.codenzi.mathlabs
 
 import android.content.ContentValues
@@ -96,6 +97,12 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private var totalPages: Int = 0
     private val toastHandler = Handler(Looper.getMainLooper())
     private var toastRunnable: Runnable? = null
+
+    // --- YENİ EKLENEN SATIRLAR: Sohbet geçmişi artık burada tutulacak ---
+    val chatMessages = mutableListOf<ChatMessage>()
+    val conversationHistory = mutableListOf<String>()
+    // --- YENİ SATIRLARIN SONU ---
+
 
     val generativeModel by lazy {
         val apiKey = BuildConfig.GEMINI_API_KEY
@@ -236,7 +243,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             return
         }
 
-        if (!AiQueryManager.canPerformQuery(this)) {
+        if (!AiQueryManager.canPerformQuery(this) && chatMessages.isEmpty()) { // Yalnızca sohbet boşsa ve hak yoksa reklam göster
             showWatchAdDialog()
             return
         }
