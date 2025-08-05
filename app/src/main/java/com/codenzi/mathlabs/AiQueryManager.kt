@@ -4,7 +4,7 @@ import android.content.Context
 
 object AiQueryManager {
 
-    private const val FREE_QUERY_LIMIT = 5
+    private const val FREE_QUERY_LIMIT = 3
     private const val PREMIUM_QUERY_LIMIT = 1000
 
     fun canPerformQuery(context: Context): Boolean {
