@@ -32,8 +32,8 @@ android {
         applicationId = "com.codenzi.mathlabs"
         minSdk = 24
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -161,7 +161,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     // Google Play Faturalandırma Kütüphanesi
-    implementation("com.android.billingclient:billing-ktx:8.0.0")
+    implementation("com.android.billingclient:billing-ktx:7.0.0")
 }
 
 kapt {

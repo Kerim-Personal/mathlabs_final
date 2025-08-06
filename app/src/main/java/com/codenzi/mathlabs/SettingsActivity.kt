@@ -6,7 +6,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
-import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
@@ -37,14 +36,10 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var layoutLanguageSettings: LinearLayout
     private lateinit var layoutContactUs: LinearLayout
     private lateinit var layoutPrivacyPolicy: LinearLayout
-    private lateinit var premiumFeaturesTitle: TextView
 
     private lateinit var billingManager: BillingManager
     private var monthlyPlanDetails: ProductDetails? = null
     private var yearlyPlanDetails: ProductDetails? = null
-
-    // Geliştirici modunu aktif etmek için tıklama sayacı
-    private var premiumTitleClickCount = 0
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleHelper.onAttach(newBase))
@@ -77,7 +72,6 @@ class SettingsActivity : AppCompatActivity() {
         setupClickListeners()
         setupSwitches()
         setupPremiumPlanToggle()
-        setupDeveloperMode()
     }
 
     private fun initializeViews() {
@@ -90,7 +84,6 @@ class SettingsActivity : AppCompatActivity() {
         layoutLanguageSettings = findViewById(R.id.layoutLanguageSettings)
         layoutContactUs = findViewById(R.id.layoutContactUs)
         layoutPrivacyPolicy = findViewById(R.id.layoutPrivacyPolicy)
-        premiumFeaturesTitle = findViewById(R.id.premiumFeaturesTitle)
     }
 
     private fun setupBilling() {
@@ -193,21 +186,6 @@ class SettingsActivity : AppCompatActivity() {
             val defaultPrice = if(isMonthly) getString(R.string.premium_monthly_price) else getString(R.string.premium_yearly_price)
             textViewPrice.text = defaultPrice.substringBefore('/')
             textViewPricePeriod.text = if (isMonthly) getString(R.string.price_period_monthly) else getString(R.string.price_period_yearly)
-        }
-    }
-
-    private fun setupDeveloperMode() {
-        premiumFeaturesTitle.setOnClickListener {
-            premiumTitleClickCount++
-            if (premiumTitleClickCount >= 5) {
-                val currentPremiumStatus = SharedPreferencesManager.isUserPremium(this)
-                val newPremiumStatus = !currentPremiumStatus
-                SharedPreferencesManager.setUserAsPremium(this, newPremiumStatus)
-                val message = if (newPremiumStatus) "Geliştirici Modu: Premium Aktif!" else "Geliştirici Modu: Premium Devre Dışı!"
-                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-                updatePremiumUI(newPremiumStatus) // UI'ı anında güncelle
-                premiumTitleClickCount = 0
-            }
         }
     }
 
