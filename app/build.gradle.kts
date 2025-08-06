@@ -10,6 +10,7 @@ plugins {
     id("kotlin-kapt") // KAPT plugin'i Hilt ve Room için gereklidir
     id("com.google.dagger.hilt.android")
     id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
 val localProperties = Properties()
@@ -32,8 +33,8 @@ android {
         applicationId = "com.codenzi.mathlabs"
         minSdk = 24
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -162,6 +163,12 @@ dependencies {
 
     // Google Play Faturalandırma Kütüphanesi
     implementation("com.android.billingclient:billing-ktx:7.0.0")
+
+    // Firebase Crashlytics
+    implementation("com.google.firebase:firebase-crashlytics-ktx")
+
+    // Google Analytics
+    implementation("com.google.firebase:firebase-analytics-ktx")
 }
 
 kapt {

@@ -269,7 +269,7 @@
     <string name="premium_feature_downloads">20 PDF downloads per month</string>
     <string name="premium_feature_screenshot">Ability to take screenshots</string>
     <string name="premium_feature_no_ads">Ad-free experience</string>
-    <string name="premium_feature_ai_queries">1000 AI queries per month</string>
+    <string name="premium_feature_ai_queries">500 AI queries per month</string>
     <string name="premium_monthly_plan">Monthly Plan</string>
     <string name="premium_yearly_plan">Yearly Plan</string>
     <string name="premium_monthly_price">$2.99/month</string>

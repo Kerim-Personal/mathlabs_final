@@ -5,7 +5,7 @@ import android.content.Context
 object AiQueryManager {
 
     private const val FREE_QUERY_LIMIT = 3
-    private const val PREMIUM_QUERY_LIMIT = 1000
+    private const val PREMIUM_QUERY_LIMIT = 500
 
     fun canPerformQuery(context: Context): Boolean {
         // İlk olarak, ödülle kazanılmış sorgu hakkı var mı diye kontrol et.
