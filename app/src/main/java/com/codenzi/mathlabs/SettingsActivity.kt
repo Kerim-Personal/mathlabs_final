@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
+import android.view.View // EKSİK OLAN VE HATAYA NEDEN OLAN IMPORT SATIRI EKLENDİ
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
@@ -175,17 +176,27 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    // ÖNCEKİ YANITTAKİ DİNAMİK GÜNCELLEME MANTIĞI BURAYA EKLENDİ
     private fun updatePriceDisplay() {
         val isMonthly = togglePlan.checkedButtonId == R.id.buttonMonthly
         val planDetails = if (isMonthly) monthlyPlanDetails else yearlyPlanDetails
 
-        planDetails?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.let {
-            textViewPrice.text = it.formattedPrice
-            textViewPricePeriod.text = if (isMonthly) getString(R.string.price_period_monthly) else getString(R.string.price_period_yearly)
+        planDetails?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.let { pricingPhase ->
+            textViewPrice.text = pricingPhase.formattedPrice
+            textViewPricePeriod.text = if (isMonthly) {
+                getString(R.string.price_period_monthly)
+            } else {
+                getString(R.string.price_period_yearly)
+            }
+            buttonSubscribe.visibility = View.VISIBLE
+            textViewPrice.visibility = View.VISIBLE
+            textViewPricePeriod.visibility = View.VISIBLE
         } ?: run {
-            val defaultPrice = if(isMonthly) getString(R.string.premium_monthly_price) else getString(R.string.premium_yearly_price)
-            textViewPrice.text = defaultPrice.substringBefore('/')
-            textViewPricePeriod.text = if (isMonthly) getString(R.string.price_period_monthly) else getString(R.string.price_period_yearly)
+            textViewPrice.text = ""
+            textViewPricePeriod.text = ""
+            buttonSubscribe.visibility = View.GONE
+            textViewPrice.visibility = View.INVISIBLE
+            textViewPricePeriod.visibility = View.INVISIBLE
         }
     }
 
