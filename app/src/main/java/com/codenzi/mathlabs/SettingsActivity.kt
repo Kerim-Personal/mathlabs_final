@@ -177,11 +177,18 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     // ÖNCEKİ YANITTAKİ DİNAMİK GÜNCELLEME MANTIĞI BURAYA EKLENDİ
+    // SettingsActivity.kt içinde
+
+    // SettingsActivity.kt içinde
+
     private fun updatePriceDisplay() {
         val isMonthly = togglePlan.checkedButtonId == R.id.buttonMonthly
-        val planDetails = if (isMonthly) monthlyPlanDetails else yearlyPlanDetails
+        val monthlyDetails = monthlyPlanDetails
+        val yearlyDetails = yearlyPlanDetails
 
-        planDetails?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.let { pricingPhase ->
+        val currentPlanDetails = if (isMonthly) monthlyDetails else yearlyDetails
+
+        currentPlanDetails?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.let { pricingPhase ->
             textViewPrice.text = pricingPhase.formattedPrice
             textViewPricePeriod.text = if (isMonthly) {
                 getString(R.string.price_period_monthly)
@@ -198,6 +205,32 @@ class SettingsActivity : AppCompatActivity() {
             textViewPrice.visibility = View.INVISIBLE
             textViewPricePeriod.visibility = View.INVISIBLE
         }
+
+        // --- DÜZELTİLMİŞ İNDİRİM HESAPLAMA KISMI ---
+        val textViewYearlyDiscount: TextView = findViewById(R.id.textViewYearlyDiscount)
+
+        // Sadece yıllık plan seçiliyse ve plan detayları mevcutsa indirimi göster
+        if (!isMonthly && monthlyDetails != null && yearlyDetails != null) {
+            val monthlyPrice = monthlyDetails.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.priceAmountMicros
+            val yearlyPrice = yearlyDetails.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.priceAmountMicros
+
+            if (monthlyPrice != null && yearlyPrice != null && yearlyPrice > 0) {
+                val yearlyPriceFromMonthly = monthlyPrice * 12
+                val discount = ((yearlyPriceFromMonthly - yearlyPrice) * 100 / yearlyPriceFromMonthly)
+                if (discount > 0) {
+                    textViewYearlyDiscount.text = getString(R.string.premium_yearly_discount, "%$discount")
+                    textViewYearlyDiscount.visibility = View.VISIBLE
+                } else {
+                    textViewYearlyDiscount.visibility = View.GONE
+                }
+            } else {
+                textViewYearlyDiscount.visibility = View.GONE
+            }
+        } else {
+            // Aylık plan seçiliyse veya planlar yüklenmediyse etiketi gizle
+            textViewYearlyDiscount.visibility = View.GONE
+        }
+        // --- DÜZELTİLMİŞ KISMIN SONU ---
     }
 
     private fun showThemeDialog() {

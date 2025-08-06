@@ -310,6 +310,7 @@
     <string name="subscribe_now">Subscribe Now</string>
     <string name="premium_active">Premium Active</string>
     <string name="cancel">Cancel</string>
+    <string name="premium_yearly_discount">%s OFF</string>
 
 
 </resources>

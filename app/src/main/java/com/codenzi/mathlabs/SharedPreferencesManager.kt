@@ -89,7 +89,7 @@ object SharedPreferencesManager {
     }
 
     fun isTouchSoundEnabled(context: Context): Boolean {
-        return getPreferences(context).getBoolean(KEY_TOUCH_SOUND, true)
+        return getPreferences(context).getBoolean(KEY_TOUCH_SOUND, false)
     }
 
     // Çizim Ayarları

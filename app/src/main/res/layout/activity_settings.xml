@@ -152,36 +152,60 @@
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
-                    <com.google.android.material.button.MaterialButtonToggleGroup
-                        android:id="@+id/togglePlan"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="24dp"
-                        app:singleSelection="true"
-                        app:selectionRequired="true"
-                        app:checkedButton="@id/buttonMonthly">
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/buttonMonthly"
-                            style="?attr/materialButtonOutlinedStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/monthly"
-                            android:textColor="@color/toggle_button_text_color"
-                            app:backgroundTint="@color/toggle_button_background_color"
-                            app:strokeColor="?attr/colorOnPrimary"/>
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/buttonYearly"
-                            style="?attr/materialButtonOutlinedStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/yearly"
-                            android:textColor="@color/toggle_button_text_color"
-                            app:backgroundTint="@color/toggle_button_background_color"
-                            app:strokeColor="?attr/colorOnPrimary"/>
-                    </com.google.android.material.button.MaterialButtonToggleGroup>
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/togglePlan"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            app:selectionRequired="true"
+                            app:singleSelection="true"
+                            app:checkedButton="@id/buttonMonthly">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/buttonMonthly"
+                                style="?attr/materialButtonOutlinedStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/monthly"
+                                android:textColor="@color/toggle_button_text_color"
+                                app:backgroundTint="@color/toggle_button_background_color"
+                                app:strokeColor="?attr/colorOnPrimary"/>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/buttonYearly"
+                                style="?attr/materialButtonOutlinedStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/yearly"
+                                android:textColor="@color/toggle_button_text_color"
+                                app:backgroundTint="@color/toggle_button_background_color"
+                                app:strokeColor="?attr/colorOnPrimary"/>
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                        <TextView
+                            android:id="@+id/textViewYearlyDiscount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/discount_badge_background"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="4dp"
+                            android:textColor="?attr/colorOnPrimary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:visibility="gone"
+                            tools:text="%20 OFF"
+                            tools:visibility="visible" />
+                    </LinearLayout>
                     <RelativeLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
