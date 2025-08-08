@@ -307,10 +307,9 @@
     <string name="reward_granted_toast_chat">You have earned +3 extra queries! You can send your question again now.</string>
     <string name="premium_unlock_potential_title">Unlock Your Potential</string>
     <string name="premium_unlock_potential_desc">Enjoy an ad-free experience, hundreds of AI queries, and much more by upgrading to Premium.</string>
-    <string name="subscribe_now">Subscribe Now</string>
+    <string name="subscribe_now">CONTINUE</string>
     <string name="premium_active">Premium Active</string>
     <string name="cancel">Cancel</string>
     <string name="premium_yearly_discount">%s OFF</string>
-
 
 </resources>
