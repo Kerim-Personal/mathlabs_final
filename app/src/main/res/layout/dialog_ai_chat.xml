@@ -117,6 +117,21 @@
         </LinearLayout>
     </HorizontalScrollView>
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonGetMoreQueries"
+        style="@style/Widget.Material3.Button.TonalButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="4dp"
+        android:text="@string/get_more_queries_button"
+        android:visibility="gone"
+        app:icon="@drawable/ic_ads"
+        tools:visibility="visible" />
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
