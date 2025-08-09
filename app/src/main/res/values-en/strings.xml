@@ -313,5 +313,6 @@
     <string name="premium_yearly_discount">%s OFF</string>
     <string name="ai_chat_welcome_message">Hello! What would you like to learn about this PDF? I can summarize the page or you can ask about key concepts.</string>
     <string name="get_more_queries_button">✨ Get more queries</string>
+    <string name="go_back">Go Back</string>
 
 </resources>

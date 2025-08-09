@@ -37,6 +37,12 @@
 -keep class dagger.hilt.internal.preconditions.** { *; }
 
 # ===============================================
+# Google Play Billing (Ödeme Sistemi)
+# Release sürümünde ödeme sisteminin çökmemesi için bu kural zorunludur.
+# ===============================================
+-keep class com.android.billingclient.** { *; }
+
+# ===============================================
 # PDFBox Kütüphanesi
 # Bu kütüphane reflection ve kaynakları yoğun kullandığı için özel kurallar gerektirir.
 # ===============================================
