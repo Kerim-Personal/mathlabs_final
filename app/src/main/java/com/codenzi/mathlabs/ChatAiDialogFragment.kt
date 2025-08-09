@@ -1,4 +1,3 @@
-// kerim-personal/mathlabs_final/mathlabs_final-fc4db8886de96aa10a2d2cc3b8c6c3634d9f4003/app/src/main/java/com/codenzi/mathlabs/ChatAiDialogFragment.kt
 package com.codenzi.mathlabs
 
 import android.os.Bundle
@@ -14,9 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class ChatAiDialogFragment : BottomSheetDialogFragment() {
 
@@ -28,24 +25,22 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
     private lateinit var chatAdapter: ChatAdapter
     private lateinit var pdfViewActivity: PdfViewActivity
 
-    // --- KALDIRILAN SATIRLAR: Bu değişkenler artık PdfViewActivity'de tutuluyor. ---
-    // private val chatMessages = mutableListOf<ChatMessage>()
-    // private val conversationHistory = mutableListOf<String>()
-    // --- KALDIRILAN SATIRLARIN SONU ---
-
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        // Dialog'un layout dosyasını inflate ediyoruz.
         return inflater.inflate(R.layout.dialog_ai_chat, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Bu fragment'ı açan PdfViewActivity'ye erişiyoruz.
         pdfViewActivity = activity as PdfViewActivity
 
         initializeViews(view)
         setupRecyclerView()
         setupClickListeners()
 
+        // Eğer kullanıcının sorgu hakkı yoksa ve sohbet boşsa, giriş alanlarını devre dışı bırak.
         if (!AiQueryManager.canPerformQuery(requireContext()) && pdfViewActivity.chatMessages.isEmpty()) {
             disableInputWithQuotaMessage()
         }
@@ -60,12 +55,11 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
     }
 
     private fun setupRecyclerView() {
-        // --- DEĞİŞTİRİLEN SATIR: Artık PdfViewActivity'deki listeyi kullanıyor. ---
+        // Sohbet mesajları listesi PdfViewActivity'de tutulduğu için oradan alıyoruz.
         chatAdapter = ChatAdapter(pdfViewActivity.chatMessages)
         recyclerViewChat.adapter = chatAdapter
-        val layoutManager = LinearLayoutManager(context)
-        recyclerViewChat.layoutManager = layoutManager
-        // Sohbetin en sonuna kaydır
+        recyclerViewChat.layoutManager = LinearLayoutManager(context)
+        // Her yeni mesajda en alta kaydır.
         recyclerViewChat.scrollToPosition(pdfViewActivity.chatMessages.size - 1)
     }
 
@@ -73,23 +67,18 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
         buttonSend.setOnClickListener {
             val question = editTextQuestion.text.toString().trim()
             if (question.isNotEmpty()) {
-                sendQuery(question)
+                sendQueryToServer(question)
                 editTextQuestion.text.clear()
             }
         }
 
-        view?.findViewById<Button>(R.id.btnSuggestion1)?.setOnClickListener {
-            sendQuery((it as Button).text.toString())
-        }
-        view?.findViewById<Button>(R.id.btnSuggestion2)?.setOnClickListener {
-            sendQuery((it as Button).text.toString())
-        }
-        view?.findViewById<Button>(R.id.btnSuggestion3)?.setOnClickListener {
-            sendQuery((it as Button).text.toString())
-        }
+        // Öneri butonları
+        view?.findViewById<Button>(R.id.btnSuggestion1)?.setOnClickListener { sendQueryToServer((it as Button).text.toString()) }
+        view?.findViewById<Button>(R.id.btnSuggestion2)?.setOnClickListener { sendQueryToServer((it as Button).text.toString()) }
+        view?.findViewById<Button>(R.id.btnSuggestion3)?.setOnClickListener { sendQueryToServer((it as Button).text.toString()) }
 
+        // Sohbeti temizle butonu
         view?.findViewById<ImageButton>(R.id.buttonClearChat)?.setOnClickListener {
-            // --- DEĞİŞTİRİLEN SATIRLAR: Artık PdfViewActivity'deki listeleri temizliyor. ---
             val oldSize = pdfViewActivity.chatMessages.size
             pdfViewActivity.chatMessages.clear()
             pdfViewActivity.conversationHistory.clear()
@@ -103,86 +92,85 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
         }
     }
 
+    /**
+     * Kullanıcının sorgu hakkı bittiğinde UI'ı günceller.
+     */
     private fun disableInputWithQuotaMessage() {
         editTextQuestion.isEnabled = false
         buttonSend.isEnabled = false
         suggestionScrollView.visibility = View.GONE
 
+        // Ekranda zaten kota aşıldı mesajı yoksa ekle.
         if (pdfViewActivity.chatMessages.none { it.message.contains(getString(R.string.ai_quota_exceeded,"")) }) {
             val quotaMessage = AiQueryManager.getQuotaExceededMessage(requireContext())
             addMessage(ChatMessage(quotaMessage, false))
         }
     }
 
+    /**
+     * Kullanıcı giriş alanlarını (metin kutusu, butonlar) aktif hale getirir.
+     */
     private fun enableInput() {
         editTextQuestion.isEnabled = true
         buttonSend.isEnabled = true
         suggestionScrollView.visibility = View.VISIBLE
     }
 
-    private fun sendQuery(question: String) {
+    /**
+     * Kullanıcının sorusunu alır ve AiQueryManager aracılığıyla Firebase sunucusuna gönderir.
+     */
+    private fun sendQueryToServer(question: String) {
+        // Sorgu hakkı kontrolü
         if (!AiQueryManager.canPerformQuery(requireContext())) {
             dismiss() // Dialog'u kapat
-            pdfViewActivity.showWatchAdDialog()
+            pdfViewActivity.showWatchAdDialog() // Reklam izleme dialog'unu göster
             return
         }
 
+        // Kullanıcının mesajını anında ekrana ekle
         addMessage(ChatMessage(question, true))
+
+        // UI'ı "düşünüyor" moduna al
         suggestionScrollView.visibility = View.GONE
         thinkingIndicator.visibility = View.VISIBLE
         editTextQuestion.isEnabled = false
         buttonSend.isEnabled = false
 
-        lifecycleScope.launch {
-            var aiResponse = ""
-            try {
-                // --- DEĞİŞTİRİLEN SATIR: PdfViewActivity'deki listeye ekliyor. ---
-                pdfViewActivity.conversationHistory.add("Kullanıcı: $question")
-                val relevantContext = pdfViewActivity.extractTextForAI()
-                if (relevantContext.isBlank()) {
-                    aiResponse = getString(R.string.ai_info_not_found)
-                } else {
-                    val prompt = createPrompt(question, relevantContext)
-                    val responseFlow = pdfViewActivity.generativeModel.generateContentStream(prompt)
-                        .catch { e ->
-                            aiResponse = getString(R.string.ai_chat_error_with_details, e.localizedMessage ?: "Unknown error")
-                        }
+        // Coroutine ile arka planda sunucuya istek gönder
+        lifecycleScope.launch(Dispatchers.IO) {
+            val relevantContext = pdfViewActivity.extractTextForAI()
+            val prompt = createPrompt(question, relevantContext)
 
-                    val stringBuilder = StringBuilder()
-                    responseFlow.collect { chunk ->
-                        stringBuilder.append(chunk.text)
-                    }
-                    aiResponse = stringBuilder.toString()
-                }
-            } catch (e: Exception) {
-                aiResponse = getString(R.string.ai_chat_error_with_details, e.localizedMessage ?: "Unknown error")
-            } finally {
-                if (aiResponse.isNotBlank()) {
-                    // --- DEĞİŞTİRİLEN SATIR: PdfViewActivity'deki listeye ekliyor. ---
-                    pdfViewActivity.conversationHistory.add("Asistan: $aiResponse")
-                }
-                while (pdfViewActivity.conversationHistory.size > 8) {
-                    pdfViewActivity.conversationHistory.removeAt(0)
-                    pdfViewActivity.conversationHistory.removeAt(0)
-                }
-
-                withContext(Dispatchers.Main) {
+            AiQueryManager.getResponseFromServer(prompt) { result ->
+                // Sunucudan gelen cevabı ana iş parçacığında (Main Thread) işle
+                lifecycleScope.launch(Dispatchers.Main) {
                     thinkingIndicator.visibility = View.GONE
-                    addMessage(ChatMessage(aiResponse, false))
 
+                    result.onSuccess { aiResponse ->
+                        // Başarılı cevap geldiyse
+                        addMessage(ChatMessage(aiResponse, false))
+                        AiQueryManager.incrementQueryCount(requireContext()) // Kota sayacını artır
+                    }.onFailure { error ->
+                        // Hata geldiyse
+                        val errorMessage = getString(R.string.ai_chat_error_with_details, error.localizedMessage)
+                        addMessage(ChatMessage(errorMessage, false))
+                    }
+
+                    // Sorgu hakkı kalıp kalmadığını tekrar kontrol et ve UI'ı güncelle
                     if (AiQueryManager.canPerformQuery(requireContext())) {
                         enableInput()
                     } else {
                         disableInputWithQuotaMessage()
                     }
                 }
-                AiQueryManager.incrementQueryCount(requireContext())
             }
         }
     }
 
+    /**
+     * Sunucuya gönderilecek olan tam metni (prompt) oluşturur.
+     */
     private fun createPrompt(question: String, context: String): String {
-        // --- DEĞİŞTİRİLEN SATIR: PdfViewActivity'deki listeyi kullanıyor. ---
         val historyText = pdfViewActivity.conversationHistory.joinToString("\n")
         val currentLanguage = SharedPreferencesManager.getLanguage(requireContext()) ?: "tr"
 
@@ -213,8 +201,10 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
         }
     }
 
+    /**
+     * Yeni bir mesajı listeye ekler ve RecyclerView'ı günceller.
+     */
     private fun addMessage(chatMessage: ChatMessage) {
-        // --- DEĞİŞTİRİLEN SATIRLAR: PdfViewActivity'deki listeye ekliyor. ---
         pdfViewActivity.chatMessages.add(chatMessage)
         chatAdapter.notifyItemInserted(pdfViewActivity.chatMessages.size - 1)
         recyclerViewChat.scrollToPosition(pdfViewActivity.chatMessages.size - 1)

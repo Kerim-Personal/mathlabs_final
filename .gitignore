@@ -34,3 +34,4 @@ google-services.json
 # macOS işletim sistemi dosyası
 # ===============================================
 .DS_Store
+.env.local

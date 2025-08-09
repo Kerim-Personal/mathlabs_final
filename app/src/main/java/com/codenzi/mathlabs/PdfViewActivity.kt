@@ -1,4 +1,3 @@
-// kerim-personal/mathlabs_final/mathlabs_final-fc4db8886de96aa10a2d2cc3b8c6c3634d9f4003/app/src/main/java/com/codenzi/mathlabs/PdfViewActivity.kt
 package com.codenzi.mathlabs
 
 import android.content.ContentValues
@@ -39,7 +38,6 @@ import com.github.barteksc.pdfviewer.listener.OnErrorListener
 import com.github.barteksc.pdfviewer.listener.OnLoadCompleteListener
 import com.github.barteksc.pdfviewer.listener.OnPageChangeListener
 import com.github.barteksc.pdfviewer.listener.OnPageErrorListener
-import com.google.ai.client.generativeai.GenerativeModel
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
@@ -98,22 +96,8 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private val toastHandler = Handler(Looper.getMainLooper())
     private var toastRunnable: Runnable? = null
 
-    // --- YENİ EKLENEN SATIRLAR: Sohbet geçmişi artık burada tutulacak ---
     val chatMessages = mutableListOf<ChatMessage>()
     val conversationHistory = mutableListOf<String>()
-    // --- YENİ SATIRLARIN SONU ---
-
-
-    val generativeModel by lazy {
-        val apiKey = BuildConfig.GEMINI_API_KEY
-        if (apiKey.isEmpty()) {
-            Log.e("GeminiAI", "API Anahtarı BuildConfig içerisinde bulunamadı veya geçersiz.")
-        }
-        GenerativeModel(
-            modelName = "gemini-1.5-flash",
-            apiKey = apiKey
-        )
-    }
 
     companion object {
         const val EXTRA_PDF_ASSET_NAME = "pdf_asset_name"
@@ -144,13 +128,12 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
 
         initializeViews()
         setupToolbar()
-        handleWindowInsets() // Insets işlemleri view'lar yüklendikten sonra yapılmalı
+        handleWindowInsets()
         setupListeners()
 
-        // Reklam Konteynerini Hazırla
         adContainerView.viewTreeObserver.addOnGlobalLayoutListener {
             if (!initialLayoutComplete) {
-                initialLayoutComplete = true // Bu bloğun tekrar çalışmasını engelle
+                initialLayoutComplete = true
                 if (!SharedPreferencesManager.isUserPremium(this)) {
                     loadBanner()
                 } else {
@@ -172,8 +155,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
 
         RewardedAdManager.loadAd(this)
     }
-
-    // --- Banner Reklam Fonksiyonları ---
 
     private val adSize: AdSize
         get() {
@@ -208,42 +189,31 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         adView.loadAd(adRequest)
     }
 
-    // --- Kenardan Kenara Tasarım (Edge-to-Edge) İçin Inset Yönetimi ---
-
     private fun handleWindowInsets() {
         rootLayout = findViewById(R.id.root_layout_pdf_view)
-        // Uygulamanın sistem çubuklarının (status bar, navigation bar) arkasına çizim yapmasını sağlar
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { _, insets ->
             val systemBarInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
 
-            // 1. Üstteki status bar boşluğunu toolbar'a margin olarak uygula
             pdfToolbar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 topMargin = systemBarInsets.top
             }
 
-            // 2. KESİN ÇÖZÜM: Alttaki navigation bar boşluğunu reklam konteynerine
-            //    'bottomMargin' olarak uygula. Bu, banner'ın en alta doğru şekilde
-            //    yapışmasını ve sadece sistem çubuğu kadar yukarıda durmasını sağlar.
             adContainerView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 bottomMargin = systemBarInsets.bottom
             }
-
-            // Insets'leri diğer view'ların da kullanabilmesi için tüketmeden geri döndür.
             insets
         }
     }
 
-
-    // --- Yapay Zeka Sohbet Fonksiyonları ---
     private fun showAiChatDialog() {
         if (pdfBytes == null) {
             showAnimatedToast(getString(R.string.pdf_text_not_ready))
             return
         }
 
-        if (!AiQueryManager.canPerformQuery(this) && chatMessages.isEmpty()) { // Yalnızca sohbet boşsa ve hak yoksa reklam göster
+        if (!AiQueryManager.canPerformQuery(this) && chatMessages.isEmpty()) {
             showWatchAdDialog()
             return
         }
@@ -296,8 +266,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             .show()
     }
 
-
-    // --- Menü ve Toolbar Fonksiyonları ---
     private fun setupToolbar() {
         setSupportActionBar(pdfToolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -322,8 +290,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         }
     }
 
-
-    // --- PDF İşlemleri (Yükleme, İndirme, Görüntüleme) ---
     private fun initializeViews() {
         pdfToolbar = findViewById(R.id.pdfToolbar)
         pdfView = findViewById(R.id.pdfView)
@@ -468,16 +434,11 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         }
     }
 
-    // --- Kullanıcı Arayüzü (UI) ve Yardımcı Fonksiyonlar ---
-
     private fun setupListeners() {
         fabAiChat.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
-            val apiKey = BuildConfig.GEMINI_API_KEY
-            if (apiKey.isEmpty()) {
-                showAnimatedToast(getString(R.string.ai_assistant_api_key_not_configured))
-                return@setOnClickListener
-            }
+            // --- DÜZELTME: API ANAHTARI KONTROLÜ KALDIRILDI ---
+            // Artık anahtar sunucuda olduğu için bu kontrole gerek yok.
             showAiChatDialog()
         }
         fabReadingMode.setOnClickListener {
@@ -570,8 +531,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         toastHandler.postDelayed(toastRunnable!!, 3000)
     }
 
-    // --- PDFView Kütüphanesi Geri Çağırma (Callback) Fonksiyonları ---
-
     override fun loadComplete(nbPages: Int) {
         this.totalPages = nbPages
         progressBar.visibility = View.GONE
@@ -608,8 +567,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             drawingManager.loadDrawingsForPage(it, page)
         }
     }
-
-    // --- Activity Yaşam Döngüsü (Lifecycle) Fonksiyonları ---
 
     @Suppress("DEPRECATION")
     override fun finish() {
