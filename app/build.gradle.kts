@@ -31,13 +31,11 @@ android {
         applicationId = "com.codenzi.mathlabs"
         minSdk = 24
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.0.4"
+        versionCode = 6
+        versionName = "1.0.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // API anahtarı artık sunucuda olduğu için bu satır gereksiz, ama projenin başka yerlerinde
-        // kullanılıyor olabileceğinden ve derleme hatası vermemesi için bırakıyoruz.
         buildConfigField("String", "GEMINI_API_KEY", "\"\"")
 
         val admobAppId = localProperties.getProperty("ADMOB_APP_ID") ?: ""
@@ -67,9 +65,12 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    // ***********************************************
+    // **** SORUNUN ÇÖZÜLDÜĞÜ YER BURASI ****
+    // ***********************************************
     buildFeatures {
         compose = true
-        buildConfig = true
+        buildConfig = true // BU SATIRIN VARLIĞI VE DOĞRU YERDE OLMASI KRİTİK
         viewBinding = true
     }
     composeOptions {

@@ -5,7 +5,6 @@ import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
-import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import dagger.hilt.android.HiltAndroidApp
 
@@ -15,28 +14,23 @@ class PdfApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Firebase servislerini başlat
+        // --- SADELEŞTİRİLMİŞ APP CHECK YAPILANDIRMASI ---
+
+        // 1. Firebase ana uygulamasını başlat
         FirebaseApp.initializeApp(this)
 
-        // Firebase App Check'i başlat
+        // 2. Firebase App Check örneğini al
         val firebaseAppCheck = FirebaseAppCheck.getInstance()
 
-        // --- YENİ VE DÜZELTİLMİŞ KOD ---
-        // Uygulamanın test (debug) modunda mı yoksa yayın (release) modunda mı
-        // çalıştığını kontrol et ve uygun güvenlik sağlayıcısını kur.
-        if (BuildConfig.DEBUG) {
-            // EĞER TEST MODUNDAYSAK:
-            // Test için özel "Debug" sağlayıcısını kur.
-            firebaseAppCheck.installAppCheckProviderFactory(
-                DebugAppCheckProviderFactory.getInstance()
-            )
-        } else {
-            // EĞER YAYIN MODUNDAYSAK (PLAY STORE):
-            // Gerçek kullanıcılar için Play Integrity sağlayıcısını kur.
-            firebaseAppCheck.installAppCheckProviderFactory(
-                PlayIntegrityAppCheckProviderFactory.getInstance()
-            )
-        }
+        // 3. Doğrudan Play Integrity sağlayıcısını kur.
+        //    Bu, uygulamanın sadece Google Play'den indirilen orijinal versiyonlarda
+        //    Firebase servislerine erişmesini sağlar.
+        firebaseAppCheck.installAppCheckProviderFactory(
+            PlayIntegrityAppCheckProviderFactory.getInstance()
+        )
+
+        // --- YAPILANDIRMA BİTTİ ---
+
 
         // Mevcut kodlarınız
         AppCompatDelegate.setDefaultNightMode(SharedPreferencesManager.getTheme(this))
