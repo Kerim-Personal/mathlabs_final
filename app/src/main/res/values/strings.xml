@@ -24,7 +24,7 @@
     <string name="theme_light">Açık</string>
     <string name="theme_dark">Koyu</string>
     <string name="theme_system_default">Sistem Varsayılanı</string>
-    <string name="name_prompt">Harika! Şimdi adın ne?</string>
+    <string name="name_prompt">Merhaba! Şimdi adın ne?</string>
     <string name="name_hint">Adınız</string>
     <string name="continue_button">Devam Et</string>
     <string name="enter_valid_name_toast">Lütfen geçerli bir ad girin.</string>

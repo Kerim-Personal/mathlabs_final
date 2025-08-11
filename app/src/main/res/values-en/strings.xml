@@ -24,7 +24,7 @@
     <string name="desc_turkish_flag">Turkish Flag</string>
     <string name="desc_uk_flag">UK Flag</string>
 
-    <string name="name_prompt">Awesome! What is your name?</string>
+    <string name="name_prompt">Hello! What is your name?</string>
     <string name="name_hint">Your Name</string>
     <string name="continue_button">Continue</string>
     <string name="enter_valid_name_toast">Please enter a valid name.</string>
