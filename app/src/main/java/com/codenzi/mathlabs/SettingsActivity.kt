@@ -150,7 +150,6 @@ class SettingsActivity : AppCompatActivity() {
         buttonSubscribe.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
 
-            // Test kodu kaldırıldı, orijinal satın alma akışı geri getirildi.
             val selectedPlanDetails = if (togglePlan.checkedButtonId == R.id.buttonMonthly) {
                 monthlyPlanDetails
             } else {
@@ -269,11 +268,25 @@ class SettingsActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.language_settings))
             .setSingleChoiceItems(languages, checkedItem) { dialog, which ->
+                dialog.dismiss() // Önce diyalogu kapat
                 val selectedLanguageCode = languageCodes[which]
+
                 if (selectedLanguageCode != currentLanguageCode) {
-                    LocaleHelper.applyLanguage(this, selectedLanguageCode)
+                    // YENİ VE DOĞRU YÖNTEM
+                    // 1. Yeni dili SharedPreferences'a kaydet
+                    SharedPreferencesManager.saveLanguage(this, selectedLanguageCode)
+
+                    // 2. Uygulamayı sıfırdan başlatmak için Intent hazırla
+                    val intent = Intent(this, SplashActivity::class.java)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+
+                    // 3. Yeni görevi başlat
+                    startActivity(intent)
+
+                    // 4. Mevcut uygulama prosesini sonlandırarak hafızada eski
+                    // bir versiyon kalma ihtimalini ortadan kaldır.
+                    finishAffinity()
                 }
-                dialog.dismiss()
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .create()

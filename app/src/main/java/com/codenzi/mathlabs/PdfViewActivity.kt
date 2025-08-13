@@ -45,6 +45,7 @@ import com.google.android.gms.ads.MobileAds
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.firebase.auth.ktx.auth // <-- EKLENEN IMPORT
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
@@ -324,6 +325,19 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     }
 
     private fun displayPdfFromFirebaseWithOkHttp(storagePath: String) {
+        // --- YENİ EKLENEN KİMLİK DOĞRULAMA KONTROLÜ ---
+        val auth = Firebase.auth
+        if (auth.currentUser == null) {
+            // Oturum henüz açık değilse, bu genellikle Splash ekranındaki işlemin bitmesini
+            // beklerken olur. Kısa bir gecikmeyle tekrar deneyerek bu durumu çözeriz.
+            Log.w("PdfViewActivity", "Kullanıcı oturumu aktif değil. 500ms sonra tekrar denenecek.")
+            Handler(Looper.getMainLooper()).postDelayed({
+                displayPdfFromFirebaseWithOkHttp(storagePath)
+            }, 500)
+            return // Mevcut fonksiyon çağrısını sonlandır.
+        }
+        // --- KONTROLÜN SONU ---
+
         progressBar.visibility = View.VISIBLE
         val storageRef = Firebase.storage.reference.child(storagePath)
         storageRef.downloadUrl.addOnSuccessListener { uri ->
@@ -437,8 +451,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private fun setupListeners() {
         fabAiChat.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
-            // --- DÜZELTME: API ANAHTARI KONTROLÜ KALDIRILDI ---
-            // Artık anahtar sunucuda olduğu için bu kontrole gerek yok.
             showAiChatDialog()
         }
         fabReadingMode.setOnClickListener {

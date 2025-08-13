@@ -8,6 +8,7 @@ import java.util.Locale
 object LocaleHelper {
 
     fun setLocale(context: Context, languageCode: String): Context {
+        persist(context, languageCode) // Dili kaydet
         val locale = Locale(languageCode)
         Locale.setDefault(locale)
 
@@ -38,8 +39,9 @@ object LocaleHelper {
 
     /**
      * Kullanıcının yaptığı dil seçimini SharedPreferences'a kaydeder.
+     * Bu fonksiyon artık public olduğu için diğer sınıflardan erişilebilir.
      */
-    fun persist(context: Context, languageCode: String) {
+    fun persist(context: Context, languageCode: String) { // <-- "private" KELİMESİ KALDIRILDI
         SharedPreferencesManager.saveLanguage(context, languageCode)
         SharedPreferencesManager.setLanguageSelected(context, true) // Dilin bilinçli olarak seçildiğini işaretler
     }
