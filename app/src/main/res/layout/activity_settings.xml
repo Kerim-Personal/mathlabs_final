@@ -45,210 +45,326 @@
                 android:text="@string/settings_category_premium"
                 android:textColor="?attr/colorPrimary" />
 
-            <com.google.android.material.card.MaterialCardView
+            <LinearLayout
+                android:id="@+id/premiumPurchaseContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="28dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                android:orientation="vertical"
+                android:visibility="visible">
 
-                <LinearLayout
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/toolbar_gradient"
-                    android:orientation="vertical"
-                    android:padding="24dp">
+                    app:cardCornerRadius="28dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:layout_marginBottom="16dp">
-
-                        <ImageView
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:src="@drawable/ic_ai_assistant"
-                            app:tint="?attr/colorOnPrimary"
-                            android:layout_marginEnd="16dp"/>
-
-                        <TextView
-                            android:id="@+id/premiumFeaturesTitle"
-                            style="?attr/textAppearanceHeadlineSmall"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/premium_unlock_potential_title"
-                            android:textColor="?attr/colorOnPrimary"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <TextView
-                        style="?attr/textAppearanceBodyMedium"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/premium_unlock_potential_desc"
-                        android:textColor="?attr/colorOnPrimary"
-                        android:alpha="0.9"
-                        android:layout_marginBottom="24dp"/>
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="0dp"
-                        app:strokeWidth="0dp"
-                        app:cardBackgroundColor="#1AFFFFFF">
+                        android:background="@drawable/toolbar_gradient"
+                        android:orientation="vertical"
+                        android:padding="24dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="20dp">
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:layout_marginBottom="16dp">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_ai_assistant"
+                                app:tint="?attr/colorOnPrimary"
+                                android:layout_marginEnd="16dp"/>
 
                             <TextView
-                                style="?attr/textAppearanceBodyMedium"
-                                android:layout_width="match_parent"
+                                android:id="@+id/premiumFeaturesTitle"
+                                style="?attr/textAppearanceHeadlineSmall"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:drawablePadding="12dp"
-                                android:gravity="center_vertical"
-                                android:text="@string/premium_feature_downloads"
+                                android:text="@string/premium_unlock_potential_title"
                                 android:textColor="?attr/colorOnPrimary"
-                                app:drawableStartCompat="@drawable/ic_picture_as_pdf"
-                                app:drawableTint="?attr/colorOnPrimary"/>
-                            <TextView
-                                style="?attr/textAppearanceBodyMedium"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:drawablePadding="12dp"
-                                android:gravity="center_vertical"
-                                android:text="@string/premium_feature_screenshot"
-                                android:textColor="?attr/colorOnPrimary"
-                                app:drawableStartCompat="@drawable/ic_settings_privacy"
-                                app:drawableTint="?attr/colorOnPrimary"/>
-                            <TextView
-                                style="?attr/textAppearanceBodyMedium"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:drawablePadding="12dp"
-                                android:gravity="center_vertical"
-                                android:text="@string/premium_feature_no_ads"
-                                android:textColor="?attr/colorOnPrimary"
-                                app:drawableStartCompat="@drawable/ic_settings_theme"
-                                app:drawableTint="?attr/colorOnPrimary"/>
-                            <TextView
-                                style="?attr/textAppearanceBodyMedium"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:drawablePadding="12dp"
-                                android:gravity="center_vertical"
-                                android:text="@string/premium_feature_ai_queries"
-                                android:textColor="?attr/colorOnPrimary"
-                                app:drawableStartCompat="@drawable/ic_ai_assistant"
-                                app:drawableTint="?attr/colorOnPrimary"/>
+                                android:textStyle="bold" />
                         </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
+
+                        <TextView
+                            style="?attr/textAppearanceBodyMedium"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/premium_unlock_potential_desc"
+                            android:textColor="?attr/colorOnPrimary"
+                            android:alpha="0.9"
+                            android:layout_marginBottom="24dp"/>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="0dp"
+                            app:strokeWidth="0dp"
+                            app:cardBackgroundColor="#1AFFFFFF">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="20dp">
+
+                                <TextView
+                                    style="?attr/textAppearanceBodyMedium"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:drawablePadding="12dp"
+                                    android:gravity="center_vertical"
+                                    android:text="@string/premium_feature_downloads"
+                                    android:textColor="?attr/colorOnPrimary"
+                                    app:drawableStartCompat="@drawable/ic_picture_as_pdf"
+                                    app:drawableTint="?attr/colorOnPrimary"/>
+                                <TextView
+                                    style="?attr/textAppearanceBodyMedium"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="12dp"
+                                    android:drawablePadding="12dp"
+                                    android:gravity="center_vertical"
+                                    android:text="@string/premium_feature_screenshot"
+                                    android:textColor="?attr/colorOnPrimary"
+                                    app:drawableStartCompat="@drawable/ic_settings_privacy"
+                                    app:drawableTint="?attr/colorOnPrimary"/>
+                                <TextView
+                                    style="?attr/textAppearanceBodyMedium"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="12dp"
+                                    android:drawablePadding="12dp"
+                                    android:gravity="center_vertical"
+                                    android:text="@string/premium_feature_no_ads"
+                                    android:textColor="?attr/colorOnPrimary"
+                                    app:drawableStartCompat="@drawable/ic_settings_theme"
+                                    app:drawableTint="?attr/colorOnPrimary"/>
+                                <TextView
+                                    style="?attr/textAppearanceBodyMedium"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="12dp"
+                                    android:drawablePadding="12dp"
+                                    android:gravity="center_vertical"
+                                    android:text="@string/premium_feature_ai_queries"
+                                    android:textColor="?attr/colorOnPrimary"
+                                    app:drawableStartCompat="@drawable/ic_ai_assistant"
+                                    app:drawableTint="?attr/colorOnPrimary"/>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="24dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButtonToggleGroup
+                                android:id="@+id/togglePlan"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                app:selectionRequired="true"
+                                app:singleSelection="true"
+                                app:checkedButton="@id/buttonMonthly">
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/buttonMonthly"
+                                    style="?attr/materialButtonOutlinedStyle"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="@string/monthly"
+                                    android:textColor="@color/toggle_button_text_color"
+                                    app:backgroundTint="@color/toggle_button_background_color"
+                                    app:strokeColor="?attr/colorOnPrimary"/>
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/buttonYearly"
+                                    style="?attr/materialButtonOutlinedStyle"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="@string/yearly"
+                                    android:textColor="@color/toggle_button_text_color"
+                                    app:backgroundTint="@color/toggle_button_background_color"
+                                    app:strokeColor="?attr/colorOnPrimary"/>
+                            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                            <TextView
+                                android:id="@+id/textViewYearlyDiscount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:background="@drawable/discount_badge_background"
+                                android:paddingHorizontal="8dp"
+                                android:paddingVertical="4dp"
+                                android:textColor="?attr/colorOnPrimary"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:visibility="gone"
+                                tools:text="%20 OFF"
+                                tools:visibility="visible" />
+                        </LinearLayout>
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp">
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:layout_alignParentStart="true"
+                                android:layout_centerVertical="true"
+                                android:gravity="bottom">
+                                <TextView
+                                    android:id="@+id/textViewPrice"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                                    android:textColor="?attr/colorOnPrimary"
+                                    android:textStyle="bold"
+                                    tools:text="49.99 TL"/>
+                                <TextView
+                                    android:id="@+id/textViewPricePeriod"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                                    android:layout_marginStart="6dp"
+                                    android:textColor="?attr/colorOnPrimary"
+                                    android:alpha="0.8"
+                                    tools:text="/ay"/>
+                            </LinearLayout>
+
+                            <Button
+                                android:id="@+id/buttonSubscribe"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:layout_centerVertical="true"
+                                android:text="@string/subscribe_button"
+                                app:backgroundTint="?attr/colorOnPrimary"
+                                app:rippleColor="?attr/colorPrimary"
+                                android:textColor="?attr/colorPrimary"/>
+                        </RelativeLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/premiumStatusContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="28dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="?attr/colorPrimary"
+                    app:strokeWidth="1dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:orientation="vertical"
+                        android:padding="24dp">
 
-                        <com.google.android.material.button.MaterialButtonToggleGroup
-                            android:id="@+id/togglePlan"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            app:selectionRequired="true"
-                            app:singleSelection="true"
-                            app:checkedButton="@id/buttonMonthly">
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/buttonMonthly"
-                                style="?attr/materialButtonOutlinedStyle"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="@string/monthly"
-                                android:textColor="@color/toggle_button_text_color"
-                                app:backgroundTint="@color/toggle_button_background_color"
-                                app:strokeColor="?attr/colorOnPrimary"/>
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/buttonYearly"
-                                style="?attr/materialButtonOutlinedStyle"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="@string/yearly"
-                                android:textColor="@color/toggle_button_text_color"
-                                app:backgroundTint="@color/toggle_button_background_color"
-                                app:strokeColor="?attr/colorOnPrimary"/>
-                        </com.google.android.material.button.MaterialButtonToggleGroup>
-
-                        <TextView
-                            android:id="@+id/textViewYearlyDiscount"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:background="@drawable/discount_badge_background"
-                            android:paddingHorizontal="8dp"
-                            android:paddingVertical="4dp"
-                            android:textColor="?attr/colorOnPrimary"
-                            android:textSize="12sp"
-                            android:textStyle="bold"
-                            android:visibility="gone"
-                            tools:text="%20 OFF"
-                            tools:visibility="visible" />
-                    </LinearLayout>
-                    <RelativeLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="20dp">
                         <LinearLayout
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:layout_alignParentStart="true"
-                            android:layout_centerVertical="true"
-                            android:gravity="bottom">
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_premium_badge"
+                                app:tint="?attr/colorPrimary"/>
+
                             <TextView
-                                android:id="@+id/textViewPrice"
-                                android:layout_width="wrap_content"
+                                style="?attr/textAppearanceHeadlineSmall"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:textAppearance="?attr/textAppearanceHeadlineSmall"
-                                android:textColor="?attr/colorOnPrimary"
-                                android:textStyle="bold"
-                                tools:text="49.99 TL"/>
-                            <TextView
-                                android:id="@+id/textViewPricePeriod"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textAppearance="?attr/textAppearanceBodyMedium"
-                                android:layout_marginStart="6dp"
-                                android:textColor="?attr/colorOnPrimary"
-                                android:alpha="0.8"
-                                tools:text="/ay"/>
+                                android:layout_weight="1"
+                                android:layout_marginStart="16dp"
+                                android:text="@string/premium_member_title"
+                                android:textColor="?attr/colorPrimary"
+                                android:textStyle="bold"/>
+
                         </LinearLayout>
 
-                        <Button
-                            android:id="@+id/buttonSubscribe"
+                        <TextView
+                            style="?attr/textAppearanceBodyMedium"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true"
-                            android:text="@string/subscribe_button"
-                            app:backgroundTint="?attr/colorOnPrimary"
-                            app:rippleColor="?attr/colorPrimary"
-                            android:textColor="?attr/colorPrimary"/>
-                    </RelativeLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                            android:layout_marginTop="16dp"
+                            android:text="@string/premium_member_desc"
+                            android:textColor="?attr/colorOnSurfaceVariant"/>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="?attr/colorOutlineVariant"
+                            android:layout_marginTop="20dp"
+                            android:layout_marginBottom="20dp"/>
+
+                        <TextView
+                            style="?attr/textAppearanceBodyLarge"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:drawablePadding="16dp"
+                            android:gravity="center_vertical"
+                            android:text="@string/premium_feature_downloads"
+                            android:textColor="?attr/colorOnSurface"
+                            app:drawableStartCompat="@drawable/ic_check_circle"
+                            app:drawableTint="?attr/colorPrimary"/>
+                        <TextView
+                            style="?attr/textAppearanceBodyLarge"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:drawablePadding="16dp"
+                            android:gravity="center_vertical"
+                            android:text="@string/premium_feature_screenshot"
+                            android:textColor="?attr/colorOnSurface"
+                            app:drawableStartCompat="@drawable/ic_check_circle"
+                            app:drawableTint="?attr/colorPrimary"/>
+                        <TextView
+                            style="?attr/textAppearanceBodyLarge"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:drawablePadding="16dp"
+                            android:gravity="center_vertical"
+                            android:text="@string/premium_feature_no_ads"
+                            android:textColor="?attr/colorOnSurface"
+                            app:drawableStartCompat="@drawable/ic_check_circle"
+                            app:drawableTint="?attr/colorPrimary"/>
+                        <TextView
+                            style="?attr/textAppearanceBodyLarge"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:drawablePadding="16dp"
+                            android:gravity="center_vertical"
+                            android:text="@string/premium_feature_ai_queries"
+                            android:textColor="?attr/colorOnSurface"
+                            app:drawableStartCompat="@drawable/ic_check_circle"
+                            app:drawableTint="?attr/colorPrimary"/>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
 
             <TextView
                 style="?attr/textAppearanceLabelLarge"

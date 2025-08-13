@@ -316,6 +316,10 @@
     <string name="ai_chat_welcome_message">Merhaba! Bu PDF hakkında ne öğrenmek istersin? Sayfayı özetleyebilir veya anahtar kavramları sorabilirsin.</string>
     <string name="get_more_queries_button">✨ Sorgu Hakkı Kazan</string>
     <string name="go_back">Geri Git</string>
+    <string name="premium_enjoy_features">Premium özelliklerin keyfini çıkarın!</string>
+
+    <string name="premium_member_title">Premium Üye</string>
+    <string name="premium_member_desc">Tüm premium özelliklere erişiminiz var:</string>
 
 
 </resources>

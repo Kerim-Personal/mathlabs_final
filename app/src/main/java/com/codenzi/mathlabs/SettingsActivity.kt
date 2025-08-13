@@ -37,6 +37,9 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var layoutLanguageSettings: LinearLayout
     private lateinit var layoutContactUs: LinearLayout
     private lateinit var layoutPrivacyPolicy: LinearLayout
+    private lateinit var premiumPurchaseContainer: LinearLayout
+    private lateinit var premiumStatusContainer: LinearLayout
+
 
     private lateinit var billingManager: BillingManager
     private var monthlyPlanDetails: ProductDetails? = null
@@ -85,6 +88,8 @@ class SettingsActivity : AppCompatActivity() {
         layoutLanguageSettings = findViewById(R.id.layoutLanguageSettings)
         layoutContactUs = findViewById(R.id.layoutContactUs)
         layoutPrivacyPolicy = findViewById(R.id.layoutPrivacyPolicy)
+        premiumPurchaseContainer = findViewById(R.id.premiumPurchaseContainer)
+        premiumStatusContainer = findViewById(R.id.premiumStatusContainer)
     }
 
     private fun setupBilling() {
@@ -102,11 +107,11 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun updatePremiumUI(isPremium: Boolean) {
         if (isPremium) {
-            buttonSubscribe.text = getString(R.string.premium_active)
-            buttonSubscribe.isEnabled = false
+            premiumPurchaseContainer.visibility = View.GONE
+            premiumStatusContainer.visibility = View.VISIBLE
         } else {
-            buttonSubscribe.text = getString(R.string.subscribe_now)
-            buttonSubscribe.isEnabled = true
+            premiumPurchaseContainer.visibility = View.VISIBLE
+            premiumStatusContainer.visibility = View.GONE
         }
     }
 
@@ -144,6 +149,8 @@ class SettingsActivity : AppCompatActivity() {
 
         buttonSubscribe.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
+
+            // Test kodu kaldırıldı, orijinal satın alma akışı geri getirildi.
             val selectedPlanDetails = if (togglePlan.checkedButtonId == R.id.buttonMonthly) {
                 monthlyPlanDetails
             } else {
@@ -176,11 +183,6 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    // ÖNCEKİ YANITTAKİ DİNAMİK GÜNCELLEME MANTIĞI BURAYA EKLENDİ
-    // SettingsActivity.kt içinde
-
-    // SettingsActivity.kt içinde
-
     private fun updatePriceDisplay() {
         val isMonthly = togglePlan.checkedButtonId == R.id.buttonMonthly
         val monthlyDetails = monthlyPlanDetails
@@ -206,10 +208,8 @@ class SettingsActivity : AppCompatActivity() {
             textViewPricePeriod.visibility = View.INVISIBLE
         }
 
-        // --- DÜZELTİLMİŞ İNDİRİM HESAPLAMA KISMI ---
         val textViewYearlyDiscount: TextView = findViewById(R.id.textViewYearlyDiscount)
 
-        // Sadece yıllık plan seçiliyse ve plan detayları mevcutsa indirimi göster
         if (!isMonthly && monthlyDetails != null && yearlyDetails != null) {
             val monthlyPrice = monthlyDetails.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.priceAmountMicros
             val yearlyPrice = yearlyDetails.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.priceAmountMicros
@@ -227,10 +227,8 @@ class SettingsActivity : AppCompatActivity() {
                 textViewYearlyDiscount.visibility = View.GONE
             }
         } else {
-            // Aylık plan seçiliyse veya planlar yüklenmediyse etiketi gizle
             textViewYearlyDiscount.visibility = View.GONE
         }
-        // --- DÜZELTİLMİŞ KISMIN SONU ---
     }
 
     private fun showThemeDialog() {
