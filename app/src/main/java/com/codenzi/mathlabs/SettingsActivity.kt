@@ -259,6 +259,8 @@ class SettingsActivity : AppCompatActivity() {
             .show()
     }
 
+    // kerim-personal/mathlabs_final/mathlabs_final-846de2bc6294564b282343e4d0a0be0e4be59898/app/src/main/java/com/codenzi/mathlabs/SettingsActivity.kt
+
     private fun showLanguageDialog() {
         val languages = arrayOf("Türkçe", "English")
         val languageCodes = arrayOf("tr", "en")
@@ -268,24 +270,12 @@ class SettingsActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.language_settings))
             .setSingleChoiceItems(languages, checkedItem) { dialog, which ->
-                dialog.dismiss() // Önce diyalogu kapat
+                dialog.dismiss()
                 val selectedLanguageCode = languageCodes[which]
 
                 if (selectedLanguageCode != currentLanguageCode) {
-                    // YENİ VE DOĞRU YÖNTEM
-                    // 1. Yeni dili SharedPreferences'a kaydet
-                    SharedPreferencesManager.saveLanguage(this, selectedLanguageCode)
-
-                    // 2. Uygulamayı sıfırdan başlatmak için Intent hazırla
-                    val intent = Intent(this, SplashActivity::class.java)
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-
-                    // 3. Yeni görevi başlat
-                    startActivity(intent)
-
-                    // 4. Mevcut uygulama prosesini sonlandırarak hafızada eski
-                    // bir versiyon kalma ihtimalini ortadan kaldır.
-                    finishAffinity()
+                    // Dili uygula ve uygulamayı yeniden başlat
+                    LocaleHelper.applyLanguage(this, selectedLanguageCode)
                 }
             }
             .setNegativeButton(getString(R.string.cancel), null)

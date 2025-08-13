@@ -1,5 +1,8 @@
+// kerim-personal/mathlabs_final/mathlabs_final-846de2bc6294564b282343e4d0a0be0e4be59898/app/src/main/java/com/codenzi/mathlabs/SplashActivity.kt
+
 package com.codenzi.mathlabs
 
+import android.content.Context // attachBaseContext için eklendi
 import android.content.Intent
 import android.os.*
 import android.util.Log
@@ -19,8 +22,13 @@ class SplashActivity : AppCompatActivity() {
 
     private lateinit var textViewSplash: TextView
 
+    // --- YENİ EKLENEN KISIM ---
+    // Her aktivitede olduğu gibi, dil ayarını en başta yapmak için.
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleHelper.onAttach(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Tema ve mod ayarları, setContentView'dan önce yapılmalı.
         val themeMode = SharedPreferencesManager.getTheme(this)
         AppCompatDelegate.setDefaultNightMode(themeMode)
         setTheme(R.style.Theme_Pdf_SplashActivity)
@@ -29,46 +37,26 @@ class SplashActivity : AppCompatActivity() {
         setContentView(R.layout.activity_splash)
 
         textViewSplash = findViewById(R.id.textViewSplash)
-
-        // Mükemmelleştirilmiş yeni animasyonu başlat.
         startElegantAnimation()
     }
 
     private fun startElegantAnimation() {
-        // 1. Animasyon Seti: Birden fazla animasyonu aynı anda çalıştırmak için kullanılır.
         val animationSet = AnimationSet(true).apply {
-            interpolator = AccelerateDecelerateInterpolator() // Animasyonun başlangıçta yavaşlayıp sonra hızlanmasını sağlar.
-            fillAfter = true // Animasyon bittiğinde yazı son halinde kalır.
+            interpolator = AccelerateDecelerateInterpolator()
+            fillAfter = true
         }
-
-        // 2. Fade-in Animasyonu: Yazıyı görünmezden görünür hale getirir.
-        val fadeIn = AlphaAnimation(0.0f, 1.0f).apply {
-            duration = 1200 // 1.2 saniye
-        }
-
-        // 3. Aşağıdan Yukarı Kayma Animasyonu: Yazıya zarif bir giriş efekti verir.
-        val slideUp = TranslateAnimation(0f, 0f, 100f, 0f).apply {
-            duration = 1200 // 1.2 saniye
-        }
-
-        // Oluşturulan animasyonları sete ekle.
+        val fadeIn = AlphaAnimation(0.0f, 1.0f).apply { duration = 1200 }
+        val slideUp = TranslateAnimation(0f, 0f, 100f, 0f).apply { duration = 1200 }
         animationSet.addAnimation(fadeIn)
         animationSet.addAnimation(slideUp)
 
-        // 4. Animasyon Bittiğinde Ne Olacağını Belirle
         animationSet.setAnimationListener(object : Animation.AnimationListener {
             override fun onAnimationStart(animation: Animation?) {}
-
             override fun onAnimationEnd(animation: Animation?) {
-                // Animasyon bittiğinde, kimlik doğrulama işlemini başlat.
-                // Bu sayede animasyon ve mantık akışı arasında mükemmel bir senkronizasyon sağlanır.
                 signInAnonymously()
             }
-
             override fun onAnimationRepeat(animation: Animation?) {}
         })
-
-        // 5. Animasyonu TextView üzerinde başlat.
         textViewSplash.startAnimation(animationSet)
     }
 
@@ -82,7 +70,7 @@ class SplashActivity : AppCompatActivity() {
                         navigateToNextScreen()
                     } else {
                         Log.w("SplashActivity", "signInAnonymously:failure", task.exception)
-                        Toast.makeText(baseContext, "Authentication failed. Please check your internet connection.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(baseContext, "Authentication failed.", Toast.LENGTH_SHORT).show()
                     }
                 }
         } else {
@@ -91,19 +79,17 @@ class SplashActivity : AppCompatActivity() {
         }
     }
 
+    // --- DÜZELTİLMİŞ KISIM ---
     private fun navigateToNextScreen() {
-        // Bu fonksiyon artık bekleme yapmadan, animasyon biter bitmez çalışır.
-        val isLanguageSelected = SharedPreferencesManager.isLanguageSelected(this)
+        // Dil seçimi kontrolü kaldırıldı.
         val userName = SharedPreferencesManager.getUserName(this)
 
-        val intent = if (isLanguageSelected) {
-            if (userName.isNullOrEmpty()) {
-                Intent(this, NameEntryActivity::class.java)
-            } else {
-                Intent(this, MainActivity::class.java)
-            }
+        val intent = if (userName.isNullOrEmpty()) {
+            // İsim yoksa, isim girme ekranına git
+            Intent(this, NameEntryActivity::class.java)
         } else {
-            Intent(this, LanguageSelectionActivity::class.java)
+            // İsim varsa, ana ekrana git
+            Intent(this, MainActivity::class.java)
         }
 
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -113,7 +99,6 @@ class SplashActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Kaynak sızıntılarını önlemek için animasyonu temizle.
         textViewSplash.clearAnimation()
     }
 }

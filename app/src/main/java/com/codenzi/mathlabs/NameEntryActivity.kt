@@ -1,3 +1,5 @@
+// kerim-personal/mathlabs_final/mathlabs_final-846de2bc6294564b282343e4d0a0be0e4be59898/app/src/main/java/com/codenzi/mathlabs/NameEntryActivity.kt
+
 package com.codenzi.mathlabs
 
 import android.content.Context
@@ -30,6 +32,7 @@ class NameEntryActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_name_entry)
 
+        // Window insets ayarları (dokunmayın)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val rootView = findViewById<ViewGroup>(android.R.id.content).getChildAt(0)
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { view, insets ->
@@ -61,23 +64,15 @@ class NameEntryActivity : AppCompatActivity() {
             }
         }
 
-        // Ekrandaki geri butonuna tıklandığında, fiziksel geri tuşuyla aynı işlemi yap.
         buttonBack.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             onBackPressedDispatcher.onBackPressed()
         }
 
-        // Fiziksel geri tuşuna basıldığında veya yukarıdaki butona tıklandığında
-        // çalışacak olan mantık burada tanımlanıyor.
+        // --- DÜZELTİLMİŞ KISIM ---
+        // Geri tuşuna basıldığında artık dil seçimi ekranı olmadığı için
+        // mevcut aktiviteyi bitirerek uygulamadan çık.
         onBackPressedDispatcher.addCallback(this) {
-            // Dil seçim ekranına geri dönmek için Intent oluştur.
-            val intent = Intent(this@NameEntryActivity, LanguageSelectionActivity::class.java)
-
-            // Aktivite yığınını temizleyerek kullanıcının beklenmedik bir ekrana gitmesini önle.
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
-
-            // Mevcut aktiviteyi sonlandır.
             finish()
         }
     }
