@@ -2,9 +2,8 @@ package com.codenzi.mathlabs
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.graphics.Color
-import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.edit
 import java.util.Calendar
 
 /**
@@ -20,12 +19,6 @@ object SharedPreferencesManager {
     private const val KEY_TOUCH_SOUND = "touch_sound_enabled"
     private const val KEY_THEME = "theme_preference"
     private const val KEY_USER_NAME = "user_name"
-    private const val KEY_PEN_COLOR = "pen_color"
-    private const val KEY_PEN_SIZE_TYPE = "pen_size_type"
-    private const val KEY_ERASER_SIZE_TYPE = "eraser_size_type"
-    private const val KEY_SELECTED_APP_COLOR_THEME = "selected_app_color_theme"
-    private const val KEY_LAST_GEMINI_API_CALL_TIMESTAMP = "last_gemini_api_call_timestamp"
-    private const val KEY_IS_FIRST_GEMINI_API_CALL = "is_first_gemini_api_call"
     private const val KEY_USER_PREMIUM_STATUS = "user_premium_status"
     private const val KEY_FREE_QUERY_COUNT = "free_query_count"
     private const val KEY_FREE_LAST_RESET_TIMESTAMP = "free_last_reset_timestamp"
@@ -44,7 +37,7 @@ object SharedPreferencesManager {
 
     // Dil ve Tema Ayarları
     fun saveLanguage(context: Context, language: String) {
-        getPreferences(context).edit().putString(KEY_LANGUAGE, language).apply()
+        getPreferences(context).edit { putString(KEY_LANGUAGE, language) }
     }
 
     fun getLanguage(context: Context): String? {
@@ -52,32 +45,20 @@ object SharedPreferencesManager {
     }
 
     fun setLanguageSelected(context: Context, selected: Boolean) {
-        getPreferences(context).edit().putBoolean(KEY_LANGUAGE_SELECTED_FLAG, selected).apply()
-    }
-
-    fun isLanguageSelected(context: Context): Boolean {
-        return getPreferences(context).getBoolean(KEY_LANGUAGE_SELECTED_FLAG, false)
+        getPreferences(context).edit { putBoolean(KEY_LANGUAGE_SELECTED_FLAG, selected) }
     }
 
     fun saveTheme(context: Context, themeValue: Int) {
-        getPreferences(context).edit().putInt(KEY_THEME, themeValue).apply()
+        getPreferences(context).edit { putInt(KEY_THEME, themeValue) }
     }
 
     fun getTheme(context: Context): Int {
         return getPreferences(context).getInt(KEY_THEME, AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
     }
 
-    fun saveAppColorTheme(context: Context, themeIndex: Int) {
-        getPreferences(context).edit().putInt(KEY_SELECTED_APP_COLOR_THEME, themeIndex).apply()
-    }
-
-    fun getAppColorTheme(context: Context): Int {
-        return getPreferences(context).getInt(KEY_SELECTED_APP_COLOR_THEME, 0)
-    }
-
     // Kullanıcı Bilgileri ve Tercihleri
     fun saveUserName(context: Context, name: String) {
-        getPreferences(context).edit().putString(KEY_USER_NAME, name).apply()
+        getPreferences(context).edit { putString(KEY_USER_NAME, name) }
     }
 
     fun getUserName(context: Context): String? {
@@ -85,59 +66,17 @@ object SharedPreferencesManager {
     }
 
     fun setTouchSoundEnabled(context: Context, enabled: Boolean) {
-        getPreferences(context).edit().putBoolean(KEY_TOUCH_SOUND, enabled).apply()
+        getPreferences(context).edit { putBoolean(KEY_TOUCH_SOUND, enabled) }
     }
 
     fun isTouchSoundEnabled(context: Context): Boolean {
         return getPreferences(context).getBoolean(KEY_TOUCH_SOUND, false)
     }
 
-    // Çizim Ayarları
-    fun savePenColor(context: Context, color: Int) {
-        getPreferences(context).edit().putInt(KEY_PEN_COLOR, color).apply()
-    }
-
-    fun getPenColor(context: Context): Int {
-        return getPreferences(context).getInt(KEY_PEN_COLOR, Color.RED)
-    }
-
-    fun savePenSizeType(context: Context, sizeTypeOrdinal: Int) {
-        getPreferences(context).edit().putInt(KEY_PEN_SIZE_TYPE, sizeTypeOrdinal).apply()
-    }
-
-    fun getPenSizeType(context: Context): Int {
-        return getPreferences(context).getInt(KEY_PEN_SIZE_TYPE, BrushSize.MEDIUM.ordinal)
-    }
-
-    fun saveEraserSizeType(context: Context, sizeTypeOrdinal: Int) {
-        getPreferences(context).edit().putInt(KEY_ERASER_SIZE_TYPE, sizeTypeOrdinal).apply()
-    }
-
-    fun getEraserSizeType(context: Context): Int {
-        return getPreferences(context).getInt(KEY_ERASER_SIZE_TYPE, BrushSize.MEDIUM.ordinal)
-    }
-
-    // Gemini API Kullanım Zaman Damgaları
-    fun saveLastGeminiApiCallTimestamp(context: Context, timestamp: Long) {
-        getPreferences(context).edit().putLong(KEY_LAST_GEMINI_API_CALL_TIMESTAMP, timestamp).apply()
-    }
-
-    fun getLastGeminiApiCallTimestamp(context: Context): Long {
-        return getPreferences(context).getLong(KEY_LAST_GEMINI_API_CALL_TIMESTAMP, 0L)
-    }
-
-    fun setIsFirstGeminiApiCall(context: Context, isFirst: Boolean) {
-        getPreferences(context).edit().putBoolean(KEY_IS_FIRST_GEMINI_API_CALL, isFirst).apply()
-    }
-
-    fun getIsFirstGeminiApiCall(context: Context): Boolean {
-        return getPreferences(context).getBoolean(KEY_IS_FIRST_GEMINI_API_CALL, true)
-    }
-
     // Premium Durumu Yönetimi
     // NOT: Bu bir yer tutucudur. Gerçek uygulamada Google Play Faturalandırma Kitaplığı ile entegrasyon gerekir.
     fun setUserAsPremium(context: Context, isPremium: Boolean) {
-        getPreferences(context).edit().putBoolean(KEY_USER_PREMIUM_STATUS, isPremium).apply()
+        getPreferences(context).edit { putBoolean(KEY_USER_PREMIUM_STATUS, isPremium) }
     }
 
     fun isUserPremium(context: Context): Boolean {
@@ -156,10 +95,10 @@ object SharedPreferencesManager {
         // Yeni bir güne geçilmişse sayacı sıfırla
         if (lastResetCal.get(Calendar.DAY_OF_YEAR) != currentCal.get(Calendar.DAY_OF_YEAR) ||
             lastResetCal.get(Calendar.YEAR) != currentCal.get(Calendar.YEAR)) {
-            prefs.edit()
-                .putInt(KEY_FREE_QUERY_COUNT, 0)
-                .putLong(KEY_FREE_LAST_RESET_TIMESTAMP, currentTimestamp)
-                .apply()
+            prefs.edit {
+                putInt(KEY_FREE_QUERY_COUNT, 0)
+                putLong(KEY_FREE_LAST_RESET_TIMESTAMP, currentTimestamp)
+            }
             return 0
         }
         return prefs.getInt(KEY_FREE_QUERY_COUNT, 0)
@@ -168,7 +107,7 @@ object SharedPreferencesManager {
     fun incrementFreeQueryCount(context: Context) {
         val prefs = getPreferences(context)
         val currentCount = getFreeQueryCount(context)
-        prefs.edit().putInt(KEY_FREE_QUERY_COUNT, currentCount + 1).apply()
+        prefs.edit { putInt(KEY_FREE_QUERY_COUNT, currentCount + 1) }
     }
 
     // Premium Kullanıcı Sorgu Kotası Yönetimi
@@ -183,10 +122,10 @@ object SharedPreferencesManager {
         // Yeni bir aya geçilmişse sayacı sıfırla
         if (lastResetCal.get(Calendar.MONTH) != currentCal.get(Calendar.MONTH) ||
             lastResetCal.get(Calendar.YEAR) != currentCal.get(Calendar.YEAR)) {
-            prefs.edit()
-                .putInt(KEY_PREMIUM_QUERY_COUNT, 0)
-                .putLong(KEY_PREMIUM_LAST_RESET_TIMESTAMP, currentTimestamp)
-                .apply()
+            prefs.edit {
+                putInt(KEY_PREMIUM_QUERY_COUNT, 0)
+                putLong(KEY_PREMIUM_LAST_RESET_TIMESTAMP, currentTimestamp)
+            }
             return 0
         }
         return prefs.getInt(KEY_PREMIUM_QUERY_COUNT, 0)
@@ -195,7 +134,7 @@ object SharedPreferencesManager {
     fun incrementPremiumQueryCount(context: Context) {
         val prefs = getPreferences(context)
         val currentCount = getPremiumQueryCount(context)
-        prefs.edit().putInt(KEY_PREMIUM_QUERY_COUNT, currentCount + 1).apply()
+        prefs.edit { putInt(KEY_PREMIUM_QUERY_COUNT, currentCount + 1) }
     }
 
     // Ödüllü Sorgu Hakkı Yönetimi
@@ -205,13 +144,13 @@ object SharedPreferencesManager {
 
     fun addRewardedQueries(context: Context, amount: Int) {
         val currentCount = getRewardedQueryCount(context)
-        getPreferences(context).edit().putInt(KEY_REWARDED_QUERY_COUNT, currentCount + amount).apply()
+        getPreferences(context).edit { putInt(KEY_REWARDED_QUERY_COUNT, currentCount + amount) }
     }
 
     fun useRewardedQuery(context: Context) {
         val currentCount = getRewardedQueryCount(context)
         if (currentCount > 0) {
-            getPreferences(context).edit().putInt(KEY_REWARDED_QUERY_COUNT, currentCount - 1).apply()
+            getPreferences(context).edit { putInt(KEY_REWARDED_QUERY_COUNT, currentCount - 1) }
         }
     }
 
@@ -227,10 +166,10 @@ object SharedPreferencesManager {
         // Yeni bir aya geçilmişse sayacı sıfırla
         if (lastResetCal.get(Calendar.MONTH) != currentCal.get(Calendar.MONTH) ||
             lastResetCal.get(Calendar.YEAR) != currentCal.get(Calendar.YEAR)) {
-            prefs.edit()
-                .putInt(KEY_PREMIUM_PDF_DOWNLOAD_COUNT, 0)
-                .putLong(KEY_PREMIUM_PDF_LAST_RESET_TIMESTAMP, currentTimestamp)
-                .apply()
+            prefs.edit {
+                putInt(KEY_PREMIUM_PDF_DOWNLOAD_COUNT, 0)
+                putLong(KEY_PREMIUM_PDF_LAST_RESET_TIMESTAMP, currentTimestamp)
+            }
             return 0
         }
         return prefs.getInt(KEY_PREMIUM_PDF_DOWNLOAD_COUNT, 0)
@@ -239,7 +178,7 @@ object SharedPreferencesManager {
     fun incrementPremiumPdfDownloadCount(context: Context) {
         val prefs = getPreferences(context)
         val currentCount = getPremiumPdfDownloadCount(context)
-        prefs.edit().putInt(KEY_PREMIUM_PDF_DOWNLOAD_COUNT, currentCount + 1).apply()
+        prefs.edit { putInt(KEY_PREMIUM_PDF_DOWNLOAD_COUNT, currentCount + 1) }
     }
 
     fun canDownloadPdf(context: Context): Boolean {

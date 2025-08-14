@@ -39,7 +39,7 @@ class BillingManager(private val context: Context, private val coroutineScope: C
     private fun setupBillingClient() {
         billingClient = BillingClient.newBuilder(context)
             .setListener(purchasesUpdatedListener)
-            .enablePendingPurchases()
+            .enablePendingPurchases() // Bu satır geri eklendi
             .build()
 
         billingClient.startConnection(object : BillingClientStateListener {

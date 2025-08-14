@@ -1,9 +1,8 @@
 package com.codenzi.mathlabs
 
-import android.app.Activity
+import androidx.activity.OnBackPressedCallback
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
@@ -15,6 +14,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -76,6 +76,16 @@ class SettingsActivity : AppCompatActivity() {
         setupClickListeners()
         setupSwitches()
         setupPremiumPlanToggle()
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                setResult(RESULT_OK)
+                if (isEnabled) {
+                    isEnabled = false
+                    finish()
+                }
+            }
+        })
     }
 
     private fun initializeViews() {
@@ -129,13 +139,13 @@ class SettingsActivity : AppCompatActivity() {
         layoutContactUs.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.parse("mailto:")
+                data = "mailto:".toUri()
                 putExtra(Intent.EXTRA_EMAIL, arrayOf("info@codenzi.com"))
                 putExtra(Intent.EXTRA_SUBJECT, "MathLabs Geri Bildirim")
             }
             try {
                 startActivity(Intent.createChooser(emailIntent, "E-posta gönder..."))
-            } catch (ex: android.content.ActivityNotFoundException) {
+            } catch (_: android.content.ActivityNotFoundException) {
                 Toast.makeText(this, "Uygun bir e-posta uygulaması bulunamadı.", Toast.LENGTH_SHORT).show()
             }
         }
@@ -143,7 +153,7 @@ class SettingsActivity : AppCompatActivity() {
         layoutPrivacyPolicy.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             val url = "https://www.codenzi.com/privacy-math-labs.html"
-            val privacyIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            val privacyIntent = Intent(Intent.ACTION_VIEW, url.toUri())
             startActivity(privacyIntent)
         }
 
@@ -156,8 +166,8 @@ class SettingsActivity : AppCompatActivity() {
                 yearlyPlanDetails
             }
 
-            selectedPlanDetails?.let {
-                billingManager.launchPurchaseFlow(this, it)
+            selectedPlanDetails?.let { planDetails ->
+                billingManager.launchPurchaseFlow(this, planDetails)
             } ?: run {
                 Toast.makeText(this, "Abonelik planı detayları henüz yüklenmedi.", Toast.LENGTH_SHORT).show()
             }
@@ -249,7 +259,7 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 if (selectedTheme != currentTheme) {
                     SharedPreferencesManager.saveTheme(this, selectedTheme)
-                    setResult(Activity.RESULT_OK)
+                    setResult(RESULT_OK)
                     recreate()
                 }
                 dialog.dismiss()
@@ -285,16 +295,10 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == android.R.id.home) {
-            setResult(Activity.RESULT_OK)
+            setResult(RESULT_OK)
             finish()
             return true
         }
         return super.onOptionsItemSelected(item)
-    }
-
-    @Deprecated("This method has been deprecated in favor of using the OnBackPressedDispatcher.", ReplaceWith("onBackPressedDispatcher.onBackPressed()"))
-    override fun onBackPressed() {
-        setResult(Activity.RESULT_OK)
-        super.onBackPressed()
     }
 }

@@ -416,7 +416,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         showAnimatedToast(getString(R.string.downloading_pdf))
 
         lifecycleScope.launch(Dispatchers.IO) {
-            var outputStream: OutputStream? = null
+            val outputStream: OutputStream? // Gereksiz null ataması kaldırıldı
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     val resolver = contentResolver
@@ -512,7 +512,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                         } else {
                             showAnimatedToast(getString(R.string.go_to_page_invalid_number, totalPages))
                         }
-                    } catch (e: NumberFormatException) {
+                    } catch (_: NumberFormatException) { // Kullanılmayan 'e' parametresi '_' ile değiştirildi
                         showAnimatedToast(getString(R.string.go_to_page_enter_number))
                     }
                 }
@@ -573,7 +573,8 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     override fun onPageChanged(page: Int, pageCount: Int) {
         this.currentPage = page
         this.totalPages = pageCount
-        pageCountText.text = "${page + 1} / $pageCount"
+        // String kaynağı kullanılarak metin ataması yapıldı
+        pageCountText.text = getString(R.string.page_count_format, page + 1, pageCount)
 
         pdfAssetName?.let {
             drawingManager.loadDrawingsForPage(it, page)

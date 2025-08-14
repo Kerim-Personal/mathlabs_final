@@ -26,10 +26,6 @@
             tools:replace="android:resource" />
 
         <activity
-            android:name=".LanguageSelectionActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Pdf" />
-        <activity
             android:name=".NameEntryActivity"
             android:exported="false"
             android:theme="@style/Theme.Pdf" />

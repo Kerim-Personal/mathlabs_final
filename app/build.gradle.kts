@@ -107,7 +107,7 @@ dependencies {
     debugImplementation("com.google.firebase:firebase-appcheck-debug")
 
     // ---- AĞ & PDF KÜTÜPHANELERİ ----
-    implementation("com.google.android.gms:play-services-ads:23.0.0")
+    implementation("com.google.android.gms:play-services-ads:23.1.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation(libs.android.pdf.viewer)
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
