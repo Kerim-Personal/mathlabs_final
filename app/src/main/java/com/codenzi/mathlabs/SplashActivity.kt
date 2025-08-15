@@ -15,8 +15,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
 
 class SplashActivity : AppCompatActivity() {
 
@@ -53,31 +51,15 @@ class SplashActivity : AppCompatActivity() {
         animationSet.setAnimationListener(object : Animation.AnimationListener {
             override fun onAnimationStart(animation: Animation?) {}
             override fun onAnimationEnd(animation: Animation?) {
-                signInAnonymously()
+                // signInAnonymously() çağrısı kaldırıldı, doğrudan navigateToNextScreen çağrılıyor
+                navigateToNextScreen()
             }
             override fun onAnimationRepeat(animation: Animation?) {}
         })
         textViewSplash.startAnimation(animationSet)
     }
 
-    private fun signInAnonymously() {
-        val auth = Firebase.auth
-        if (auth.currentUser == null) {
-            auth.signInAnonymously()
-                .addOnCompleteListener(this) { task ->
-                    if (task.isSuccessful) {
-                        Log.d("SplashActivity", "signInAnonymously:success")
-                        navigateToNextScreen()
-                    } else {
-                        Log.w("SplashActivity", "signInAnonymously:failure", task.exception)
-                        Toast.makeText(baseContext, "Authentication failed.", Toast.LENGTH_SHORT).show()
-                    }
-                }
-        } else {
-            Log.d("SplashActivity", "User is already signed in.")
-            navigateToNextScreen()
-        }
-    }
+    // signInAnonymously fonksiyonu kaldırıldı
 
     // --- DÜZELTİLMİŞ KISIM ---
     private fun navigateToNextScreen() {
