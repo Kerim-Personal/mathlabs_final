@@ -16,4 +16,16 @@
         android:textSize="48sp"
         android:textStyle="bold" />
 
+    <!-- Hata durumunda gösterilecek olan "Tekrar Dene" butonu -->
+    <Button
+        android:id="@+id/retryButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/textViewSplash"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="24dp"
+        android:text="@string/retry"
+        android:visibility="gone"
+        tools:visibility="visible"/>
+
 </RelativeLayout>

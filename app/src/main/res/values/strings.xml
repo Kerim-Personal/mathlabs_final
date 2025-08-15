@@ -321,5 +321,9 @@
     <string name="premium_member_title">Premium Üye</string>
     <string name="premium_member_desc">Tüm premium özelliklere erişiminiz var:</string>
 
+    <string name="connection_error">Bağlantı Hatası</string>
+    <string name="retry">Tekrar Dene</string>
+
+
 
 </resources>

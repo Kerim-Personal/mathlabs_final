@@ -319,5 +319,7 @@
     <string name="premium_member_title">Premium Member</string>
     <string name="premium_member_desc">You have access to all premium features:</string>
 
+    <string name="connection_error">Connection Error</string>
+    <string name="retry">Retry</string>
 
 </resources>
