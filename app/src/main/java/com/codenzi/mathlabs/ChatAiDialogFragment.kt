@@ -43,12 +43,20 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
         setupRecyclerView()
         setupClickListeners()
 
-        // Asistan açıldığında sorgu hakkı durumunu asenkron olarak kontrol et.
-        lifecycleScope.launch {
-            if (AiQueryManager.canPerformQuery()) {
-                enableInput()
-            } else {
-                disableInput()
+        // Kullanıcı verisini ve sorgu hakkını gerçek zamanlı olarak dinle.
+        // Bu yapı, arayüzün genel durumunu (butonların aktif/pasif olması) yönetir.
+        viewLifecycleOwner.lifecycleScope.launch {
+            UserRepository.userDataState.collect { userData ->
+                val canQuery = AiQueryManager.canPerformQuery()
+                if (canQuery) {
+                    if (!editTextQuestion.isEnabled) {
+                        enableInput()
+                    }
+                } else {
+                    if (editTextQuestion.isEnabled) {
+                        disableInput()
+                    }
+                }
             }
         }
     }
@@ -138,6 +146,16 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
         buttonSend.isEnabled = true
         suggestionScrollView.visibility = View.VISIBLE
         buttonGetMoreQueries.visibility = View.GONE
+
+        // İyileştirme: Eğer son mesaj "kota aşıldı" mesajı ise, onu kaldır.
+        val quotaMessage = getString(R.string.ai_quota_exceeded, "")
+        if (pdfViewActivity.chatMessages.lastOrNull()?.message == quotaMessage) {
+            val lastIndex = pdfViewActivity.chatMessages.size - 1
+            if (lastIndex >= 0) {
+                pdfViewActivity.chatMessages.removeAt(lastIndex)
+                chatAdapter.notifyItemRemoved(lastIndex)
+            }
+        }
     }
 
     /**
@@ -145,30 +163,30 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
      */
     private fun sendQueryToServer(question: String) {
         lifecycleScope.launch {
-            // 1. Asenkron olarak sorgu hakkını kontrol et
+            // 1. Sorgu göndermeden önce hakkı tekrar kontrol et
             if (!AiQueryManager.canPerformQuery()) {
                 disableInput()
-                Toast.makeText(context, getString(R.string.no_more_queries_today), Toast.LENGTH_LONG).show()
+                pdfViewActivity.showWatchAdDialog()
                 return@launch
             }
 
-            // UI güncellemeleri
+            // 2. UI güncellemeleri
             addMessage(ChatMessage(question, true))
             suggestionScrollView.visibility = View.GONE
             thinkingIndicator.visibility = View.VISIBLE
             editTextQuestion.isEnabled = false
             buttonSend.isEnabled = false
 
-            // 2. Sorgu sayısını artır
+            // 3. Sorgu sayısını artır
             AiQueryManager.incrementQueryCount()
 
-            // 3. PDF'ten ilgili metni al (Potansiyel olarak uzun sürebilir, IO thread'inde yap)
+            // 4. PDF'ten ilgili metni al
             val relevantContext = withContext(Dispatchers.IO) {
                 pdfViewActivity.extractTextForAI()
             }
             val prompt = createPrompt(question, relevantContext)
 
-            // 4. Sunucudan cevabı al
+            // 5. Sunucudan cevabı al
             AiQueryManager.getResponseFromServer(prompt) { result ->
                 // UI'ı ana thread'de güncelle
                 requireActivity().runOnUiThread {
@@ -181,14 +199,15 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
                         addMessage(ChatMessage(errorMessage, false))
                     }
 
-                    // 5. Cevap geldikten sonra sorgu hakkını tekrar kontrol et ve UI'ı ayarla
+                    // 6. Cevap geldikten sonra sorgu hakkını tekrar kontrol et ve UI'ı ayarla
                     lifecycleScope.launch {
-                        if (AiQueryManager.canPerformQuery()) {
-                            enableInput()
-                        } else {
-                            disableInput()
-                            // Sorgu hakkı bu istekten sonra bittiyse kullanıcıyı bilgilendir
+                        if (!AiQueryManager.canPerformQuery()) {
+                            // Haklar bu sorgu ile bittiyse, reklam izleme diyaloğunu göster.
+                            // Arayüzün pasif hale gelmesini ana 'collect' bloğu zaten sağlayacak.
                             pdfViewActivity.showWatchAdDialog()
+                        } else {
+                            // Hala hak varsa, bir sonraki soru için giriş alanlarını tekrar aktif et.
+                            enableInput()
                         }
                     }
                 }
