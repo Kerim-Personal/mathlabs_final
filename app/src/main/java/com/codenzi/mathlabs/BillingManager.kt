@@ -1,4 +1,3 @@
-// app/src/main/java/com/codenzi/mathlabs/BillingManager.kt
 package com.codenzi.mathlabs
 
 import android.app.Activity
@@ -7,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.android.billingclient.api.*
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -39,7 +39,7 @@ class BillingManager(private val context: Context, private val coroutineScope: C
     private fun setupBillingClient() {
         billingClient = BillingClient.newBuilder(context)
             .setListener(purchasesUpdatedListener)
-            .enablePendingPurchases() // Bu satır geri eklendi
+            .enablePendingPurchases()
             .build()
 
         billingClient.startConnection(object : BillingClientStateListener {
@@ -47,7 +47,8 @@ class BillingManager(private val context: Context, private val coroutineScope: C
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     Log.d("BillingManager", "BillingClient is ready.")
                     queryAvailableProducts()
-                    checkPurchases()
+                    // OTOMATİK SENKRONİZASYON: Uygulama açıldığında alımları sorgula ve senkronize et.
+                    queryAndSyncPurchases()
                 } else {
                     Log.e("BillingManager", "BillingClient setup failed: ${billingResult.debugMessage}")
                 }
@@ -55,7 +56,6 @@ class BillingManager(private val context: Context, private val coroutineScope: C
 
             override fun onBillingServiceDisconnected() {
                 Log.d("BillingManager", "Billing service disconnected. Retrying...")
-                // İsteğe bağlı olarak yeniden bağlanma mantığı eklenebilir.
             }
         })
     }
@@ -63,11 +63,11 @@ class BillingManager(private val context: Context, private val coroutineScope: C
     private fun queryAvailableProducts() {
         val productList = listOf(
             QueryProductDetailsParams.Product.newBuilder()
-                .setProductId("monthly_premium_plan") // Google Play Console'daki ürün ID'niz
+                .setProductId("monthly_premium_plan")
                 .setProductType(BillingClient.ProductType.SUBS)
                 .build(),
             QueryProductDetailsParams.Product.newBuilder()
-                .setProductId("yearly_premium_plan") // Google Play Console'daki ürün ID'niz
+                .setProductId("yearly_premium_plan")
                 .setProductType(BillingClient.ProductType.SUBS)
                 .build()
         )
@@ -97,6 +97,12 @@ class BillingManager(private val context: Context, private val coroutineScope: C
     }
 
     private fun handlePurchase(purchase: Purchase) {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+        if (currentUserId == null) {
+            Log.e("BillingManager", "User is not logged in, cannot process purchase.")
+            return
+        }
+
         if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
             if (!purchase.isAcknowledged) {
                 val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
@@ -105,28 +111,42 @@ class BillingManager(private val context: Context, private val coroutineScope: C
                 billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
                     if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                         _isPremium.postValue(true)
-                        SharedPreferencesManager.setUserAsPremium(context, true)
-                        Log.d("BillingManager", "Purchase acknowledged successfully.")
+                        SharedPreferencesManager.setUserAsPremium(context, currentUserId, true)
+                        Log.d("BillingManager", "Purchase acknowledged successfully for user: $currentUserId")
                     }
                 }
             } else {
                 _isPremium.postValue(true)
-                SharedPreferencesManager.setUserAsPremium(context, true)
+                SharedPreferencesManager.setUserAsPremium(context, currentUserId, true)
             }
         }
     }
 
-    fun checkPurchases() {
-        coroutineScope.launch(Dispatchers.IO) {
-            val params = QueryPurchasesParams.newBuilder()
-                .setProductType(BillingClient.ProductType.SUBS)
+    /**
+     * Google Play'den mevcut abonelikleri sorgular ve yerel hafızayı (SharedPreferences)
+     * bu bilgiyle senkronize eder.
+     */
+    fun queryAndSyncPurchases() {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+        if (currentUserId == null) {
+            Log.d("BillingManager", "Cannot sync purchases, user is not logged in.")
+            _isPremium.postValue(false)
+            return
+        }
 
-            billingClient.queryPurchasesAsync(params.build()) { billingResult, purchases ->
-                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    val isUserPremium = purchases.any { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-                    _isPremium.postValue(isUserPremium)
-                    SharedPreferencesManager.setUserAsPremium(context, isUserPremium)
-                }
+        val params = QueryPurchasesParams.newBuilder()
+            .setProductType(BillingClient.ProductType.SUBS)
+
+        billingClient.queryPurchasesAsync(params.build()) { billingResult, purchases ->
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                val hasActiveSubscription = purchases.any { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+                SharedPreferencesManager.setUserAsPremium(context, currentUserId, hasActiveSubscription)
+                _isPremium.postValue(hasActiveSubscription)
+                Log.d("BillingManager", "Purchases synced for user: $currentUserId. Is premium: $hasActiveSubscription")
+            } else {
+                Log.e("BillingManager", "Sync purchases query failed: ${billingResult.debugMessage}")
+                // Sorgu başarısız olursa, yerel veriye güvenmeye devam et
+                _isPremium.postValue(SharedPreferencesManager.isCurrentUserPremium(context))
             }
         }
     }

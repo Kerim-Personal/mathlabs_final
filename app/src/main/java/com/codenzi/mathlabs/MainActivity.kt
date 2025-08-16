@@ -30,6 +30,7 @@ import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.material.appbar.AppBarLayout
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Calendar
 import kotlin.math.abs
@@ -78,7 +79,7 @@ class MainActivity : AppCompatActivity() {
         adContainerView.viewTreeObserver.addOnGlobalLayoutListener {
             if (!initialLayoutComplete) {
                 initialLayoutComplete = true
-                if (!SharedPreferencesManager.isUserPremium(this)) {
+                if (!SharedPreferencesManager.isCurrentUserPremium(this)) {
                     loadBanner()
                 } else {
                     adContainerView.visibility = View.GONE
@@ -92,7 +93,7 @@ class MainActivity : AppCompatActivity() {
 
         viewModel.loadCourses(this)
 
-        if (!SharedPreferencesManager.isUserPremium(this)) {
+        if (!SharedPreferencesManager.isCurrentUserPremium(this)) {
             loadInterstitialAd()
         }
     }
@@ -171,8 +172,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getGreetingMessage(context: android.content.Context): String {
-        val name = SharedPreferencesManager.getUserName(context)
-        if (name.isNullOrEmpty()) {
+        val user = FirebaseAuth.getInstance().currentUser
+        val name = user?.displayName
+        if (user == null || name.isNullOrEmpty()) {
             return getString(R.string.app_name)
         }
         val calendar = Calendar.getInstance()
@@ -194,7 +196,7 @@ class MainActivity : AppCompatActivity() {
             onPdfClickListener = { courseTitle, topic ->
                 UIFeedbackHelper.provideFeedback(window.decorView.rootView)
 
-                val isPremium = SharedPreferencesManager.isUserPremium(this)
+                val isPremium = SharedPreferencesManager.isCurrentUserPremium(this)
 
                 if (!isPremium && mInterstitialAd != null) {
                     mInterstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {

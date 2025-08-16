@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.edit
+import com.google.firebase.auth.FirebaseAuth
 import java.util.Calendar
 
 /**
@@ -18,8 +19,9 @@ object SharedPreferencesManager {
     private const val KEY_LANGUAGE_SELECTED_FLAG = "language_selected_flag"
     private const val KEY_TOUCH_SOUND = "touch_sound_enabled"
     private const val KEY_THEME = "theme_preference"
-    private const val KEY_USER_NAME = "user_name"
-    private const val KEY_USER_PREMIUM_STATUS = "user_premium_status"
+    private const val KEY_USER_NAME = "user_name" // Bu hala kullanılabilir, genel selamlama için.
+    // DEĞİŞİKLİK: Tek bir premium durumu yerine premium kullanıcı ID'lerinin listesini tutar.
+    private const val KEY_PREMIUM_USER_IDS = "premium_user_ids"
     private const val KEY_FREE_QUERY_COUNT = "free_query_count"
     private const val KEY_FREE_LAST_RESET_TIMESTAMP = "free_last_reset_timestamp"
     private const val KEY_PREMIUM_QUERY_COUNT = "premium_query_count"
@@ -73,15 +75,43 @@ object SharedPreferencesManager {
         return getPreferences(context).getBoolean(KEY_TOUCH_SOUND, false)
     }
 
-    // Premium Durumu Yönetimi
-    // NOT: Bu bir yer tutucudur. Gerçek uygulamada Google Play Faturalandırma Kitaplığı ile entegrasyon gerekir.
-    fun setUserAsPremium(context: Context, isPremium: Boolean) {
-        getPreferences(context).edit { putBoolean(KEY_USER_PREMIUM_STATUS, isPremium) }
+    // YENİ: Premium Durumu Yönetimi (Kullanıcı ID'sine göre)
+    /**
+     * Belirtilen kullanıcı ID'si için premium durumunu ayarlar.
+     */
+    fun setUserAsPremium(context: Context, userId: String, isPremium: Boolean) {
+        val prefs = getPreferences(context)
+        // Mevcut premium kullanıcı listesini al veya yeni bir set oluştur.
+        val premiumIds = prefs.getStringSet(KEY_PREMIUM_USER_IDS, mutableSetOf())?.toMutableSet() ?: mutableSetOf()
+
+        if (isPremium) {
+            premiumIds.add(userId)
+        } else {
+            premiumIds.remove(userId)
+        }
+        // Güncellenmiş listeyi kaydet.
+        prefs.edit { putStringSet(KEY_PREMIUM_USER_IDS, premiumIds) }
     }
 
-    fun isUserPremium(context: Context): Boolean {
-        return getPreferences(context).getBoolean(KEY_USER_PREMIUM_STATUS, false)
+    /**
+     * Belirtilen kullanıcı ID'sinin premium olup olmadığını kontrol eder.
+     */
+    fun isUserPremium(context: Context, userId: String?): Boolean {
+        // Eğer kullanıcı ID'si yoksa (örneğin kullanıcı giriş yapmamışsa), premium değildir.
+        if (userId.isNullOrEmpty()) return false
+        val prefs = getPreferences(context)
+        val premiumIds = prefs.getStringSet(KEY_PREMIUM_USER_IDS, emptySet()) ?: emptySet()
+        return premiumIds.contains(userId)
     }
+
+    /**
+     * O an giriş yapmış olan kullanıcının premium olup olmadığını kontrol eder.
+     */
+    fun isCurrentUserPremium(context: Context): Boolean {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+        return isUserPremium(context, currentUserId)
+    }
+
 
     // Ücretsiz Kullanıcı Sorgu Kotası Yönetimi
     fun getFreeQueryCount(context: Context): Int {
@@ -182,7 +212,7 @@ object SharedPreferencesManager {
     }
 
     fun canDownloadPdf(context: Context): Boolean {
-        if (!isUserPremium(context)) {
+        if (!isCurrentUserPremium(context)) {
             return true // Premium olmayanlar için şimdilik bir kısıtlama yok
         }
         return getPremiumPdfDownloadCount(context) < PREMIUM_PDF_DOWNLOAD_LIMIT

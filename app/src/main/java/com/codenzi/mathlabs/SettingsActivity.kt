@@ -8,6 +8,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -21,9 +22,16 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import com.android.billingclient.api.ProductDetails
+// YENİ EKLENEN SATIR: Glide import'u
+import com.bumptech.glide.Glide
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.switchmaterial.SwitchMaterial
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -40,8 +48,14 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var premiumPurchaseContainer: LinearLayout
     private lateinit var premiumStatusContainer: LinearLayout
 
+    // Hesap yönetimi view'ları
+    private lateinit var userProfileImage: ImageView
+    private lateinit var textViewUserName: TextView
+    private lateinit var textViewUserEmail: TextView
+    private lateinit var buttonSignOut: Button
 
     private lateinit var billingManager: BillingManager
+    private lateinit var auth: FirebaseAuth
     private var monthlyPlanDetails: ProductDetails? = null
     private var yearlyPlanDetails: ProductDetails? = null
 
@@ -56,6 +70,8 @@ class SettingsActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
+
+        auth = Firebase.auth
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val toolbar: MaterialToolbar = findViewById(R.id.settingsToolbar)
@@ -73,6 +89,7 @@ class SettingsActivity : AppCompatActivity() {
 
         initializeViews()
         setupBilling()
+        setupUserInfo()
         setupClickListeners()
         setupSwitches()
         setupPremiumPlanToggle()
@@ -100,6 +117,12 @@ class SettingsActivity : AppCompatActivity() {
         layoutPrivacyPolicy = findViewById(R.id.layoutPrivacyPolicy)
         premiumPurchaseContainer = findViewById(R.id.premiumPurchaseContainer)
         premiumStatusContainer = findViewById(R.id.premiumStatusContainer)
+
+        // Hesap yönetimi view'larını initialize et
+        userProfileImage = findViewById(R.id.userProfileImage)
+        textViewUserName = findViewById(R.id.textViewUserName)
+        textViewUserEmail = findViewById(R.id.textViewUserEmail)
+        buttonSignOut = findViewById(R.id.buttonSignOut)
     }
 
     private fun setupBilling() {
@@ -112,7 +135,22 @@ class SettingsActivity : AppCompatActivity() {
         billingManager.isPremium.observe(this) { isPremium ->
             updatePremiumUI(isPremium)
         }
-        billingManager.checkPurchases()
+    }
+
+    private fun setupUserInfo() {
+        val user = auth.currentUser
+        if (user != null) {
+            textViewUserName.text = user.displayName
+            textViewUserEmail.text = user.email
+
+            Glide.with(this)
+                .load(user.photoUrl)
+                .circleCrop()
+                .placeholder(R.drawable.ic_premium_badge)
+                .into(userProfileImage)
+        } else {
+            navigateToLogin()
+        }
     }
 
     private fun updatePremiumUI(isPremium: Boolean) {
@@ -134,6 +172,11 @@ class SettingsActivity : AppCompatActivity() {
         layoutLanguageSettings.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             showLanguageDialog()
+        }
+
+        buttonSignOut.setOnClickListener {
+            UIFeedbackHelper.provideFeedback(it)
+            showSignOutConfirmationDialog()
         }
 
         layoutContactUs.setOnClickListener {
@@ -159,7 +202,6 @@ class SettingsActivity : AppCompatActivity() {
 
         buttonSubscribe.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
-
             val selectedPlanDetails = if (togglePlan.checkedButtonId == R.id.buttonMonthly) {
                 monthlyPlanDetails
             } else {
@@ -172,6 +214,38 @@ class SettingsActivity : AppCompatActivity() {
                 Toast.makeText(this, "Abonelik planı detayları henüz yüklenmedi.", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun showSignOutConfirmationDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.sign_out_confirm_title))
+            .setMessage(getString(R.string.sign_out_confirm_message))
+            .setPositiveButton(getString(R.string.confirm)) { dialog, _ ->
+                signOut()
+                dialog.dismiss()
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
+    }
+
+    private fun signOut() {
+        auth.signOut()
+
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+        GoogleSignIn.getClient(this, gso).signOut().addOnCompleteListener {
+            navigateToLogin()
+        }
+    }
+
+    private fun navigateToLogin() {
+        val intent = Intent(this, LoginActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        finish()
     }
 
     private fun setupSwitches() {
@@ -269,8 +343,6 @@ class SettingsActivity : AppCompatActivity() {
             .show()
     }
 
-    // kerim-personal/mathlabs_final/mathlabs_final-846de2bc6294564b282343e4d0a0be0e4be59898/app/src/main/java/com/codenzi/mathlabs/SettingsActivity.kt
-
     private fun showLanguageDialog() {
         val languages = arrayOf("Türkçe", "English")
         val languageCodes = arrayOf("tr", "en")
@@ -284,7 +356,6 @@ class SettingsActivity : AppCompatActivity() {
                 val selectedLanguageCode = languageCodes[which]
 
                 if (selectedLanguageCode != currentLanguageCode) {
-                    // Dili uygula ve uygulamayı yeniden başlat
                     LocaleHelper.applyLanguage(this, selectedLanguageCode)
                 }
             }

@@ -119,7 +119,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         applyAppTheme()
         super.onCreate(savedInstanceState)
 
-        if (!SharedPreferencesManager.isUserPremium(this)) {
+        if (!SharedPreferencesManager.isCurrentUserPremium(this)) {
             window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         }
 
@@ -134,7 +134,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         adContainerView.viewTreeObserver.addOnGlobalLayoutListener {
             if (!initialLayoutComplete) {
                 initialLayoutComplete = true
-                if (!SharedPreferencesManager.isUserPremium(this)) {
+                if (!SharedPreferencesManager.isCurrentUserPremium(this)) {
                     loadBanner()
                 } else {
                     adContainerView.visibility = View.GONE
@@ -370,7 +370,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
 
     private fun handleDownloadClick() {
         UIFeedbackHelper.provideFeedback(pdfToolbar)
-        if (SharedPreferencesManager.isUserPremium(this)) {
+        if (SharedPreferencesManager.isCurrentUserPremium(this)) {
             if (SharedPreferencesManager.canDownloadPdf(this)) {
                 pdfBytes?.let {
                     downloadPdf(it)
@@ -402,7 +402,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         showAnimatedToast(getString(R.string.downloading_pdf))
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val outputStream: OutputStream? // Gereksiz null ataması kaldırıldı
+            val outputStream: OutputStream?
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     val resolver = contentResolver
@@ -498,7 +498,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                         } else {
                             showAnimatedToast(getString(R.string.go_to_page_invalid_number, totalPages))
                         }
-                    } catch (_: NumberFormatException) { // Kullanılmayan 'e' parametresi '_' ile değiştirildi
+                    } catch (_: NumberFormatException) {
                         showAnimatedToast(getString(R.string.go_to_page_enter_number))
                     }
                 }
@@ -559,7 +559,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     override fun onPageChanged(page: Int, pageCount: Int) {
         this.currentPage = page
         this.totalPages = pageCount
-        // String kaynağı kullanılarak metin ataması yapıldı
         pageCountText.text = getString(R.string.page_count_format, page + 1, pageCount)
 
         pdfAssetName?.let {

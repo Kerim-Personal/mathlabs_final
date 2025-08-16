@@ -324,6 +324,19 @@
     <string name="connection_error">Bağlantı Hatası</string>
     <string name="retry">Tekrar Dene</string>
 
+    <string name="welcome_to_mathlabs">MathLabs\'e Hoş Geldiniz</string>
+    <string name="login_prompt">Devam etmek için giriş yapın</string>
+    <string name="google_sign_in_failed">Google ile giriş yapılamadı.</string>
+    <string name="firebase_auth_failed">Kimlik doğrulama başarısız oldu.</string>
+
+    <string name="settings_category_account">Hesap</string>
+    <string name="sign_out">Çıkış Yap</string>
+    <string name="sign_out_desc">Mevcut oturumu sonlandır</string>
+    <string name="logged_in_as">Şu anki kullanıcı:</string>
+    <string name="sign_out_confirm_title">Çıkış Yap</string>
+    <string name="sign_out_confirm_message">Çıkış yapmak istediğinizden emin misiniz?</string>
+    <string name="confirm">Onayla</string>
+
 
 
 </resources>

@@ -1,9 +1,6 @@
 package com.codenzi.mathlabs
 
 import android.content.Context
-// --- GEREKLİ KÜTÜPHANELER ---
-// Bu importlar, Firebase'in sunucu fonksiyonlarını (Cloud Functions)
-// Kotlin kodunuzda kullanabilmeniz için gereklidir.
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
@@ -29,7 +26,8 @@ object AiQueryManager {
         if (SharedPreferencesManager.getRewardedQueryCount(context) > 0) {
             return true
         }
-        return if (SharedPreferencesManager.isUserPremium(context)) {
+        // DÜZELTME: Mevcut kullanıcının premium olup olmadığı kontrol ediliyor.
+        return if (SharedPreferencesManager.isCurrentUserPremium(context)) {
             SharedPreferencesManager.getPremiumQueryCount(context) < PREMIUM_QUERY_LIMIT
         } else {
             SharedPreferencesManager.getFreeQueryCount(context) < FREE_QUERY_LIMIT
@@ -41,7 +39,8 @@ object AiQueryManager {
             SharedPreferencesManager.useRewardedQuery(context)
             return
         }
-        if (SharedPreferencesManager.isUserPremium(context)) {
+        // DÜZELTME: Mevcut kullanıcının premium olup olmadığı kontrol ediliyor.
+        if (SharedPreferencesManager.isCurrentUserPremium(context)) {
             SharedPreferencesManager.incrementPremiumQueryCount(context)
         } else {
             SharedPreferencesManager.incrementFreeQueryCount(context)
@@ -49,7 +48,8 @@ object AiQueryManager {
     }
 
     fun getQuotaExceededMessage(context: Context): String {
-        val period = if (SharedPreferencesManager.isUserPremium(context)) {
+        // DÜZELTME: Mevcut kullanıcının premium olup olmadığı kontrol ediliyor.
+        val period = if (SharedPreferencesManager.isCurrentUserPremium(context)) {
             context.getString(R.string.period_monthly)
         } else {
             context.getString(R.string.period_daily)

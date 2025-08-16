@@ -105,6 +105,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-appcheck-playintegrity")
     debugImplementation("com.google.firebase:firebase-appcheck-debug")
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
 
     // ---- AĞ & PDF KÜTÜPHANELERİ ----
     implementation("com.google.android.gms:play-services-ads:23.1.0")
@@ -140,6 +141,9 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    kapt("com.github.bumptech.glide:compiler:4.16.0")
 
 }
 

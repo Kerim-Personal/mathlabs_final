@@ -322,4 +322,17 @@
     <string name="connection_error">Connection Error</string>
     <string name="retry">Retry</string>
 
+    <string name="welcome_to_mathlabs">Welcome to MathLabs</string>
+    <string name="login_prompt">Sign in to continue</string>
+    <string name="google_sign_in_failed">Google Sign-In failed.</string>
+    <string name="firebase_auth_failed">Authentication failed.</string>
+
+    <string name="settings_category_account">Account</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="sign_out_desc">End the current session</string>
+    <string name="logged_in_as">Currently logged in as:</string>
+    <string name="sign_out_confirm_title">Sign Out</string>
+    <string name="sign_out_confirm_message">Are you sure you want to sign out?</string>
+    <string name="confirm">Confirm</string>
+
 </resources>
