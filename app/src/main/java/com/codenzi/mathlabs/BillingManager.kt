@@ -7,98 +7,148 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.android.billingclient.api.*
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-class BillingManager(private val context: Context, private val lifecycleScope: CoroutineScope) {
+// *** YENİ YAPI: Sınıfın kendisi artık bir dinleyici (Listener) ***
+class BillingManager(
+    private val context: Context,
+    private val coroutineScope: CoroutineScope
+) : PurchasesUpdatedListener {
 
-    private val purchasesUpdatedListener = PurchasesUpdatedListener { billingResult, purchases ->
-        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
-            for (purchase in purchases) {
-                handlePurchase(purchase)
-            }
-        }
-    }
-
-    private val billingClient: BillingClient = BillingClient.newBuilder(context)
-        .setListener(purchasesUpdatedListener)
-        .enablePendingPurchases()
-        .build()
+    private lateinit var billingClient: BillingClient
+    private var monthlyPlanDetails: ProductDetails? = null
+    private var yearlyPlanDetails: ProductDetails? = null
 
     private val _productDetails = MutableLiveData<Map<String, ProductDetails>>()
     val productDetails: LiveData<Map<String, ProductDetails>> = _productDetails
 
-    // YENİ YAPI: Sadece YENİ satın alımları bildiren tek seferlik olay.
     private val _newPurchaseEvent = MutableLiveData<Event<Boolean>>()
     val newPurchaseEvent: LiveData<Event<Boolean>> = _newPurchaseEvent
 
     init {
-        connectToBillingService()
+        setupBillingClient()
     }
 
-    private fun connectToBillingService() {
+    private fun setupBillingClient() {
+        billingClient = BillingClient.newBuilder(context)
+            .setListener(this) // 'this' -> bu sınıfın kendisini dinleyici olarak ayarla
+            .enablePendingPurchases()
+            .build()
+
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(billingResult: BillingResult) {
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    Log.d("BillingManager", "BillingClient setup successful.")
+                    Log.d("BillingManager", "Billing Client başarıyla kuruldu.")
                     queryProductDetails()
-                    queryPurchases() // Mevcut durumu sessizce senkronize et
+                    queryPurchases()
+                } else {
+                    Log.e("BillingManager", "Billing Client kurulum hatası: ${billingResult.debugMessage}")
                 }
             }
+
             override fun onBillingServiceDisconnected() {
-                connectToBillingService()
+                Log.w("BillingManager", "Billing Client bağlantısı koptu.")
             }
         })
     }
 
+    /**
+     * *** YENİ YAPI: Dinleyici metodu artık sınıfın içinde ***
+     * Satın alma işlemi tamamlandığında veya iptal edildiğinde bu fonksiyon çağrılır.
+     */
+    override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
+        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
+            for (purchase in purchases) {
+                handlePurchase(purchase)
+            }
+        } else if (billingResult.responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
+            Log.d("BillingManager", "Kullanıcı satın almayı iptal etti.")
+        } else {
+            Log.e("BillingManager", "Satın alma hatası: ${billingResult.debugMessage}")
+        }
+    }
+
     private fun queryProductDetails() {
         val productList = listOf(
-            QueryProductDetailsParams.Product.newBuilder().setProductId("monthly_premium_plan").setProductType(BillingClient.ProductType.SUBS).build(),
-            QueryProductDetailsParams.Product.newBuilder().setProductId("yearly_premium_plan").setProductType(BillingClient.ProductType.SUBS).build()
+            QueryProductDetailsParams.Product.newBuilder()
+                .setProductId("monthly_premium_plan")
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build(),
+            QueryProductDetailsParams.Product.newBuilder()
+                .setProductId("yearly_premium_plan")
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build()
         )
-        val params = QueryProductDetailsParams.newBuilder().setProductList(productList).build()
-        billingClient.queryProductDetailsAsync(params) { _, productDetailsList ->
-            _productDetails.postValue(productDetailsList.associateBy { it.productId })
+        val params = QueryProductDetailsParams.newBuilder().setProductList(productList)
+
+        billingClient.queryProductDetailsAsync(params.build()) { result, detailsList ->
+            if (result.responseCode == BillingClient.BillingResponseCode.OK && detailsList.isNotEmpty()) {
+                _productDetails.postValue(detailsList.associateBy { it.productId })
+            }
         }
     }
 
     fun launchPurchaseFlow(activity: Activity, productDetails: ProductDetails) {
         val offerToken = productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken ?: return
         val productDetailsParamsList = listOf(
-            BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(productDetails).setOfferToken(offerToken).build()
+            BillingFlowParams.ProductDetailsParams.newBuilder()
+                .setProductDetails(productDetails)
+                .setOfferToken(offerToken)
+                .build()
         )
-        val billingFlowParams = BillingFlowParams.newBuilder().setProductDetailsParamsList(productDetailsParamsList).build()
+        val billingFlowParams = BillingFlowParams.newBuilder()
+            .setProductDetailsParamsList(productDetailsParamsList)
+            .build()
         billingClient.launchBillingFlow(activity, billingFlowParams)
     }
 
     private fun handlePurchase(purchase: Purchase) {
         if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
             val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
-                .setPurchaseToken(purchase.purchaseToken).build()
+                .setPurchaseToken(purchase.purchaseToken)
+                .build()
+
             billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    // SATIN ALMA BAŞARILI VE ONAYLANDI!
-                    lifecycleScope.launch {
-                        // 1. Firestore'u güncelle
-                        UserRepository.updateUserField("isPremium", true)
-                        // 2. Sadece bu anda dinleyiciye haber ver!
-                        _newPurchaseEvent.postValue(Event(true))
+                    Log.d("BillingManager", "Satın alma başarıyla onaylandı.")
+                    coroutineScope.launch {
+                        grantPremiumAccess()
                     }
                 }
             }
         }
     }
 
-    // Bu fonksiyon artık SESSİZCE çalışır. Sadece Firestore'u günceller, event göndermez.
-    fun queryPurchases() {
-        val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build()
-        billingClient.queryPurchasesAsync(params) { billingResult, purchases ->
-            lifecycleScope.launch {
-                val isUserPremium = billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases.any { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-                val currentDbStatus = UserRepository.isCurrentUserPremium()
-                // Sadece veritabanındaki durum ile Play Store durumu farklıysa güncelle
-                if (isUserPremium != currentDbStatus) {
-                    UserRepository.updateUserField("isPremium", isUserPremium)
+    private suspend fun grantPremiumAccess() {
+        withContext(Dispatchers.IO) {
+            try {
+                UserRepository.updateUserField("isPremium", true)
+                Log.d("BillingManager", "Firestore'da isPremium alanı başarıyla true yapıldı.")
+                withContext(Dispatchers.Main) {
+                    _newPurchaseEvent.postValue(Event(true))
                 }
+            } catch (e: Exception) {
+                Log.e("BillingManager", "Firestore isPremium güncelleme hatası", e)
+            }
+        }
+    }
+
+    fun queryPurchases() {
+        val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS)
+        billingClient.queryPurchasesAsync(params.build()) { billingResult, activeSubs ->
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                val isPremium = activeSubs.isNotEmpty()
+                coroutineScope.launch {
+                    val currentDbStatus = UserRepository.isCurrentUserPremium()
+                    if (currentDbStatus != isPremium) {
+                        Log.d("BillingManager", "Abonelik durumu senkronize ediliyor. Yeni durum: $isPremium")
+                        UserRepository.updateUserField("isPremium", isPremium)
+                    }
+                }
+                // Henüz onaylanmamış alımları da onayla
+                activeSubs.forEach { if (!it.isAcknowledged) handlePurchase(it) }
             }
         }
     }

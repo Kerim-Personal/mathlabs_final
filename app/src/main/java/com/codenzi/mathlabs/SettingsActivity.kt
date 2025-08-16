@@ -31,10 +31,12 @@ import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class SettingsActivity : AppCompatActivity() {
 
+    // --- View Değişkenleri ---
     private lateinit var togglePlan: MaterialButtonToggleGroup
     private lateinit var textViewPrice: TextView
     private lateinit var textViewPricePeriod: TextView
@@ -51,6 +53,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var textViewUserEmail: TextView
     private lateinit var buttonSignOut: Button
 
+    // --- Diğer Değişkenler ---
     private lateinit var billingManager: BillingManager
     private lateinit var auth: FirebaseAuth
     private var monthlyPlanDetails: ProductDetails? = null
@@ -69,16 +72,19 @@ class SettingsActivity : AppCompatActivity() {
 
         auth = Firebase.auth
         val toolbar: MaterialToolbar = findViewById(R.id.settingsToolbar)
-        setupToolbar(toolbar)
 
         initializeViews()
-        setupBillingAndObservers()
-        setupUserInfo()
+        setupToolbar(toolbar)
+        setupBilling()
         setupClickListeners()
         setupSwitches()
         setupPremiumPlanToggle()
-        checkInitialPremiumStatus()
         setupBackButton()
+
+        // *** YENİ VE DOĞRU YÖNTEM ***
+        // Arayüzü, kullanıcı verisindeki anlık değişikliklere göre güncelle.
+        // Bu, eski 'checkInitialPremiumStatus' fonksiyonunun yerini alır ve sorunu kökünden çözer.
+        observeUserStatusAndUpdateUI()
     }
 
     private fun setupToolbar(toolbar: MaterialToolbar) {
@@ -94,7 +100,6 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun initializeViews() {
-        // ... (Bu fonksiyon aynı kalabilir, değişiklik yok)
         togglePlan = findViewById(R.id.togglePlan)
         textViewPrice = findViewById(R.id.textViewPrice)
         textViewPricePeriod = findViewById(R.id.textViewPricePeriod)
@@ -112,44 +117,52 @@ class SettingsActivity : AppCompatActivity() {
         buttonSignOut = findViewById(R.id.buttonSignOut)
     }
 
-    private fun setupBillingAndObservers() {
+    private fun setupBilling() {
         billingManager = BillingManager(this, lifecycleScope)
 
-        // Ürün detayları geldiğinde fiyatları güncelle
         billingManager.productDetails.observe(this) { detailsMap ->
             monthlyPlanDetails = detailsMap["monthly_premium_plan"]
             yearlyPlanDetails = detailsMap["yearly_premium_plan"]
             updatePriceDisplay()
         }
 
-        // SADECE YENİ BİR SATIN ALMA OLDUĞUNDA TETİKLENİR
+        // Bu sadece YENİ satın alımlarda bir Toast göstermek için kalabilir.
+        // Arayüz güncellemesi artık aşağıdaki ana dinleyici tarafından yapılıyor.
         billingManager.newPurchaseEvent.observe(this) { event ->
             event.getContentIfNotHandled()?.let { isPremium ->
                 if (isPremium) {
-                    updatePremiumUI(true)
                     Toast.makeText(this, getString(R.string.premium_activated_toast), Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
 
-    // Aktivite açıldığında Firestore'dan durumu SESSİZCE kontrol eder (Toast göstermez)
-    private fun checkInitialPremiumStatus() {
+    /**
+     * *** EN ÖNEMLİ FONKSİYON ***
+     * Kullanıcı verisini ve premium durumunu canlı olarak dinler, arayüzü anında günceller.
+     * Bu fonksiyon, tüm tutarsızlık sorunlarını ortadan kaldırır.
+     */
+    private fun observeUserStatusAndUpdateUI() {
         lifecycleScope.launch {
-            val isPremium = UserRepository.isCurrentUserPremium()
-            updatePremiumUI(isPremium)
-        }
-    }
+            UserRepository.userDataState.collectLatest { userData ->
+                val user = auth.currentUser
+                if (userData != null && user != null) {
+                    // Premium Durumunu Güncelle
+                    updatePremiumUI(userData.isPremium)
 
-    private fun setupUserInfo() {
-        // ... (Bu fonksiyon aynı kalabilir, değişiklik yok)
-        val user = auth.currentUser
-        if (user != null) {
-            textViewUserName.text = user.displayName
-            textViewUserEmail.text = user.email
-            Glide.with(this).load(user.photoUrl).circleCrop().placeholder(R.drawable.ic_premium_badge).into(userProfileImage)
-        } else {
-            navigateToLogin()
+                    // Kullanıcı Bilgilerini Güncelle
+                    textViewUserName.text = user.displayName
+                    textViewUserEmail.text = user.email
+                    Glide.with(this@SettingsActivity)
+                        .load(user.photoUrl)
+                        .circleCrop()
+                        .placeholder(R.drawable.ic_premium_badge)
+                        .into(userProfileImage)
+                } else {
+                    // Kullanıcı verisi yoksa veya çıkış yapmışsa
+                    navigateToLogin()
+                }
+            }
         }
     }
 
@@ -163,9 +176,9 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    // Kodun geri kalanında değişiklik yapmaya gerek yok
-    // setupClickListeners, signOut, navigateToLogin vb. fonksiyonlar olduğu gibi kalabilir.
-    // ...
+    // ... DİĞER TÜM FONKSİYONLAR DEĞİŞİKLİK OLMADAN AYNI KALIR ...
+    // ... (setupClickListeners, signOut, navigateToLogin, vs.)
+
     private fun setupClickListeners() {
         layoutThemeSettings.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
@@ -212,17 +225,16 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
     }
+
     private fun setupBackButton() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 setResult(RESULT_OK)
-                if (isEnabled) {
-                    isEnabled = false
-                    finish()
-                }
+                finish()
             }
         })
     }
+
     private fun showSignOutConfirmationDialog() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.sign_out_confirm_title))
@@ -234,6 +246,7 @@ class SettingsActivity : AppCompatActivity() {
             .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
+
     private fun signOut() {
         auth.signOut()
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -244,6 +257,7 @@ class SettingsActivity : AppCompatActivity() {
             navigateToLogin()
         }
     }
+
     private fun navigateToLogin() {
         val intent = Intent(this, LoginActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -251,6 +265,7 @@ class SettingsActivity : AppCompatActivity() {
         startActivity(intent)
         finish()
     }
+
     private fun setupSwitches() {
         switchTouchSound.isChecked = SharedPreferencesManager.isTouchSoundEnabled(this)
         switchTouchSound.setOnCheckedChangeListener { buttonView, isChecked ->
@@ -258,6 +273,7 @@ class SettingsActivity : AppCompatActivity() {
             SharedPreferencesManager.setTouchSoundEnabled(this, isChecked)
         }
     }
+
     private fun setupPremiumPlanToggle() {
         togglePlan.check(R.id.buttonMonthly)
         updatePriceDisplay()
@@ -266,6 +282,7 @@ class SettingsActivity : AppCompatActivity() {
             updatePriceDisplay()
         }
     }
+
     private fun updatePriceDisplay() {
         val isMonthly = togglePlan.checkedButtonId == R.id.buttonMonthly
         val monthlyDetails = monthlyPlanDetails
@@ -304,6 +321,7 @@ class SettingsActivity : AppCompatActivity() {
             textViewYearlyDiscount.visibility = View.GONE
         }
     }
+
     private fun showThemeDialog() {
         val themes = arrayOf(getString(R.string.theme_light), getString(R.string.theme_dark), getString(R.string.theme_system_default))
         val currentTheme = SharedPreferencesManager.getTheme(this)
@@ -331,6 +349,7 @@ class SettingsActivity : AppCompatActivity() {
             .create()
             .show()
     }
+
     private fun showLanguageDialog() {
         val languages = arrayOf("Türkçe", "English")
         val languageCodes = arrayOf("tr", "en")
@@ -349,6 +368,7 @@ class SettingsActivity : AppCompatActivity() {
             .create()
             .show()
     }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == android.R.id.home) {
             setResult(RESULT_OK)

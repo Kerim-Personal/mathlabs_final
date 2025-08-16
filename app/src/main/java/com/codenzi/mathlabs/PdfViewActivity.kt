@@ -52,6 +52,7 @@ import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -70,6 +71,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     @Inject
     lateinit var drawingDao: DrawingDao
 
+    // --- View Variable Declarations ---
     private lateinit var pdfView: PDFView
     private lateinit var progressBar: ProgressBar
     private lateinit var fabAiChat: FloatingActionButton
@@ -81,10 +83,12 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private lateinit var pageCountCard: MaterialCardView
     private lateinit var pageCountText: TextView
     private lateinit var rootLayout: ViewGroup
-    private lateinit var adView: AdView
     private lateinit var adContainerView: FrameLayout
-    private var initialLayoutComplete = false
 
+    // *** DEĞİŞİKLİK 1: AdView nullable yapıldı ***
+    private var adView: AdView? = null
+
+    // --- State Variable Declarations ---
     private var pdfAssetName: String? = null
     private var pdfTitle: String? = null
     private var currentReadingModeLevel: Int = 0
@@ -118,6 +122,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         applyAppTheme()
         super.onCreate(savedInstanceState)
 
+        // Ekran görüntüsü almayı engelle (sadece premium olmayanlar için)
         lifecycleScope.launch {
             if (!UserRepository.isCurrentUserPremium()) {
                 window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
@@ -132,18 +137,9 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         handleWindowInsets()
         setupListeners()
 
-        adContainerView.viewTreeObserver.addOnGlobalLayoutListener {
-            if (!initialLayoutComplete) {
-                initialLayoutComplete = true
-                lifecycleScope.launch {
-                    if (!UserRepository.isCurrentUserPremium()) {
-                        loadBanner()
-                    } else {
-                        adContainerView.visibility = View.GONE
-                    }
-                }
-            }
-        }
+        // *** DEĞİŞİKLİK 2: Eski reklam mantığı SİLİNDİ ve YENİSİ eklendi ***
+        // Kullanıcı durumunu sürekli gözlemle ve arayüzü (reklamı) anında güncelle.
+        observeUserStatusAndUpdateUI()
 
         pdfAssetName = intent.getStringExtra(EXTRA_PDF_ASSET_NAME)
         pdfTitle = intent.getStringExtra(EXTRA_PDF_TITLE) ?: getString(R.string.app_name)
@@ -159,38 +155,52 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         RewardedAdManager.loadAd(this)
     }
 
-    private val adSize: AdSize
-        get() {
-            val adWidth: Int
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                val windowMetrics = windowManager.currentWindowMetrics
-                val bounds = windowMetrics.bounds
-                var adWidthPixels = adContainerView.width.toFloat()
-                if (adWidthPixels == 0f) {
-                    adWidthPixels = bounds.width().toFloat()
+    /**
+     * *** YENİ EKLENEN FONKSİYON ***
+     * Kullanıcı premium durumunu canlı olarak dinler ve reklamı anında gösterir/gizler.
+     * Tüm reklam mantığının tek merkezidir.
+     */
+    private fun observeUserStatusAndUpdateUI() {
+        lifecycleScope.launch {
+            UserRepository.userDataState.collectLatest { userData ->
+                val isPremium = userData?.isPremium ?: false
+                if (isPremium) {
+                    // KULLANICI PREMIUM İSE
+                    adContainerView.visibility = View.GONE
+                    adView?.destroy()
+                    adView = null
+                } else {
+                    // KULLANICI PREMIUM DEĞİLSE
+                    adContainerView.visibility = View.VISIBLE
+                    loadBanner()
                 }
-                val density = resources.displayMetrics.density
-                adWidth = (adWidthPixels / density).toInt()
-            } else {
-                val displayMetrics = DisplayMetrics()
-                @Suppress("DEPRECATION")
-                windowManager.defaultDisplay.getMetrics(displayMetrics)
-                val adWidthPixels = displayMetrics.widthPixels.toFloat()
-                val density = displayMetrics.density
-                adWidth = (adWidthPixels / density).toInt()
             }
-            return AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this, adWidth)
         }
+    }
 
     private fun loadBanner() {
+        if (adView != null) return // Reklam zaten yüklüyse tekrar yükleme
+
         MobileAds.initialize(this) {}
         adView = AdView(this)
-        adView.adUnitId = getString(R.string.admob_banner_unit_id)
+        adView?.adUnitId = getString(R.string.admob_banner_unit_id)
+        adContainerView.removeAllViews()
         adContainerView.addView(adView)
-        adView.setAdSize(adSize)
+        adView?.setAdSize(adSize)
         val adRequest = AdRequest.Builder().build()
-        adView.loadAd(adRequest)
+        adView?.loadAd(adRequest)
     }
+
+    // ... DİĞER TÜM FONKSİYONLARINIZ DEĞİŞİKLİK OLMADAN AYNI KALIR ...
+    // ... (initializeViews, setupToolbar, handleDownloadClick, etc.)
+
+    private val adSize: AdSize
+        get() {
+            val adWidthPixels = resources.displayMetrics.widthPixels.toFloat()
+            val density = resources.displayMetrics.density
+            val adWidth = (adWidthPixels / density).toInt()
+            return AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this, adWidth)
+        }
 
     private fun handleWindowInsets() {
         rootLayout = findViewById(R.id.root_layout_pdf_view)
@@ -262,7 +272,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                     activity = this,
                     onRewardEarned = {
                         lifecycleScope.launch {
-                            val currentUserData = UserRepository.getUserData()
+                            val currentUserData = UserRepository.getUserDataOnce()
                             currentUserData?.let {
                                 val newRewardedCount = it.rewardedQueries + 3
                                 UserRepository.updateUserField("rewardedQueries", newRewardedCount)
@@ -316,6 +326,10 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         pageCountText = findViewById(R.id.pageCountText)
         adContainerView = findViewById(R.id.ad_view_container_pdf)
 
+        // *** DEĞİŞİKLİK 3: Reklam alanı başlangıçta gizlenir ***
+        // Bu, premium durumu kontrol edilirken reklamın anlık görünmesini (flicker) engeller.
+        adContainerView.visibility = View.GONE
+
         drawingManager = DrawingManager(
             context = this,
             drawingView = findViewById(R.id.drawingView),
@@ -344,7 +358,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             lifecycleScope.launch(Dispatchers.IO) {
                 try {
                     val request = Request.Builder().url(uri.toString()).build()
-                    val response = okHttpClient.newCall(request).execute()
+                    val response = okhttp3.OkHttpClient().newCall(request).execute()
                     if (response.isSuccessful) {
                         val downloadedBytes = response.body?.bytes() ?: throw IOException("Response body is null")
                         this@PdfViewActivity.pdfBytes = downloadedBytes

@@ -65,9 +65,8 @@ class LoginActivity : AppCompatActivity() {
                         // 1. Firestore'da kullanıcı dökümanını oluştur veya var olanı kontrol et.
                         UserRepository.createUserDocumentIfNotExist()
 
-                        // 2. YENİ: Kullanıcının en güncel verisini Firestore'dan çek.
-                        // Bu, uygulamanın geri kalanının doğru bilgiyle başlamasını sağlar.
-                        val userData = UserRepository.getUserData()
+                        // 2. HATA DÜZELTİLDİ: Artık doğru fonksiyonu çağırıyoruz.
+                        val userData = UserRepository.getUserDataOnce()
                         Log.d("LoginActivity", "User premium status: ${userData?.isPremium}")
 
                         // 3. Selamlama için kullanıcı adını kaydet (bu kalabilir).

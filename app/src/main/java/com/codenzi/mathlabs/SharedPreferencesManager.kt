@@ -19,8 +19,7 @@ object SharedPreferencesManager {
     private const val KEY_LANGUAGE_SELECTED_FLAG = "language_selected_flag"
     private const val KEY_TOUCH_SOUND = "touch_sound_enabled"
     private const val KEY_THEME = "theme_preference"
-    private const val KEY_USER_NAME = "user_name" // Bu hala kullanılabilir, genel selamlama için.
-    // DEĞİŞİKLİK: Tek bir premium durumu yerine premium kullanıcı ID'lerinin listesini tutar.
+    private const val KEY_USER_NAME = "user_name"
     private const val KEY_PREMIUM_USER_IDS = "premium_user_ids"
     private const val KEY_FREE_QUERY_COUNT = "free_query_count"
     private const val KEY_FREE_LAST_RESET_TIMESTAMP = "free_last_reset_timestamp"
@@ -75,13 +74,10 @@ object SharedPreferencesManager {
         return getPreferences(context).getBoolean(KEY_TOUCH_SOUND, false)
     }
 
-    // YENİ: Premium Durumu Yönetimi (Kullanıcı ID'sine göre)
-    /**
-     * Belirtilen kullanıcı ID'si için premium durumunu ayarlar.
-     */
+    // --- DEĞİŞİKLİKLER BURADA ---
+    @Deprecated("Premium durumu artık Firestore üzerinden yönetiliyor. Bu metot yanıltıcı olabilir. UserRepository.updateUserField(\"isPremium\", isPremium) kullanın.")
     fun setUserAsPremium(context: Context, userId: String, isPremium: Boolean) {
         val prefs = getPreferences(context)
-        // Mevcut premium kullanıcı listesini al veya yeni bir set oluştur.
         val premiumIds = prefs.getStringSet(KEY_PREMIUM_USER_IDS, mutableSetOf())?.toMutableSet() ?: mutableSetOf()
 
         if (isPremium) {
@@ -89,24 +85,18 @@ object SharedPreferencesManager {
         } else {
             premiumIds.remove(userId)
         }
-        // Güncellenmiş listeyi kaydet.
         prefs.edit { putStringSet(KEY_PREMIUM_USER_IDS, premiumIds) }
     }
 
-    /**
-     * Belirtilen kullanıcı ID'sinin premium olup olmadığını kontrol eder.
-     */
+    @Deprecated("Bu metot güncel olmayan (stale) veri döndürebilir. Bunun yerine her zaman anlık ve doğru veriyi sağlayan UserRepository.isCurrentUserPremium() kullanın.", ReplaceWith("UserRepository.isCurrentUserPremium()"))
     fun isUserPremium(context: Context, userId: String?): Boolean {
-        // Eğer kullanıcı ID'si yoksa (örneğin kullanıcı giriş yapmamışsa), premium değildir.
         if (userId.isNullOrEmpty()) return false
         val prefs = getPreferences(context)
         val premiumIds = prefs.getStringSet(KEY_PREMIUM_USER_IDS, emptySet()) ?: emptySet()
         return premiumIds.contains(userId)
     }
 
-    /**
-     * O an giriş yapmış olan kullanıcının premium olup olmadığını kontrol eder.
-     */
+    @Deprecated("Bu metot güncel olmayan (stale) veri döndürebilir. Bunun yerine her zaman anlık ve doğru veriyi sağlayan UserRepository.isCurrentUserPremium() kullanın.", ReplaceWith("UserRepository.isCurrentUserPremium()"))
     fun isCurrentUserPremium(context: Context): Boolean {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
         return isUserPremium(context, currentUserId)
@@ -122,7 +112,6 @@ object SharedPreferencesManager {
         val lastResetCal = Calendar.getInstance().apply { timeInMillis = lastResetTimestamp }
         val currentCal = Calendar.getInstance().apply { timeInMillis = currentTimestamp }
 
-        // Yeni bir güne geçilmişse sayacı sıfırla
         if (lastResetCal.get(Calendar.DAY_OF_YEAR) != currentCal.get(Calendar.DAY_OF_YEAR) ||
             lastResetCal.get(Calendar.YEAR) != currentCal.get(Calendar.YEAR)) {
             prefs.edit {
@@ -149,7 +138,6 @@ object SharedPreferencesManager {
         val lastResetCal = Calendar.getInstance().apply { timeInMillis = lastResetTimestamp }
         val currentCal = Calendar.getInstance().apply { timeInMillis = currentTimestamp }
 
-        // Yeni bir aya geçilmişse sayacı sıfırla
         if (lastResetCal.get(Calendar.MONTH) != currentCal.get(Calendar.MONTH) ||
             lastResetCal.get(Calendar.YEAR) != currentCal.get(Calendar.YEAR)) {
             prefs.edit {
@@ -193,7 +181,6 @@ object SharedPreferencesManager {
         val lastResetCal = Calendar.getInstance().apply { timeInMillis = lastResetTimestamp }
         val currentCal = Calendar.getInstance().apply { timeInMillis = currentTimestamp }
 
-        // Yeni bir aya geçilmişse sayacı sıfırla
         if (lastResetCal.get(Calendar.MONTH) != currentCal.get(Calendar.MONTH) ||
             lastResetCal.get(Calendar.YEAR) != currentCal.get(Calendar.YEAR)) {
             prefs.edit {
@@ -211,9 +198,11 @@ object SharedPreferencesManager {
         prefs.edit { putInt(KEY_PREMIUM_PDF_DOWNLOAD_COUNT, currentCount + 1) }
     }
 
+    // DİKKAT: Bu metot, kullanımdan kaldırılan 'isCurrentUserPremium' metodunu kullanıyor.
+    // Bu metodu kullanan yerlerde, önce asenkron olarak UserRepository'den premium durumunu kontrol etmelisiniz.
     fun canDownloadPdf(context: Context): Boolean {
-        if (!isCurrentUserPremium(context)) {
-            return true // Premium olmayanlar için şimdilik bir kısıtlama yok
+        if (!isCurrentUserPremium(context)) { // Bu çağrı artık IDE'de bir uyarı gösterecektir.
+            return true
         }
         return getPremiumPdfDownloadCount(context) < PREMIUM_PDF_DOWNLOAD_LIMIT
     }

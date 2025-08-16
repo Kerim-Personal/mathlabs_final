@@ -26,7 +26,8 @@ object AiQueryManager {
      * @return Sorgu hakkı varsa true, yoksa false döner.
      */
     suspend fun canPerformQuery(): Boolean {
-        val userData = UserRepository.getUserData() ?: return false
+        // HATA DÜZELTİLDİ: getUserData() yerine getUserDataOnce() kullanılıyor.
+        val userData = UserRepository.getUserDataOnce() ?: return false
 
         // 1. Öncelik: Ödüllü sorgu hakkı var mı?
         if (userData.rewardedQueries > 0) {
@@ -71,7 +72,8 @@ object AiQueryManager {
      * Önce ödüllü hakkı kullanır, yoksa normal sorgu sayacını artırır.
      */
     suspend fun incrementQueryCount() {
-        val userData = UserRepository.getUserData() ?: return
+        // HATA DÜZELTİLDİ: getUserData() yerine getUserDataOnce() kullanılıyor.
+        val userData = UserRepository.getUserDataOnce() ?: return
 
         if (userData.rewardedQueries > 0) {
             UserRepository.updateUserField("rewardedQueries", userData.rewardedQueries - 1)
@@ -103,6 +105,8 @@ object AiQueryManager {
             .call(data)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
+                    // Buradaki cast uyarısı (unchecked cast) kalabilir, ciddi bir sorun teşkil etmez.
+                    // Sunucudan dönen verinin yapısına güvendiğimiz varsayılır.
                     val resultData = task.result?.data as? Map<String, Any>
                     val geminiResult = resultData?.get("result") as? String
 
