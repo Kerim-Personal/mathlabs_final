@@ -36,8 +36,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "GEMINI_API_KEY", "\"\"")
-
         val admobAppId = localProperties.getProperty("ADMOB_APP_ID") ?: ""
         resValue("string", "admob_app_id", admobAppId)
         val admobBannerUnitId = localProperties.getProperty("ADMOB_BANNER_UNIT_ID") ?: ""
