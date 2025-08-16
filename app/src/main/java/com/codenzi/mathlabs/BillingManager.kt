@@ -139,16 +139,17 @@ class BillingManager(
         val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS)
         billingClient.queryPurchasesAsync(params.build()) { billingResult, activeSubs ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                val isPremium = activeSubs.isNotEmpty()
-                coroutineScope.launch {
-                    val currentDbStatus = UserRepository.isCurrentUserPremium()
-                    if (currentDbStatus != isPremium) {
-                        Log.d("BillingManager", "Abonelik durumu senkronize ediliyor. Yeni durum: $isPremium")
-                        UserRepository.updateUserField("isPremium", isPremium)
+                // Firestore'daki veriyi Google Play'den gelen bilgiyle senkronize eden
+                // sorunlu blok kaldırıldı. Uygulama artık premium durumu için tek doğru
+                // kaynak olarak Firestore'u kabul ediyor.
+
+                // Bu fonksiyonun ana görevi, uygulamanın çökmesi gibi durumlarda
+                // yarım kalmış veya onaylanmamış satın alımları tamamlamaktır.
+                activeSubs.forEach { purchase ->
+                    if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
+                        handlePurchase(purchase)
                     }
                 }
-                // Henüz onaylanmamış alımları da onayla
-                activeSubs.forEach { if (!it.isAcknowledged) handlePurchase(it) }
             }
         }
     }
