@@ -337,6 +337,8 @@
     <string name="sign_out_confirm_message">Çıkış yapmak istediğinizden emin misiniz?</string>
     <string name="confirm">Onayla</string>
 
+    <string name="no_more_queries_today">Bugünlük sorgu hakkınız doldu.</string>
+    <string name="premium_activated_toast">Premium Aktif!</string>
 
 
 </resources>

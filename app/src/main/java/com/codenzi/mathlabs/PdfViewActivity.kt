@@ -85,7 +85,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private lateinit var adContainerView: FrameLayout
     private var initialLayoutComplete = false
 
-
     private var pdfAssetName: String? = null
     private var pdfTitle: String? = null
     private var currentReadingModeLevel: Int = 0
@@ -119,8 +118,10 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         applyAppTheme()
         super.onCreate(savedInstanceState)
 
-        if (!SharedPreferencesManager.isCurrentUserPremium(this)) {
-            window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        lifecycleScope.launch {
+            if (!UserRepository.isCurrentUserPremium()) {
+                window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+            }
         }
 
         setContentView(R.layout.activity_pdf_view)
@@ -134,10 +135,12 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         adContainerView.viewTreeObserver.addOnGlobalLayoutListener {
             if (!initialLayoutComplete) {
                 initialLayoutComplete = true
-                if (!SharedPreferencesManager.isCurrentUserPremium(this)) {
-                    loadBanner()
-                } else {
-                    adContainerView.visibility = View.GONE
+                lifecycleScope.launch {
+                    if (!UserRepository.isCurrentUserPremium()) {
+                        loadBanner()
+                    } else {
+                        adContainerView.visibility = View.GONE
+                    }
                 }
             }
         }
@@ -213,18 +216,24 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             return
         }
 
-        if (!AiQueryManager.canPerformQuery(this) && chatMessages.isEmpty()) {
-            showWatchAdDialog()
-            return
+        lifecycleScope.launch {
+            if (AiQueryManager.canPerformQuery()) {
+                val chatDialog = ChatAiDialogFragment()
+                chatDialog.show(supportFragmentManager, "ChatAiDialog")
+            } else {
+                if (chatMessages.isEmpty()) {
+                    showWatchAdDialog()
+                } else {
+                    val chatDialog = ChatAiDialogFragment()
+                    chatDialog.show(supportFragmentManager, "ChatAiDialog")
+                }
+            }
         }
-
-        val chatDialog = ChatAiDialogFragment()
-        chatDialog.show(supportFragmentManager, "ChatAiDialog")
     }
 
     suspend fun extractTextForAI(): String {
         val bytes = this.pdfBytes ?: return "".also {
-            Log.e("PdfTextExtraction", "Yapay zeka için metin çıkarılamadı: PDF byte'ları null.")
+            Log.e("PdfTextExtraction", "AI text extraction failed: PDF bytes are null.")
         }
 
         return withContext(Dispatchers.IO) {
@@ -238,7 +247,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                     stripper.getText(document)
                 }
             } catch (e: Exception) {
-                Log.e("PdfTextExtraction", "Yapay zeka için metin çıkarılırken hata oluştu", e)
+                Log.e("PdfTextExtraction", "Error extracting text for AI", e)
                 ""
             }
         }
@@ -252,9 +261,14 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                 RewardedAdManager.showAd(
                     activity = this,
                     onRewardEarned = {
-                        SharedPreferencesManager.addRewardedQueries(this, 3)
-                        showAnimatedToast(getString(R.string.reward_granted_toast, 3))
-                        showAiChatDialog()
+                        lifecycleScope.launch {
+                            val currentUserData = UserRepository.getUserData()
+                            currentUserData?.let {
+                                val newRewardedCount = it.rewardedQueries + 3
+                                UserRepository.updateUserField("rewardedQueries", newRewardedCount)
+                                showAnimatedToast(getString(R.string.reward_granted_toast, 3))
+                            }
+                        }
                     },
                     onAdFailedToShow = {
                         showAnimatedToast(getString(R.string.ad_not_ready_toast))
@@ -349,12 +363,12 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                                 .load()
                         }
                     } else {
-                        throw IOException("Sunucudan beklenmeyen kod: $response")
+                        throw IOException("Unexpected server response: $response")
                     }
                 } catch (e: Exception) {
                     withContext(Dispatchers.Main) {
                         progressBar.visibility = View.GONE
-                        Log.e("OkHttpError", "PDF indirme hatası: $storagePath", e)
+                        Log.e("OkHttpError", "PDF download error: $storagePath", e)
                         showAnimatedToast(getString(R.string.pdf_load_failed_with_error, e.localizedMessage))
                         finish()
                     }
@@ -362,7 +376,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             }
         }.addOnFailureListener { exception ->
             progressBar.visibility = View.GONE
-            Log.e("FirebaseStorage", "Download URL alınamadı: $storagePath", exception)
+            Log.e("FirebaseStorage", "Could not get download URL: $storagePath", exception)
             showAnimatedToast(getString(R.string.pdf_load_failed_with_error, exception.localizedMessage))
             finish()
         }
@@ -370,20 +384,18 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
 
     private fun handleDownloadClick() {
         UIFeedbackHelper.provideFeedback(pdfToolbar)
-        if (SharedPreferencesManager.isCurrentUserPremium(this)) {
-            if (SharedPreferencesManager.canDownloadPdf(this)) {
+        lifecycleScope.launch {
+            if (UserRepository.isCurrentUserPremium()) {
                 pdfBytes?.let {
                     downloadPdf(it)
                 } ?: run {
                     showAnimatedToast(getString(R.string.download_failed))
                 }
             } else {
-                Toast.makeText(this, getString(R.string.premium_pdf_limit_reached), Toast.LENGTH_LONG).show()
+                Toast.makeText(this@PdfViewActivity, getString(R.string.premium_feature_for_download), Toast.LENGTH_LONG).show()
+                val intent = Intent(this@PdfViewActivity, SettingsActivity::class.java)
+                startActivity(intent)
             }
-        } else {
-            Toast.makeText(this, getString(R.string.premium_feature_for_download), Toast.LENGTH_LONG).show()
-            val intent = Intent(this, SettingsActivity::class.java)
-            startActivity(intent)
         }
     }
 
@@ -422,7 +434,6 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                 outputStream?.use { it.write(pdfBytes) }
 
                 withContext(Dispatchers.Main) {
-                    SharedPreferencesManager.incrementPremiumPdfDownloadCount(this@PdfViewActivity)
                     showAnimatedToast(getString(R.string.download_successful))
                 }
             } catch (e: IOException) {
@@ -546,14 +557,14 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
 
     override fun onError(t: Throwable?) {
         progressBar.visibility = View.GONE
-        showAnimatedToast(getString(R.string.error_toast, t?.localizedMessage ?: "Bilinmeyen PDF hatası"))
-        Log.e("PdfView_onError", "PDF Yükleme Hatası", t)
+        showAnimatedToast(getString(R.string.error_toast, t?.localizedMessage ?: "Unknown PDF error"))
+        Log.e("PdfView_onError", "PDF Load Error", t)
         finish()
     }
 
     override fun onPageError(page: Int, t: Throwable?) {
-        showAnimatedToast(getString(R.string.page_load_error_toast, page, t?.localizedMessage ?: "Bilinmeyen sayfa hatası"))
-        Log.e("PdfView_onPageError", "Sayfa Yükleme Hatası: $page", t)
+        showAnimatedToast(getString(R.string.page_load_error_toast, page, t?.localizedMessage ?: "Unknown page error"))
+        Log.e("PdfView_onPageError", "Page Load Error: $page", t)
     }
 
     override fun onPageChanged(page: Int, pageCount: Int) {

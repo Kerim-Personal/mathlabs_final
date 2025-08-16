@@ -8,12 +8,14 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ChatAiDialogFragment : BottomSheetDialogFragment() {
 
@@ -22,37 +24,32 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
     private lateinit var buttonSend: View
     private lateinit var thinkingIndicator: LinearLayout
     private lateinit var suggestionScrollView: View
-    private lateinit var buttonGetMoreQueries: Button // Yeni buton
+    private lateinit var buttonGetMoreQueries: Button
     private lateinit var chatAdapter: ChatAdapter
     private lateinit var pdfViewActivity: PdfViewActivity
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        // XML layout dosyasını inflate et
         return inflater.inflate(R.layout.dialog_ai_chat, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // PdfViewActivity referansını al
         pdfViewActivity = activity as PdfViewActivity
 
         initializeViews(view)
-
-        // Sohbet geçmişi boşsa, bir karşılama mesajı ekle.
-        if (pdfViewActivity.chatMessages.isEmpty()) {
-            val welcomeMessage = getString(R.string.ai_chat_welcome_message)
-            pdfViewActivity.chatMessages.add(ChatMessage(welcomeMessage, false))
-        }
-
         setupRecyclerView()
         setupClickListeners()
 
-        // Asistan açıldığında sorgu hakkı durumunu kontrol et.
-        if (AiQueryManager.canPerformQuery(requireContext())) {
-            enableInput()
-        } else {
-            // Eğer sorgu hakkı yoksa, diyaloğu GÖSTERMEDEN sadece arayüzü güncelle.
-            // Kullanıcı butona basarak diyaloğu kendi tetikleyebilir.
-            disableInput()
+        // Asistan açıldığında sorgu hakkı durumunu asenkron olarak kontrol et.
+        lifecycleScope.launch {
+            if (AiQueryManager.canPerformQuery()) {
+                enableInput()
+            } else {
+                disableInput()
+            }
         }
     }
 
@@ -62,10 +59,16 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
         buttonSend = view.findViewById(R.id.buttonSend)
         thinkingIndicator = view.findViewById(R.id.thinkingIndicator)
         suggestionScrollView = view.findViewById(R.id.suggestionScrollView)
-        buttonGetMoreQueries = view.findViewById(R.id.buttonGetMoreQueries) // Yeni butonu bağla
+        buttonGetMoreQueries = view.findViewById(R.id.buttonGetMoreQueries)
     }
 
     private fun setupRecyclerView() {
+        // Sohbet geçmişi boşsa, bir karşılama mesajı ekle.
+        if (pdfViewActivity.chatMessages.isEmpty()) {
+            val welcomeMessage = getString(R.string.ai_chat_welcome_message)
+            pdfViewActivity.chatMessages.add(ChatMessage(welcomeMessage, false))
+        }
+
         chatAdapter = ChatAdapter(pdfViewActivity.chatMessages)
         recyclerViewChat.adapter = chatAdapter
         recyclerViewChat.layoutManager = LinearLayoutManager(context)
@@ -81,8 +84,8 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
             }
         }
 
-        // Yeni "Sorgu Hakkı Kazan" butonunun tıklama olayı
         buttonGetMoreQueries.setOnClickListener {
+            // "Sorgu Hakkı Kazan" butonuna basıldığında reklam izleme diyaloğunu göster.
             pdfViewActivity.showWatchAdDialog()
         }
 
@@ -91,11 +94,17 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
         view?.findViewById<Button>(R.id.btnSuggestion3)?.setOnClickListener { sendQueryToServer((it as Button).text.toString()) }
 
         view?.findViewById<ImageButton>(R.id.buttonClearChat)?.setOnClickListener {
+            clearChat()
+        }
+    }
+
+    private fun clearChat() {
+        lifecycleScope.launch {
             pdfViewActivity.chatMessages.clear()
             pdfViewActivity.conversationHistory.clear()
             chatAdapter.notifyDataSetChanged()
 
-            if (AiQueryManager.canPerformQuery(requireContext())) {
+            if (AiQueryManager.canPerformQuery()) {
                 enableInput()
                 val welcomeMessage = getString(R.string.ai_chat_welcome_message)
                 addMessage(ChatMessage(welcomeMessage, false))
@@ -107,78 +116,85 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
 
     /**
      * Kullanıcının sorgu hakkı bittiğinde UI'ı günceller.
-     * Artık reklam diyaloğu GÖSTERMEZ, sadece arayüzü değiştirir.
+     * Giriş alanlarını pasif hale getirir ve "Sorgu Hakkı Kazan" butonunu gösterir.
      */
     private fun disableInput() {
         editTextQuestion.isEnabled = false
         buttonSend.isEnabled = false
         suggestionScrollView.visibility = View.GONE
-        buttonGetMoreQueries.visibility = View.VISIBLE // Butonu görünür yap
+        buttonGetMoreQueries.visibility = View.VISIBLE
 
-        // Ekranda zaten kota aşıldı mesajı yoksa ekle.
-        if (pdfViewActivity.chatMessages.none { it.message.contains(getString(R.string.ai_quota_exceeded,"")) }) {
-            val quotaMessage = AiQueryManager.getQuotaExceededMessage(requireContext())
+        val quotaMessage = getString(R.string.ai_quota_exceeded, "") // string.xml dosyanızdaki ilgili metin
+        if (pdfViewActivity.chatMessages.lastOrNull()?.message != quotaMessage) {
             addMessage(ChatMessage(quotaMessage, false))
         }
     }
 
     /**
-     * Kullanıcı giriş alanlarını (metin kutusu, butonlar) aktif hale getirir.
+     * Kullanıcı giriş alanlarını aktif hale getirir.
      */
     private fun enableInput() {
         editTextQuestion.isEnabled = true
         buttonSend.isEnabled = true
         suggestionScrollView.visibility = View.VISIBLE
-        buttonGetMoreQueries.visibility = View.GONE // Butonu gizle
+        buttonGetMoreQueries.visibility = View.GONE
     }
 
     /**
-     * Kullanıcının sorusunu alır ve sunucuya gönderir.
+     * Kullanıcının sorusunu alır, asenkron olarak sorgu hakkını kontrol eder ve sunucuya gönderir.
      */
     private fun sendQueryToServer(question: String) {
-        if (!AiQueryManager.canPerformQuery(requireContext())) {
-            // Bu bir güvenlik önlemi, normalde bu senaryoda butonlar pasif olmalı.
-            pdfViewActivity.showWatchAdDialog()
-            return
-        }
+        lifecycleScope.launch {
+            // 1. Asenkron olarak sorgu hakkını kontrol et
+            if (!AiQueryManager.canPerformQuery()) {
+                disableInput()
+                Toast.makeText(context, getString(R.string.no_more_queries_today), Toast.LENGTH_LONG).show()
+                return@launch
+            }
 
-        addMessage(ChatMessage(question, true))
-        suggestionScrollView.visibility = View.GONE
-        thinkingIndicator.visibility = View.VISIBLE
-        editTextQuestion.isEnabled = false
-        buttonSend.isEnabled = false
+            // UI güncellemeleri
+            addMessage(ChatMessage(question, true))
+            suggestionScrollView.visibility = View.GONE
+            thinkingIndicator.visibility = View.VISIBLE
+            editTextQuestion.isEnabled = false
+            buttonSend.isEnabled = false
 
-        lifecycleScope.launch(Dispatchers.IO) {
-            val relevantContext = pdfViewActivity.extractTextForAI()
+            // 2. Sorgu sayısını artır
+            AiQueryManager.incrementQueryCount()
+
+            // 3. PDF'ten ilgili metni al (Potansiyel olarak uzun sürebilir, IO thread'inde yap)
+            val relevantContext = withContext(Dispatchers.IO) {
+                pdfViewActivity.extractTextForAI()
+            }
             val prompt = createPrompt(question, relevantContext)
 
+            // 4. Sunucudan cevabı al
             AiQueryManager.getResponseFromServer(prompt) { result ->
-                lifecycleScope.launch(Dispatchers.Main) {
+                // UI'ı ana thread'de güncelle
+                requireActivity().runOnUiThread {
                     thinkingIndicator.visibility = View.GONE
 
                     result.onSuccess { aiResponse ->
                         addMessage(ChatMessage(aiResponse, false))
-                        AiQueryManager.incrementQueryCount(requireContext())
                     }.onFailure { error ->
                         val errorMessage = getString(R.string.ai_chat_error_with_details, error.localizedMessage)
                         addMessage(ChatMessage(errorMessage, false))
                     }
 
-                    if (AiQueryManager.canPerformQuery(requireContext())) {
-                        enableInput()
-                    } else {
-                        // Sorgu hakkı ŞİMDİ bittiyse, arayüzü güncelle VE diyaloğu göster.
-                        // Bu, anında geri bildirim için kritik.
-                        disableInput()
-                        pdfViewActivity.showWatchAdDialog()
+                    // 5. Cevap geldikten sonra sorgu hakkını tekrar kontrol et ve UI'ı ayarla
+                    lifecycleScope.launch {
+                        if (AiQueryManager.canPerformQuery()) {
+                            enableInput()
+                        } else {
+                            disableInput()
+                            // Sorgu hakkı bu istekten sonra bittiyse kullanıcıyı bilgilendir
+                            pdfViewActivity.showWatchAdDialog()
+                        }
                     }
                 }
             }
         }
     }
-
-    // createPrompt ve addMessage fonksiyonlarınızda bir değişiklik yapmaya gerek yok.
-    // Onları mevcut halleriyle bırakabilirsiniz.
 
     private fun createPrompt(question: String, context: String): String {
         val historyText = pdfViewActivity.conversationHistory.joinToString("\n")

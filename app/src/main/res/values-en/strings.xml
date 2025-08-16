@@ -335,4 +335,6 @@
     <string name="sign_out_confirm_message">Are you sure you want to sign out?</string>
     <string name="confirm">Confirm</string>
 
+    <string name="no_more_queries_today">You have no more queries for today.</string>
+    <string name="premium_activated_toast">Premium Activated!</string>
 </resources>

@@ -132,6 +132,7 @@ dependencies {
     // ---- DİĞER KÜTÜPHANELER ----
     implementation("com.android.billingclient:billing-ktx:7.0.0")
     implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
 
     // ---- TEST KÜTÜPHANELERİ ----
     testImplementation(libs.junit)

@@ -6,6 +6,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.codenzi.mathlabs.databinding.ActivityLoginBinding
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
@@ -16,6 +17,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
 
@@ -59,13 +61,24 @@ class LoginActivity : AppCompatActivity() {
         auth.signInWithCredential(credential)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    // Kullanıcı adını kaydet
-                    val user = auth.currentUser
-                    user?.displayName?.let { SharedPreferencesManager.saveUserName(this, it) }
+                    lifecycleScope.launch {
+                        // 1. Firestore'da kullanıcı dökümanını oluştur veya var olanı kontrol et.
+                        UserRepository.createUserDocumentIfNotExist()
 
-                    val intent = Intent(this, MainActivity::class.java)
-                    startActivity(intent)
-                    finish()
+                        // 2. YENİ: Kullanıcının en güncel verisini Firestore'dan çek.
+                        // Bu, uygulamanın geri kalanının doğru bilgiyle başlamasını sağlar.
+                        val userData = UserRepository.getUserData()
+                        Log.d("LoginActivity", "User premium status: ${userData?.isPremium}")
+
+                        // 3. Selamlama için kullanıcı adını kaydet (bu kalabilir).
+                        val user = auth.currentUser
+                        user?.displayName?.let { SharedPreferencesManager.saveUserName(this@LoginActivity, it) }
+
+                        // 4. Ana ekrana git.
+                        val intent = Intent(this@LoginActivity, MainActivity::class.java)
+                        startActivity(intent)
+                        finish()
+                    }
                 } else {
                     Toast.makeText(this, getString(R.string.firebase_auth_failed), Toast.LENGTH_SHORT).show()
                 }

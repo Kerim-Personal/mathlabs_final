@@ -1,6 +1,5 @@
 package com.codenzi.mathlabs
 
-import androidx.activity.OnBackPressedCallback
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -12,6 +11,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -22,7 +22,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import com.android.billingclient.api.ProductDetails
-// YENİ EKLENEN SATIR: Glide import'u
 import com.bumptech.glide.Glide
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -32,10 +31,10 @@ import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.launch
 
 class SettingsActivity : AppCompatActivity() {
 
-    // XML dosyanızdaki view'lar için değişken tanımlamaları
     private lateinit var togglePlan: MaterialButtonToggleGroup
     private lateinit var textViewPrice: TextView
     private lateinit var textViewPricePeriod: TextView
@@ -47,8 +46,6 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var layoutPrivacyPolicy: LinearLayout
     private lateinit var premiumPurchaseContainer: LinearLayout
     private lateinit var premiumStatusContainer: LinearLayout
-
-    // Hesap yönetimi view'ları
     private lateinit var userProfileImage: ImageView
     private lateinit var textViewUserName: TextView
     private lateinit var textViewUserEmail: TextView
@@ -67,45 +64,37 @@ class SettingsActivity : AppCompatActivity() {
         val themeMode = SharedPreferencesManager.getTheme(this)
         AppCompatDelegate.setDefaultNightMode(themeMode)
         setTheme(R.style.Theme_Pdf)
-
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
 
         auth = Firebase.auth
-
-        WindowCompat.setDecorFitsSystemWindows(window, false)
         val toolbar: MaterialToolbar = findViewById(R.id.settingsToolbar)
-        ViewCompat.setOnApplyWindowInsetsListener(toolbar) { view, insets ->
-            val systemBarInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                topMargin = systemBarInsets.top
-            }
-            insets
-        }
-
-        setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = getString(R.string.settings_title)
+        setupToolbar(toolbar)
 
         initializeViews()
-        setupBilling()
+        setupBillingAndObservers()
         setupUserInfo()
         setupClickListeners()
         setupSwitches()
         setupPremiumPlanToggle()
+        checkInitialPremiumStatus()
+        setupBackButton()
+    }
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                setResult(RESULT_OK)
-                if (isEnabled) {
-                    isEnabled = false
-                    finish()
-                }
-            }
-        })
+    private fun setupToolbar(toolbar: MaterialToolbar) {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        ViewCompat.setOnApplyWindowInsetsListener(toolbar) { view, insets ->
+            val systemBarInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = systemBarInsets.top }
+            insets
+        }
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = getString(R.string.settings_title)
     }
 
     private fun initializeViews() {
+        // ... (Bu fonksiyon aynı kalabilir, değişiklik yok)
         togglePlan = findViewById(R.id.togglePlan)
         textViewPrice = findViewById(R.id.textViewPrice)
         textViewPricePeriod = findViewById(R.id.textViewPricePeriod)
@@ -117,37 +106,48 @@ class SettingsActivity : AppCompatActivity() {
         layoutPrivacyPolicy = findViewById(R.id.layoutPrivacyPolicy)
         premiumPurchaseContainer = findViewById(R.id.premiumPurchaseContainer)
         premiumStatusContainer = findViewById(R.id.premiumStatusContainer)
-
-        // Hesap yönetimi view'larını initialize et
         userProfileImage = findViewById(R.id.userProfileImage)
         textViewUserName = findViewById(R.id.textViewUserName)
         textViewUserEmail = findViewById(R.id.textViewUserEmail)
         buttonSignOut = findViewById(R.id.buttonSignOut)
     }
 
-    private fun setupBilling() {
+    private fun setupBillingAndObservers() {
         billingManager = BillingManager(this, lifecycleScope)
+
+        // Ürün detayları geldiğinde fiyatları güncelle
         billingManager.productDetails.observe(this) { detailsMap ->
             monthlyPlanDetails = detailsMap["monthly_premium_plan"]
             yearlyPlanDetails = detailsMap["yearly_premium_plan"]
             updatePriceDisplay()
         }
-        billingManager.isPremium.observe(this) { isPremium ->
+
+        // SADECE YENİ BİR SATIN ALMA OLDUĞUNDA TETİKLENİR
+        billingManager.newPurchaseEvent.observe(this) { event ->
+            event.getContentIfNotHandled()?.let { isPremium ->
+                if (isPremium) {
+                    updatePremiumUI(true)
+                    Toast.makeText(this, getString(R.string.premium_activated_toast), Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    // Aktivite açıldığında Firestore'dan durumu SESSİZCE kontrol eder (Toast göstermez)
+    private fun checkInitialPremiumStatus() {
+        lifecycleScope.launch {
+            val isPremium = UserRepository.isCurrentUserPremium()
             updatePremiumUI(isPremium)
         }
     }
 
     private fun setupUserInfo() {
+        // ... (Bu fonksiyon aynı kalabilir, değişiklik yok)
         val user = auth.currentUser
         if (user != null) {
             textViewUserName.text = user.displayName
             textViewUserEmail.text = user.email
-
-            Glide.with(this)
-                .load(user.photoUrl)
-                .circleCrop()
-                .placeholder(R.drawable.ic_premium_badge)
-                .into(userProfileImage)
+            Glide.with(this).load(user.photoUrl).circleCrop().placeholder(R.drawable.ic_premium_badge).into(userProfileImage)
         } else {
             navigateToLogin()
         }
@@ -163,22 +163,22 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    // Kodun geri kalanında değişiklik yapmaya gerek yok
+    // setupClickListeners, signOut, navigateToLogin vb. fonksiyonlar olduğu gibi kalabilir.
+    // ...
     private fun setupClickListeners() {
         layoutThemeSettings.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             showThemeDialog()
         }
-
         layoutLanguageSettings.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             showLanguageDialog()
         }
-
         buttonSignOut.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             showSignOutConfirmationDialog()
         }
-
         layoutContactUs.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
@@ -192,14 +192,12 @@ class SettingsActivity : AppCompatActivity() {
                 Toast.makeText(this, "Uygun bir e-posta uygulaması bulunamadı.", Toast.LENGTH_SHORT).show()
             }
         }
-
         layoutPrivacyPolicy.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             val url = "https://www.codenzi.com/privacy-math-labs.html"
             val privacyIntent = Intent(Intent.ACTION_VIEW, url.toUri())
             startActivity(privacyIntent)
         }
-
         buttonSubscribe.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             val selectedPlanDetails = if (togglePlan.checkedButtonId == R.id.buttonMonthly) {
@@ -207,7 +205,6 @@ class SettingsActivity : AppCompatActivity() {
             } else {
                 yearlyPlanDetails
             }
-
             selectedPlanDetails?.let { planDetails ->
                 billingManager.launchPurchaseFlow(this, planDetails)
             } ?: run {
@@ -215,7 +212,17 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
     }
-
+    private fun setupBackButton() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                setResult(RESULT_OK)
+                if (isEnabled) {
+                    isEnabled = false
+                    finish()
+                }
+            }
+        })
+    }
     private fun showSignOutConfirmationDialog() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.sign_out_confirm_title))
@@ -227,10 +234,8 @@ class SettingsActivity : AppCompatActivity() {
             .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
-
     private fun signOut() {
         auth.signOut()
-
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
@@ -239,7 +244,6 @@ class SettingsActivity : AppCompatActivity() {
             navigateToLogin()
         }
     }
-
     private fun navigateToLogin() {
         val intent = Intent(this, LoginActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -247,7 +251,6 @@ class SettingsActivity : AppCompatActivity() {
         startActivity(intent)
         finish()
     }
-
     private fun setupSwitches() {
         switchTouchSound.isChecked = SharedPreferencesManager.isTouchSoundEnabled(this)
         switchTouchSound.setOnCheckedChangeListener { buttonView, isChecked ->
@@ -255,31 +258,22 @@ class SettingsActivity : AppCompatActivity() {
             SharedPreferencesManager.setTouchSoundEnabled(this, isChecked)
         }
     }
-
     private fun setupPremiumPlanToggle() {
         togglePlan.check(R.id.buttonMonthly)
         updatePriceDisplay()
-
         togglePlan.addOnButtonCheckedListener { group, _, _ ->
             UIFeedbackHelper.provideFeedback(group)
             updatePriceDisplay()
         }
     }
-
     private fun updatePriceDisplay() {
         val isMonthly = togglePlan.checkedButtonId == R.id.buttonMonthly
         val monthlyDetails = monthlyPlanDetails
         val yearlyDetails = yearlyPlanDetails
-
         val currentPlanDetails = if (isMonthly) monthlyDetails else yearlyDetails
-
         currentPlanDetails?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.let { pricingPhase ->
             textViewPrice.text = pricingPhase.formattedPrice
-            textViewPricePeriod.text = if (isMonthly) {
-                getString(R.string.price_period_monthly)
-            } else {
-                getString(R.string.price_period_yearly)
-            }
+            textViewPricePeriod.text = if (isMonthly) getString(R.string.price_period_monthly) else getString(R.string.price_period_yearly)
             buttonSubscribe.visibility = View.VISIBLE
             textViewPrice.visibility = View.VISIBLE
             textViewPricePeriod.visibility = View.VISIBLE
@@ -290,13 +284,10 @@ class SettingsActivity : AppCompatActivity() {
             textViewPrice.visibility = View.INVISIBLE
             textViewPricePeriod.visibility = View.INVISIBLE
         }
-
         val textViewYearlyDiscount: TextView = findViewById(R.id.textViewYearlyDiscount)
-
         if (!isMonthly && monthlyDetails != null && yearlyDetails != null) {
             val monthlyPrice = monthlyDetails.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.priceAmountMicros
             val yearlyPrice = yearlyDetails.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.priceAmountMicros
-
             if (monthlyPrice != null && yearlyPrice != null && yearlyPrice > 0) {
                 val yearlyPriceFromMonthly = monthlyPrice * 12
                 val discount = ((yearlyPriceFromMonthly - yearlyPrice) * 100 / yearlyPriceFromMonthly)
@@ -313,7 +304,6 @@ class SettingsActivity : AppCompatActivity() {
             textViewYearlyDiscount.visibility = View.GONE
         }
     }
-
     private fun showThemeDialog() {
         val themes = arrayOf(getString(R.string.theme_light), getString(R.string.theme_dark), getString(R.string.theme_system_default))
         val currentTheme = SharedPreferencesManager.getTheme(this)
@@ -322,7 +312,6 @@ class SettingsActivity : AppCompatActivity() {
             AppCompatDelegate.MODE_NIGHT_YES -> 1
             else -> 2
         }
-
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.theme_title))
             .setSingleChoiceItems(themes, checkedItem) { dialog, which ->
@@ -342,19 +331,16 @@ class SettingsActivity : AppCompatActivity() {
             .create()
             .show()
     }
-
     private fun showLanguageDialog() {
         val languages = arrayOf("Türkçe", "English")
         val languageCodes = arrayOf("tr", "en")
         val currentLanguageCode = SharedPreferencesManager.getLanguage(this)
         val checkedItem = languageCodes.indexOf(currentLanguageCode).coerceAtLeast(0)
-
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.language_settings))
             .setSingleChoiceItems(languages, checkedItem) { dialog, which ->
                 dialog.dismiss()
                 val selectedLanguageCode = languageCodes[which]
-
                 if (selectedLanguageCode != currentLanguageCode) {
                     LocaleHelper.applyLanguage(this, selectedLanguageCode)
                 }
@@ -363,7 +349,6 @@ class SettingsActivity : AppCompatActivity() {
             .create()
             .show()
     }
-
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == android.R.id.home) {
             setResult(RESULT_OK)
