@@ -2,9 +2,7 @@ package com.codenzi.mathlabs
 
 import android.app.Activity
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
-import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
@@ -39,9 +37,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var courseAdapter: CourseAdapter
     private val viewModel: MainViewModel by viewModels()
     private lateinit var toolbarTitle: TextView
-    private var adView: AdView? = null // Nullable yapıldı
+    private var adView: AdView? = null
     private lateinit var adContainerView: FrameLayout
-
     private var mInterstitialAd: InterstitialAd? = null
     private val TAG = "MainActivity"
 
@@ -65,25 +62,20 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // ÖNEMLİ: SplashActivity'de dinleyici zaten başlatıldı.
-        // Burada tekrar başlatmaya gerek yok.
-
         initializeViews()
         setupToolbar()
         setupRecyclerView()
         observeViewModel()
         viewModel.loadCourses(this)
 
-        // *** YENİ VE DOĞRU YÖNTEM ***
-        // Arayüz hazır olur olmaz, kullanıcı durumunu gözlemeye başla.
+        // Arayüz hazır olur olmaz, kullanıcı durumunu Firestore'dan canlı olarak gözlemeye başla.
         observeUserStatusAndUpdateUI()
     }
 
     private fun initializeViews() {
         toolbarTitle = binding.topToolbar.findViewById(R.id.toolbar_title)
         adContainerView = binding.adViewContainer
-        // Reklam alanını başlangıçta gizle, flicker olmasın.
-        adContainerView.visibility = View.GONE
+        adContainerView.visibility = View.GONE // Başlangıçta reklamı gizle
     }
 
     /**
@@ -96,13 +88,13 @@ class MainActivity : AppCompatActivity() {
             UserRepository.userDataState.collectLatest { userData ->
                 val isPremium = userData?.isPremium ?: false
                 if (isPremium) {
-                    // KULLANICI PREMIUM
+                    // KULLANICI PREMIUM İSE: Reklamları kaldır ve yok et.
                     adContainerView.visibility = View.GONE
-                    adView?.destroy() // Banner reklamı yok et
+                    adView?.destroy()
                     adView = null
-                    mInterstitialAd = null // Geçiş reklamını yok et
+                    mInterstitialAd = null
                 } else {
-                    // KULLANICI PREMIUM DEĞİL
+                    // KULLANICI PREMIUM DEĞİLSE: Reklamları yükle ve göster.
                     adContainerView.visibility = View.VISIBLE
                     loadBanner()
                     loadInterstitialAd()
@@ -111,11 +103,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Diğer tüm fonksiyonlarınız aynı kalabilir...
-    // ... (loadBanner, loadInterstitialAd, navigateToPdfView, setupToolbar, vb.)
-
     private fun loadBanner() {
-        if (adView != null) return // Reklam zaten varsa tekrar yükleme.
+        // Aktivite yok ediliyorsa veya reklam zaten varsa yükleme yapma.
+        if (adView != null || !isAdLoadable()) return
         MobileAds.initialize(this) {}
         adView = AdView(this)
         adView?.adUnitId = getString(R.string.admob_banner_unit_id)
@@ -127,6 +117,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadInterstitialAd() {
+        // Aktivite yok ediliyorsa veya reklam zaten varsa yükleme yapma.
+        if (mInterstitialAd != null || !isAdLoadable()) return
         val adRequest = AdRequest.Builder().build()
         val adUnitId = getString(R.string.admob_interstitial_unit_id)
 
@@ -137,13 +129,52 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onAdLoaded(interstitialAd: InterstitialAd) {
-                Log.d(TAG, "Ad was loaded.")
-                // Sadece premium değilse reklamı tut.
+                Log.d(TAG, "Geçiş reklamı yüklendi.")
+                // Reklam sadece premium olmayan kullanıcılar için saklanır.
                 if (!UserRepository.isCurrentUserPremium()) {
                     mInterstitialAd = interstitialAd
                 }
             }
         })
+    }
+
+    private fun setupRecyclerView() {
+        courseAdapter = CourseAdapter(
+            onTopicClickListener = { courseTitle, topicTitle ->
+                UIFeedbackHelper.provideFeedback(window.decorView.rootView)
+                val message = getString(R.string.topic_pdf_not_found, courseTitle, topicTitle)
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+            },
+            onPdfClickListener = { courseTitle, topic ->
+                UIFeedbackHelper.provideFeedback(window.decorView.rootView)
+
+                // PDF'e tıklanınca premium kontrolünü anlık olarak UserRepository'den yap.
+                val isPremium = UserRepository.isCurrentUserPremium()
+
+                if (!isPremium && mInterstitialAd != null) {
+                    mInterstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
+                        override fun onAdDismissedFullScreenContent() { navigateToPdfView(courseTitle, topic) }
+                        override fun onAdFailedToShowFullScreenContent(adError: AdError) { navigateToPdfView(courseTitle, topic) }
+                        override fun onAdShowedFullScreenContent() {
+                            mInterstitialAd = null
+                            loadInterstitialAd() // Bir sonraki için tekrar yükle
+                        }
+                    }
+                    mInterstitialAd?.show(this@MainActivity)
+                } else {
+                    navigateToPdfView(courseTitle, topic)
+                }
+            }
+        )
+        binding.recyclerViewCourses.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            adapter = courseAdapter
+        }
+    }
+
+    // Bu aktivitenin yok edilip edilmediğini kontrol eden yardımcı fonksiyon
+    private fun isAdLoadable(): Boolean {
+        return !isFinishing && !isDestroyed
     }
 
     private fun navigateToPdfView(courseTitle: String, topic: Topic) {
@@ -181,43 +212,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupRecyclerView() {
-        courseAdapter = CourseAdapter(
-            onTopicClickListener = { courseTitle, topicTitle ->
-                UIFeedbackHelper.provideFeedback(window.decorView.rootView)
-                val message = getString(R.string.topic_pdf_not_found, courseTitle, topicTitle)
-                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-            },
-            onPdfClickListener = { courseTitle, topic ->
-                UIFeedbackHelper.provideFeedback(window.decorView.rootView)
-                val isPremium = UserRepository.isCurrentUserPremium()
-
-                if (!isPremium && mInterstitialAd != null) {
-                    mInterstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
-                        override fun onAdDismissedFullScreenContent() {
-                            navigateToPdfView(courseTitle, topic)
-                        }
-                        override fun onAdFailedToShowFullScreenContent(adError: AdError) {
-                            navigateToPdfView(courseTitle, topic)
-                        }
-                        override fun onAdShowedFullScreenContent() {
-                            mInterstitialAd = null
-                            loadInterstitialAd()
-                        }
-                    }
-                    mInterstitialAd?.show(this@MainActivity)
-                } else {
-                    navigateToPdfView(courseTitle, topic)
-                }
-            }
-        )
-
-        binding.recyclerViewCourses.apply {
-            layoutManager = LinearLayoutManager(this@MainActivity)
-            adapter = courseAdapter
-        }
-    }
-
     private fun observeViewModel() {
         viewModel.courses.observe(this) { courses ->
             courseAdapter.submitList(courses)
@@ -252,8 +246,12 @@ class MainActivity : AppCompatActivity() {
 
     private val adSize: AdSize
         get() {
-            val adWidthPixels = resources.displayMetrics.widthPixels.toFloat()
-            val density = resources.displayMetrics.density
+            val metrics = resources.displayMetrics
+            var adWidthPixels = binding.adViewContainer.width.toFloat()
+            if (adWidthPixels == 0f) {
+                adWidthPixels = metrics.widthPixels.toFloat()
+            }
+            val density = metrics.density
             val adWidth = (adWidthPixels / density).toInt()
             return AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this, adWidth)
         }

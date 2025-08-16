@@ -1,5 +1,3 @@
-// kerim-personal/mathlabs_final/mathlabs_final-846de2bc6294564b282343e4d0a0be0e4be59898/app/src/main/java/com/codenzi/mathlabs/LocaleHelper.kt
-
 package com.codenzi.mathlabs
 
 import android.app.Activity
@@ -35,9 +33,9 @@ object LocaleHelper {
     }
 
     fun persist(context: Context, languageCode: String) {
+        // HATA DÜZELTİLDİ: setLanguageSelected çağrısı gereksiz olduğu için kaldırıldı.
+        // Dili kaydetmek, zaten bir dilin seçildiği anlamına gelir.
         SharedPreferencesManager.saveLanguage(context, languageCode)
-        // Dilin artık seçildiğini işaretle (ilk açılışta veya sonradan)
-        SharedPreferencesManager.setLanguageSelected(context, true)
     }
 
     fun applyLanguage(activity: Activity, languageCode: String) {

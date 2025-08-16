@@ -1,5 +1,6 @@
 package com.codenzi.mathlabs
 
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
@@ -9,9 +10,8 @@ import kotlin.Result
 
 /**
  * AI sorgularını yöneten singleton nesne.
- * Bu sınıf artık doğrudan Gemini API'sini çağırmak yerine,
- * güvenli bir şekilde Firebase Cloud Function'a istek gönderir.
- * Kullanıcı kota yönetimi için SharedPreferences yerine Cloud Firestore kullanır.
+ * Bu sınıf, güvenli bir şekilde Firebase Cloud Function'a istek gönderir
+ * ve kullanıcı kota yönetimini UserRepository üzerinden yapar.
  */
 object AiQueryManager {
 
@@ -26,7 +26,6 @@ object AiQueryManager {
      * @return Sorgu hakkı varsa true, yoksa false döner.
      */
     suspend fun canPerformQuery(): Boolean {
-        // HATA DÜZELTİLDİ: getUserData() yerine getUserDataOnce() kullanılıyor.
         val userData = UserRepository.getUserDataOnce() ?: return false
 
         // 1. Öncelik: Ödüllü sorgu hakkı var mı?
@@ -34,7 +33,7 @@ object AiQueryManager {
             return true
         }
 
-        val lastResetDate = userData.lastAiQueryReset ?: Date(0) // Null ise çok eski bir tarih ata
+        val lastResetDate = userData.lastAiQueryReset ?: Date(0)
         val lastResetCal = Calendar.getInstance().apply { time = lastResetDate }
         val currentCal = Calendar.getInstance()
         var needsReset = false
@@ -55,10 +54,9 @@ object AiQueryManager {
 
         // Eğer yeni bir periyoda girildiyse, sayacı sıfırla.
         if (needsReset) {
-            UserRepository.updateUserData(mapOf(
-                "aiQueriesUsed" to 0,
-                "lastAiQueryReset" to com.google.firebase.firestore.FieldValue.serverTimestamp() // Sunucu zamanını kullan
-            ))
+            // HATA DÜZELTİLDİ: 'updateUserData' yerine 'updateUserField' kullanılıyor.
+            UserRepository.updateUserField("aiQueriesUsed", 0)
+            UserRepository.updateUserField("lastAiQueryReset", FieldValue.serverTimestamp())
             return true // Sayacı sıfırlandığı için hakkı var.
         }
 
@@ -72,22 +70,21 @@ object AiQueryManager {
      * Önce ödüllü hakkı kullanır, yoksa normal sorgu sayacını artırır.
      */
     suspend fun incrementQueryCount() {
-        // HATA DÜZELTİLDİ: getUserData() yerine getUserDataOnce() kullanılıyor.
         val userData = UserRepository.getUserDataOnce() ?: return
 
         if (userData.rewardedQueries > 0) {
-            UserRepository.updateUserField("rewardedQueries", userData.rewardedQueries - 1)
+            // Ödüllü sayaç için 'incrementUserCounter' kullanmak daha güvenlidir.
+            UserRepository.incrementUserCounter("rewardedQueries", -1)
             return
         }
 
         // Eğer sayaç daha önce hiç sıfırlanmamışsa, ilk sorguyla birlikte sıfırlama tarihini de ata.
         if (userData.lastAiQueryReset == null) {
-            UserRepository.updateUserData(mapOf(
-                "aiQueriesUsed" to userData.aiQueriesUsed + 1,
-                "lastAiQueryReset" to com.google.firebase.firestore.FieldValue.serverTimestamp()
-            ))
+            // HATA DÜZELTİLDİ: 'updateUserData' yerine yeni fonksiyonlar kullanılıyor.
+            UserRepository.incrementUserCounter("aiQueriesUsed")
+            UserRepository.updateUserField("lastAiQueryReset", FieldValue.serverTimestamp())
         } else {
-            UserRepository.updateUserField("aiQueriesUsed", userData.aiQueriesUsed + 1)
+            UserRepository.incrementUserCounter("aiQueriesUsed")
         }
     }
 
@@ -105,8 +102,6 @@ object AiQueryManager {
             .call(data)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    // Buradaki cast uyarısı (unchecked cast) kalabilir, ciddi bir sorun teşkil etmez.
-                    // Sunucudan dönen verinin yapısına güvendiğimiz varsayılır.
                     val resultData = task.result?.data as? Map<String, Any>
                     val geminiResult = resultData?.get("result") as? String
 

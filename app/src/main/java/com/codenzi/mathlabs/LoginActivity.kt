@@ -31,7 +31,7 @@ class LoginActivity : AppCompatActivity() {
             val account = task.getResult(ApiException::class.java)!!
             firebaseAuthWithGoogle(account)
         } catch (e: ApiException) {
-            Log.w("LoginActivity", "Google sign in failed", e)
+            Log.w("LoginActivity", "Google ile giriş başarısız oldu", e)
             Toast.makeText(this, getString(R.string.google_sign_in_failed), Toast.LENGTH_SHORT).show()
         }
     }
@@ -62,18 +62,15 @@ class LoginActivity : AppCompatActivity() {
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
                     lifecycleScope.launch {
-                        // 1. Firestore'da kullanıcı dökümanını oluştur veya var olanı kontrol et.
-                        UserRepository.createUserDocumentIfNotExist()
+                        // HATA DÜZELTİLDİ: Fonksiyon adı güncellendi.
+                        // Firestore'da kullanıcı belgesini (eğer yoksa) oluştur.
+                        UserRepository.createInitialUserDataIfNotExist()
 
-                        // 2. HATA DÜZELTİLDİ: Artık doğru fonksiyonu çağırıyoruz.
-                        val userData = UserRepository.getUserDataOnce()
-                        Log.d("LoginActivity", "User premium status: ${userData?.isPremium}")
-
-                        // 3. Selamlama için kullanıcı adını kaydet (bu kalabilir).
+                        // Selamlama için kullanıcı adını kaydet.
                         val user = auth.currentUser
                         user?.displayName?.let { SharedPreferencesManager.saveUserName(this@LoginActivity, it) }
 
-                        // 4. Ana ekrana git.
+                        // Ana ekrana git.
                         val intent = Intent(this@LoginActivity, MainActivity::class.java)
                         startActivity(intent)
                         finish()
