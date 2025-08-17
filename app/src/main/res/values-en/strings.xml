@@ -338,4 +338,12 @@
     <string name="no_more_queries_today">You have no more queries for today.</string>
     <string name="premium_activated_toast">Premium Activated!</string>
     <string name="loading">Loading…</string>
+
+    <string name="ai_wait_for_response">Lütfen mevcut yanıtı bekleyin.</string>
+    <string name="login_subtitle">Akıllı soru çözme, konu özetleri</string>
+    <string name="hero_title">Bugün neleri keşfetmek istersin?</string>
+    <string name="hero_bullet_1">• AI destekli çözüm adımları</string>
+    <string name="hero_bullet_2">• İleri seviye konu özetleri</string>
+    <string name="hero_bullet_3">• Çok sayıda lisans dersine erişim</string>
+    <string name="login_disclaimer">Devam ederek Kullanım Koşulları ve Gizlilik Politikasını kabul etmiş olursun.</string>
 </resources>

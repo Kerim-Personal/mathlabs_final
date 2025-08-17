@@ -118,7 +118,7 @@
     <string name="topic_algebra_rings_fields">Halkalar, İdealler, Cisimler ve Galois Teorisi</string>
     <string name="topic_algebra_module_theory">Modül Teorisi</string>
 
-    <string name="topic_number_divisibility">B��lünebilme ve Öklid Algoritması</string>
+    <string name="topic_number_divisibility">B������lünebilme ve Öklid Algoritması</string>
     <string name="topic_number_prime_numbers">Asal Sayılar</string>
     <string name="topic_number_modular_arithmetic">Modüler Aritmetik</string>
     <string name="topic_number_chinese_remainder">Çin Kalan Teoremi</string>
@@ -193,8 +193,8 @@
     <string name="search_title">Ara</string>
     <string name="ai_assistant_button_desc">Yapay Zeka Asistanı</string>
     <string name="ai_chat_title">AI Çalışma Asistanı</string>
-    <string name="ai_chat_question_hint">PDF hakkında bir soru sorun...</string>
-    <string name="ai_chat_thinking">Düşünüyorum...</string>
+    <string name="ai_chat_question_hint">PDF hakkında bir soru sorun…</string>
+    <string name="ai_chat_thinking">Düşünüyorum…</string>
     <string name="ai_chat_error">Üzgünüm, bir hata oluştu. Lütfen tekrar deneyin.</string>
     <string name="ai_chat_info">Cevaplar yapay zeka tarafından kaynak içeriğine göre üretilmektedir.</string> <string name="send_question_desc">Soruyu gönder</string>
 
@@ -296,12 +296,12 @@
     <string name="premium_pdf_limit_reached">Aylık PDF indirme limitinize ulaştınız.</string>
     <string name="premium_required_toast">Bu özelliği kullanmak için Premium üye olmalısınız.</string>
     <string name="download_pdf">İndir</string>
-    <string name="downloading_pdf">PDF indiriliyor...</string>
+    <string name="downloading_pdf">PDF indiriliyor…</string>
     <string name="download_successful">PDF başarıyla İndirilenler klasörüne kaydedildi.</string>
     <string name="download_failed">PDF indirilemedi. Lütfen depolama izniniz olduğundan emin olun.</string>
     <string name="premium_feature_for_download">PDF indirme bir premium özelliktir.</string>
     <string name="pdf_already_downloaded">Bu PDF zaten indirilmiş.</string>
-    <string name="ai_assistant_thinking">Asistan düşünüyor...</string>
+    <string name="ai_assistant_thinking">Asistan düşünüyor…</string>
     <string name="suggestion_summarize">Bu sayfayı özetle</string>
     <string name="suggestion_keywords">Anahtar kavramlar neler?</string>
     <string name="suggestion_question">Bir örnek soru oluştur</string>
@@ -339,6 +339,12 @@
 
     <string name="no_more_queries_today">Bugünlük sorgu hakkınız doldu.</string>
     <string name="premium_activated_toast">Premium Aktif!</string>
-    <string name="loading">Yükleniyor...</string>
+    <string name="loading">Yükleniyor…</string>
     <string name="ai_wait_for_response">Lütfen mevcut yanıtı bekleyin.</string>
+    <string name="login_subtitle">Akıllı soru çözme, konu özetleri</string>
+    <string name="hero_title">MathLabs ile neler yapabilirsin?</string>
+    <string name="hero_bullet_1">PDF’leri aç, sayfa sayfa ilerle</string>
+    <string name="hero_bullet_2">Konulara hızlı eriş ve ara</string>
+    <string name="hero_bullet_3">AI Asistan ile açıklama ve özet al</string>
+    <string name="login_disclaimer">Devam ederek Kullanım Koşulları ve Gizlilik Politikasını kabul etmiş olursun.</string>
 </resources>

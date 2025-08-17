@@ -1,70 +1,207 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/loginRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/login_background"
+    android:fitsSystemWindows="true"
     tools:context=".LoginActivity">
 
-    <ImageView
-        android:id="@+id/app_logo_classic"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginStart="64dp"
-        android:layout_marginTop="64dp"
-        android:layout_marginEnd="64dp"
-        android:layout_marginBottom="32dp"
-        android:contentDescription="@string/app_name"
-        android:src="@mipmap/ic_launcher"
-        app:layout_constraintBottom_toTopOf="@+id/button_container"
-        app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintEnd_toEndOf="parent"
+    <!-- Dekoratif ışık baloncukları: simetrik boyut ve alpha -->
+    <View
+        android:id="@+id/bubbleTopLeft"
+        android:layout_width="240dp"
+        android:layout_height="240dp"
+        android:background="@drawable/decor_bubble_pink"
+        android:alpha="0.40"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:translationX="-60dp"
+        android:translationY="-60dp"/>
 
-    <LinearLayout
-        android:id="@+id/button_container"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
-        android:layout_marginEnd="40dp"
-        android:layout_marginBottom="48dp"
-        android:gravity="center"
-        android:orientation="vertical"
+    <View
+        android:id="@+id/bubbleBottomRight"
+        android:layout_width="240dp"
+        android:layout_height="240dp"
+        android:background="@drawable/decor_bubble_blue"
+        android:alpha="0.40"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        android:translationX="60dp"
+        android:translationY="60dp"/>
 
-        <TextView
-            android:id="@+id/welcome_subtitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:text="@string/login_prompt"
-            android:textAppearance="?attr/textAppearanceBody1"
-            android:textColor="?attr/colorOnSurfaceVariant" />
+    <!-- Başlık alanı -->
+    <TextView
+        android:id="@+id/appTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/app_name"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:letterSpacing="0.02"
+        android:textSize="36sp"
+        android:textAlignment="center"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/appSubtitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintVertical_chainStyle="packed"
+        app:layout_constraintWidth_max="720dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"/>
 
-        <FrameLayout
+    <TextView
+        android:id="@+id/appSubtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/login_subtitle"
+        android:textColor="#E6FFFFFF"
+        android:textSize="16sp"
+        android:textAlignment="center"
+        app:layout_constraintTop_toBottomOf="@id/appTitle"
+        app:layout_constraintBottom_toTopOf="@id/heroCard"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_goneMarginTop="8dp"
+        app:layout_constraintWidth_max="720dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="8dp"/>
+
+    <!-- Cam efekti kart -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/heroCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="16dp"
+        app:cardCornerRadius="24dp"
+        app:cardUseCompatPadding="true"
+        app:strokeColor="#40FFFFFF"
+        app:strokeWidth="1dp"
+        app:cardBackgroundColor="#80FFFFFF"
+        app:layout_constraintTop_toBottomOf="@+id/appSubtitle"
+        app:layout_constraintBottom_toTopOf="@id/signInButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintWidth_max="720dp">
+
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
 
-            <com.google.android.gms.common.SignInButton
-                android:id="@+id/sign_in_button"
+            <TextView
+                android:id="@+id/heroTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minHeight="56dp" />
+                android:text="@string/hero_title"
+                android:textColor="#111111"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                android:letterSpacing="0.01"
+                android:textAlignment="center"/>
 
-            <ProgressBar
-                android:id="@+id/login_progress_bar"
-                style="?android:attr/progressBarStyle"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:visibility="gone"
-                tools:visibility="visible" />
-        </FrameLayout>
+                android:orientation="vertical"
+                android:layout_marginTop="12dp"
+                android:gravity="center_horizontal">
 
-    </LinearLayout>
+                <!-- Madde 1 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="4dp"
+                    android:text="@string/hero_bullet_1"
+                    android:textColor="#5A5A5A"
+                    android:textSize="14sp"
+                    app:drawableStartCompat="@drawable/dot_primary"
+                    android:drawablePadding="8dp"/>
+
+                <!-- Madde 2 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="4dp"
+                    android:text="@string/hero_bullet_2"
+                    android:textColor="#5A5A5A"
+                    android:textSize="14sp"
+                    app:drawableStartCompat="@drawable/dot_primary"
+                    android:drawablePadding="8dp"/>
+
+                <!-- Madde 3 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="4dp"
+                    android:text="@string/hero_bullet_3"
+                    android:textColor="#5A5A5A"
+                    android:textSize="14sp"
+                    app:drawableStartCompat="@drawable/dot_primary"
+                    android:drawablePadding="8dp"/>
+
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Google ile giriş butonu (resmi bileşen) -->
+    <com.google.android.gms.common.SignInButton
+        android:id="@+id/signInButton"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@id/heroCard"
+        app:layout_constraintBottom_toTopOf="@id/disclaimer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_goneMarginTop="16dp"
+        app:layout_constraintWidth_max="720dp"/>
+
+    <!-- Alt açıklamalar -->
+    <TextView
+        android:id="@+id/disclaimer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/login_disclaimer"
+        android:textColor="#CCFFFFFF"
+        android:textSize="12sp"
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@+id/signInButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintWidth_max="720dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- Yükleniyor göstergesi -->
+    <ProgressBar
+        android:id="@+id/progress"
+        style="@android:style/Widget.DeviceDefault.Light.ProgressBar.Large"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
