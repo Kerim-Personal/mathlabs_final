@@ -256,6 +256,11 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun signOut() {
+        // --- EKLENECEK EN ÖNEMLİ KISIM ---
+        // Önce lokal veriyi temizle
+        UserRepository.clearLocalUserData()
+        // --- EKLENECEK KISIM SONU ---
+
         auth.signOut()
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))

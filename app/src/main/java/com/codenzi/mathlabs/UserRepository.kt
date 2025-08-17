@@ -73,6 +73,15 @@ object UserRepository {
     }
 
     /**
+     * Kullanıcı çıkış yaptığında lokaldeki tüm veriyi temizler.
+     * Bu, bir sonraki kullanıcının eski veriyi görmesini engeller.
+     */
+    fun clearLocalUserData() {
+        _userDataState.value = null
+        Log.d(TAG, "Lokal kullanıcı verisi temizlendi (oturum kapatıldı).")
+    }
+
+    /**
      * StateFlow'daki mevcut kullanıcı verisini lokal olarak günceller.
      */
     fun triggerLocalUpdate(updatedUserData: UserData) {

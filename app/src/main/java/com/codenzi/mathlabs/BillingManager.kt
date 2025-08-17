@@ -149,7 +149,8 @@ class BillingManager(
 
                 Log.d("BillingManager", "Firestore'da isPremium alanı başarıyla true yapıldı.")
 
-                // Lokal state'i anında güncelle
+                // --- EKLENECEK EN ÖNEMLİ KISIM BURASI ---
+                // Lokal state'i anında güncelle. Bu, arayüzün anında yenilenmesini sağlar.
                 val currentUserData = UserRepository.userDataState.value
                 if (currentUserData != null) {
                     val updatedLocalData = currentUserData.copy(
@@ -157,12 +158,15 @@ class BillingManager(
                         lastPdfDownloadReset = System.currentTimeMillis(),
                         premiumPdfDownloadCount = 0
                     )
+                    // Ana thread'e geçerek lokal state'i tetikle
                     withContext(Dispatchers.Main) {
                         UserRepository.triggerLocalUpdate(updatedLocalData)
                     }
                 }
+                // --- EKLENECEK KISIM SONU ---
 
-                // Event'i tetikle
+
+                // Event'i tetikle (Bu zaten vardı, yerinde kalmalı)
                 withContext(Dispatchers.Main) {
                     _newPurchaseEvent.postValue(Event(true))
                 }
