@@ -22,7 +22,7 @@ object UserRepository {
 
     private var userDocumentListener: ListenerRegistration? = null
 
-    // UserData'yı canlı olarak tutacak ve yayınlayacak StateFlow.
+    // UserData'yı canl�� olarak tutacak ve yayınlayacak StateFlow.
     // Arayüz (Activity/Fragment) bu state'i dinleyerek anında güncellenir.
     private val _userDataState = MutableStateFlow<UserData?>(null)
     val userDataState: StateFlow<UserData?> = _userDataState
@@ -216,6 +216,25 @@ object UserRepository {
         } catch (e: Exception) {
             Log.e(TAG, "Kullanıcı verisi kontrol edilirken/oluşturulurken hata oluştu.", e)
             throw e
+        }
+    }
+
+    /**
+     * Birden fazla alanı Firestore'da tek seferde atomik olarak günceller.
+     */
+    suspend fun updateUserFields(fields: Map<String, Any>): Result<Unit> {
+        val userId = auth.currentUser?.uid
+        return if (userId != null) {
+            try {
+                firestore.collection("users").document(userId).update(fields).await()
+                Log.d(TAG, "Alanlar başarıyla güncellendi: ${fields.keys}")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Log.e(TAG, "Alanlar güncellenirken hata oluştu.", e)
+                Result.failure(e)
+            }
+        } else {
+            Result.failure(Exception("Kullanıcı oturum açmamış."))
         }
     }
 }

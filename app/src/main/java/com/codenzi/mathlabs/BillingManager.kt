@@ -9,6 +9,8 @@ import androidx.lifecycle.MutableLiveData
 import com.android.billingclient.api.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.google.firebase.auth.FirebaseAuth
@@ -20,6 +22,9 @@ class BillingManager(
 ) : PurchasesUpdatedListener {
 
     private lateinit var billingClient: BillingClient
+
+    // UI yaşam döngüsünden bağımsız işlem scope'u (satın alma/Firestore için)
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _productDetails = MutableLiveData<Map<String, ProductDetails>>()
     val productDetails: LiveData<Map<String, ProductDetails>> = _productDetails
@@ -153,13 +158,13 @@ class BillingManager(
                 billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
                     if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                         Log.d("BillingManager", "Satın alma başarıyla onaylandı.")
-                        coroutineScope.launch {
+                        appScope.launch {
                             grantPremiumAccess()
                         }
                     }
                 }
             } else {
-                coroutineScope.launch {
+                appScope.launch {
                     grantPremiumAccess()
                 }
             }
@@ -171,36 +176,42 @@ class BillingManager(
      * Hem Firestore'u günceller hem de UserRepository aracılığıyla lokal state'i ANINDA tetikler.
      */
     private suspend fun grantPremiumAccess() {
-        withContext(Dispatchers.IO) {
-            try {
-                // 1. Firestore'u güncelle
-                UserRepository.updateUserField("isPremium", true).getOrThrow()
-                UserRepository.updateUserField("lastPdfDownloadReset", System.currentTimeMillis()).getOrThrow()
-                UserRepository.updateUserField("premiumPdfDownloadCount", 0).getOrThrow()
-                Log.d("BillingManager", "Firestore'da isPremium alanı başarıyla true yapıldı.")
+        // Bu blok iptal edilemez; kullanıcı ekranı değiştirse de tamamlanır.
+        withContext(NonCancellable) {
+            withContext(Dispatchers.IO) {
+                try {
+                    val now = System.currentTimeMillis()
+                    // Tek seferde atomik güncelleme
+                    UserRepository.updateUserFields(
+                        mapOf(
+                            "isPremium" to true,
+                            "lastPdfDownloadReset" to now,
+                            "premiumPdfDownloadCount" to 0
+                        )
+                    ).getOrThrow()
+                    Log.d("BillingManager", "Firestore'da isPremium ve ilgili alanlar güncellendi.")
 
-                // 2. Lokal veriyi ANINDA güncelle
-                val currentUserData = UserRepository.userDataState.value
-                if (currentUserData != null) {
-                    val updatedLocalData = currentUserData.copy(
-                        isPremium = true,
-                        lastPdfDownloadReset = System.currentTimeMillis(),
-                        premiumPdfDownloadCount = 0
-                    )
-                    // Ana thread'e geçerek lokal state'i tetikle
-                    withContext(Dispatchers.Main) {
-                        UserRepository.triggerLocalUpdate(updatedLocalData)
+                    // Lokal veriyi anında güncelle
+                    val currentUserData = UserRepository.userDataState.value
+                    if (currentUserData != null) {
+                        val updatedLocalData = currentUserData.copy(
+                            isPremium = true,
+                            lastPdfDownloadReset = now,
+                            premiumPdfDownloadCount = 0
+                        )
+                        withContext(Dispatchers.Main) {
+                            UserRepository.triggerLocalUpdate(updatedLocalData)
+                        }
                     }
-                }
 
-                // 3. Satın alma olayını dinleyen (varsa) diğer arayüzlere haber ver
-                withContext(Dispatchers.Main) {
-                    _newPurchaseEvent.postValue(Event(true))
-                }
-            } catch (e: Exception) {
-                Log.e("BillingManager", "Firestore isPremium güncelleme hatası", e)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Premium aktivasyonunda bir sorun oluştu.", Toast.LENGTH_LONG).show()
+                    withContext(Dispatchers.Main) {
+                        _newPurchaseEvent.postValue(Event(true))
+                    }
+                } catch (e: Exception) {
+                    Log.e("BillingManager", "Firestore isPremium güncelleme hatası", e)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Premium aktivasyonunda bir sorun oluştu.", Toast.LENGTH_LONG).show()
+                    }
                 }
             }
         }
@@ -243,8 +254,8 @@ class BillingManager(
                             "Senkronizasyon: Play durumu (${isSubscribedOnPlay}) ile Firestore durumu (${userData.isPremium}) farklı. Güncelleniyor..."
                         )
                         if (isSubscribedOnPlay) {
-                            // Yükseltme: yalnızca bu kullanıcıya ait aktif abonelik varsa ver
-                            grantPremiumAccess()
+                            // Yükseltme: arka planda güvenli şekilde ver
+                            appScope.launch { grantPremiumAccess() }
                         } else {
                             // Düşürme: cihazda hiç aktif abonelik yoksa güvenle false yap
                             if (!hasAnyActiveSubs) {
@@ -278,5 +289,7 @@ class BillingManager(
         if (::billingClient.isInitialized && billingClient.isReady) {
             billingClient.endConnection()
         }
+        // İsteğe bağlı: uzun ömürlü scope'u uygulama kapanırken iptal etmek isteyebilirsiniz.
+        // appScope.cancel()
     }
 }
