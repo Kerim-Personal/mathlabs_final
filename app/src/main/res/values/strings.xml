@@ -339,6 +339,7 @@
 
     <string name="no_more_queries_today">Bugünlük sorgu hakkınız doldu.</string>
     <string name="premium_activated_toast">Premium Aktif!</string>
+    <string name="loading">Yükleniyor...</string>
 
 
 </resources>

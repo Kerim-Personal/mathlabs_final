@@ -81,9 +81,9 @@ class SettingsActivity : AppCompatActivity() {
         setupPremiumPlanToggle()
         setupBackButton()
 
-        // *** DEĞİŞİKLİK BURADA: Artık tek ve doğru yöntem bu. ***
         // Kullanıcı verisini canlı olarak dinleyip arayüzü anında güncelliyoruz.
-        // Bu, satın alma sonrası arayüzün güncellenmeme sorununu kökünden çözer.
+        // Bu, satın alma sonrası veya oturum durumu değiştiğinde arayüzün
+        // tutarlı kalmasını sağlar.
         observeUserStatusAndUpdateUI()
     }
 
@@ -126,8 +126,6 @@ class SettingsActivity : AppCompatActivity() {
             updatePriceDisplay()
         }
 
-        // Bu sadece YENİ satın alımlarda bir Toast göstermek için kalabilir.
-        // Arayüz güncellemesi artık aşağıdaki ana dinleyici tarafından yapılıyor.
         billingManager.newPurchaseEvent.observe(this) { event ->
             event.getContentIfNotHandled()?.let { isPremium ->
                 if (isPremium) {
@@ -138,7 +136,6 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     /**
-     * *** YENİ EKLENEN ANA FONKSİYON ***
      * UserRepository'deki canlı veri akışını (StateFlow) dinler.
      * Kullanıcı verisi her değiştiğinde (örneğin isPremium true olduğunda) arayüzü anında günceller.
      * Bu fonksiyon, tüm tutarsızlık sorunlarını ortadan kaldırır.
@@ -147,11 +144,19 @@ class SettingsActivity : AppCompatActivity() {
         lifecycleScope.launch {
             UserRepository.userDataState.collectLatest { userData ->
                 val user = auth.currentUser
-                if (userData != null && user != null) {
-                    // 1. Premium Durumuna göre ilgili arayüzü göster/gizle
-                    updatePremiumUI(userData.isPremium)
 
-                    // 2. Kullanıcı bilgilerini (isim, email, profil fotoğrafı) güncelle
+                // 1. KESİN KONTROL: Eğer kullanıcı oturumu gerçekten kapalıysa, giriş ekranına yönlendir.
+                // En güvenilir kontrol budur.
+                if (user == null) {
+                    navigateToLogin()
+                    return@collectLatest
+                }
+
+                // 2. SABIRLI BEKLEYİŞ: Oturum açıksa ama Firestore'dan veri henüz gelmediyse (userData == null ise),
+                // yönlendirme YAPMA, sadece bekle veya geçici bir "yükleniyor" durumu göster.
+                if (userData != null) {
+                    // Veri geldiğinde arayüzü güncelle.
+                    updatePremiumUI(userData.isPremium)
                     textViewUserName.text = user.displayName
                     textViewUserEmail.text = user.email
                     Glide.with(this@SettingsActivity)
@@ -160,15 +165,16 @@ class SettingsActivity : AppCompatActivity() {
                         .placeholder(R.drawable.ic_premium_badge)
                         .into(userProfileImage)
                 } else {
-                    // Kullanıcı verisi yoksa veya çıkış yapmışsa giriş ekranına yönlendir.
-                    navigateToLogin()
+                    // userData henüz null. Bu durum, verinin yüklendiği anlamına gelir.
+                    // Arayüze geçici bilgi basabiliriz ama ASLA yönlendirme yapmayız.
+                    textViewUserName.text = getString(R.string.loading) // Örnek: "Yükleniyor..."
+                    textViewUserEmail.text = user.email // E-posta bilgisi zaten `user` objesinde var.
                 }
             }
         }
     }
 
     /**
-     * *** YENİ EKLENEN YARDIMCI FONKSİYON ***
      * Premium durumuna göre satın alma ve premium durumu konteynerlerinin görünürlüğünü ayarlar.
      */
     private fun updatePremiumUI(isPremium: Boolean) {

@@ -25,6 +25,9 @@ class BillingManager(
     private val _newPurchaseEvent = MutableLiveData<Event<Boolean>>()
     val newPurchaseEvent: LiveData<Event<Boolean>> = _newPurchaseEvent
 
+    // YENİ EKLENEN SATIR
+    private var onBillingSetupFinishedListener: (() -> Unit)? = null
+
     init {
         setupBillingClient()
     }
@@ -40,8 +43,8 @@ class BillingManager(
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     Log.d("BillingManager", "Billing Client başarıyla kuruldu.")
                     queryProductDetails()
-                    // Uygulama başlarken senkronizasyonu yapması için Splash'tan çağrılacak.
-                    // checkAndSyncSubscriptions()
+                    // YENİ EKLENEN SATIR: Kurulum bitince listener'ı tetikle
+                    onBillingSetupFinishedListener?.invoke()
                 } else {
                     Log.e("BillingManager", "Billing Client kurulum hatası: ${billingResult.debugMessage}")
                 }
@@ -50,6 +53,19 @@ class BillingManager(
                 Log.w("BillingManager", "Billing Client bağlantısı koptu.")
             }
         })
+    }
+
+    // YENİ EKLENEN FONKSİYON
+    /**
+     * BillingClient hazır olduğunda bir işlem gerçekleştirmek için kullanılır.
+     * Eğer hazırsa işlemi hemen yapar, değilse hazır olmasını bekler.
+     */
+    fun executeOnBillingSetupFinished(listener: () -> Unit) {
+        if (billingClient.isReady) {
+            listener()
+        } else {
+            onBillingSetupFinishedListener = listener
+        }
     }
 
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
@@ -138,7 +154,6 @@ class BillingManager(
         }
     }
 
-    // *** DEĞİŞTİRİLEN VE YENİ GÖREV EKlenen FONKSİYON ***
     fun checkAndSyncSubscriptions() {
         val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS)
         billingClient.queryPurchasesAsync(params.build()) { billingResult, activeSubs ->
@@ -157,7 +172,6 @@ class BillingManager(
                         Log.d("BillingManager", "Senkronizasyon: Durumlar eşleşiyor, işlem yapılmadı.")
                     }
 
-                    // Ayrıca yarım kalmış onaylanmamış işlemleri de tamamla
                     activeSubs?.forEach { purchase ->
                         if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
                             handlePurchase(purchase)
