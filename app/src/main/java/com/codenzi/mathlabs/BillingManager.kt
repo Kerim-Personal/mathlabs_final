@@ -40,15 +40,14 @@ class BillingManager(
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     Log.d("BillingManager", "Billing Client başarıyla kuruldu.")
                     queryProductDetails()
-                    queryPurchases()
+                    // Uygulama başlarken senkronizasyonu yapması için Splash'tan çağrılacak.
+                    // checkAndSyncSubscriptions()
                 } else {
                     Log.e("BillingManager", "Billing Client kurulum hatası: ${billingResult.debugMessage}")
                 }
             }
-
             override fun onBillingServiceDisconnected() {
                 Log.w("BillingManager", "Billing Client bağlantısı koptu.")
-                // Gerekirse yeniden bağlanma mantığı eklenebilir.
             }
         })
     }
@@ -104,7 +103,6 @@ class BillingManager(
             val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
                 .setPurchaseToken(purchase.purchaseToken)
                 .build()
-
             billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     Log.d("BillingManager", "Satın alma başarıyla onaylandı.")
@@ -116,17 +114,11 @@ class BillingManager(
         }
     }
 
-    // *** DEĞİŞTİRİLEN VE SORUNU ÇÖZEN FONKSİYON ***
     private suspend fun grantPremiumAccess() {
         withContext(Dispatchers.IO) {
             try {
-                // 1. Önce Firestore'daki veriyi güncelle. Bu sunucu tarafındaki asıl işlemdir.
                 UserRepository.updateUserField("isPremium", true).getOrThrow()
                 Log.d("BillingManager", "Firestore'da isPremium alanı başarıyla true yapıldı.")
-
-                // 2. LOKAL VERİYİ ANINDA GÜNCELLE!
-                // Mevcut kullanıcı verisini alıp, isPremium alanını lokalde true yaparak
-                // StateFlow'u ve dolayısıyla arayüzü anında tetikliyoruz.
                 val currentUserData = UserRepository.userDataState.value
                 if (currentUserData != null) {
                     val updatedLocalData = currentUserData.copy(isPremium = true)
@@ -134,32 +126,46 @@ class BillingManager(
                         UserRepository.triggerLocalUpdate(updatedLocalData)
                     }
                 }
-
-                // 3. Kullanıcıya Toast mesajı gibi ek geri bildirimler için Event'i tetikle.
                 withContext(Dispatchers.Main) {
                     _newPurchaseEvent.postValue(Event(true))
                 }
-
             } catch (e: Exception) {
                 Log.e("BillingManager", "Firestore isPremium güncelleme hatası", e)
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Premium aktivasyonunda bir sorun oluştu. Lütfen uygulamayı yeniden başlatın.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Premium aktivasyonunda bir sorun oluştu.", Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
 
-    fun queryPurchases() {
+    // *** DEĞİŞTİRİLEN VE YENİ GÖREV EKlenen FONKSİYON ***
+    fun checkAndSyncSubscriptions() {
         val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS)
         billingClient.queryPurchasesAsync(params.build()) { billingResult, activeSubs ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                // Bu fonksiyonun ana görevi, uygulamanın çökmesi gibi durumlarda
-                // yarım kalmış veya onaylanmamış satın alımları tamamlamaktır.
-                activeSubs.forEach { purchase ->
-                    if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
-                        handlePurchase(purchase)
+                coroutineScope.launch {
+                    val isSubscribedOnPlay = !activeSubs.isNullOrEmpty()
+                    val isPremiumOnFirestore = UserRepository.userDataState.value?.isPremium ?: false
+
+                    if (!isSubscribedOnPlay && isPremiumOnFirestore) {
+                        Log.d("BillingManager", "Senkronizasyon: Google Play'de aktif abonelik yok. Premium geri alınıyor.")
+                        UserRepository.updateUserField("isPremium", false)
+                    } else if (isSubscribedOnPlay && !isPremiumOnFirestore) {
+                        Log.d("BillingManager", "Senkronizasyon: Google Play'de aktif abonelik bulundu. Premium veriliyor.")
+                        UserRepository.updateUserField("isPremium", true)
+                    } else {
+                        Log.d("BillingManager", "Senkronizasyon: Durumlar eşleşiyor, işlem yapılmadı.")
+                    }
+
+                    // Ayrıca yarım kalmış onaylanmamış işlemleri de tamamla
+                    activeSubs?.forEach { purchase ->
+                        if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
+                            handlePurchase(purchase)
+                        }
                     }
                 }
+            } else {
+                Log.e("BillingManager", "Abonelikler sorgulanırken hata: ${billingResult.debugMessage}")
             }
         }
     }
