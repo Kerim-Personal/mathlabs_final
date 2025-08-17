@@ -22,6 +22,7 @@ object UserRepository {
 
     private var userDocumentListener: ListenerRegistration? = null
 
+    // Değişiklik 1: UserData'yı canlı olarak tutacak ve yayınlayacak StateFlow.
     private val _userDataState = MutableStateFlow<UserData?>(null)
     val userDataState: StateFlow<UserData?> = _userDataState
 
@@ -36,6 +37,10 @@ object UserRepository {
         }
     }
 
+    /**
+     * Değişiklik 2: Firestore'daki kullanıcı belgesini canlı olarak dinlemeye başlar.
+     * Herhangi bir değişiklik olduğunda _userDataState'i günceller.
+     */
     private fun startListeningForUserData() {
         val userId = auth.currentUser?.uid ?: return
         userDocumentListener?.remove() // Önceki dinleyiciyi temizle
@@ -50,7 +55,7 @@ object UserRepository {
 
             if (snapshot != null && snapshot.exists()) {
                 val userData = snapshot.toObject(UserData::class.java)
-                _userDataState.value = userData
+                _userDataState.value = userData // StateFlow'u en güncel veriyle besle
                 Log.d(TAG, "Kullanıcı verisi güncellendi: $userData")
             } else {
                 Log.d(TAG, "Kullanıcı belgesi bulunamadı.")
@@ -59,13 +64,19 @@ object UserRepository {
         }
     }
 
+    /**
+     * Değişiklik 3: Dinleyiciyi durdurur ve StateFlow'u temizler (kullanıcı çıkış yaptığında).
+     */
     private fun stopListeningForUserData() {
         userDocumentListener?.remove()
-        userDocumentListener = null // HATA DÜZELTİLDİ: 'nil' -> 'null'
-        _userDataState.value = null // HATA DÜZELTİLDİ: 'nil' -> 'null'
+        userDocumentListener = null
+        _userDataState.value = null // StateFlow'u temizle
         Log.d(TAG, "Kullanıcı verisi dinleyicisi durduruldu.")
     }
 
+    /**
+     * Değişiklik 4: Premium kontrolü artık doğrudan canlı veriyi tutan StateFlow üzerinden yapılır.
+     */
     fun isCurrentUserPremium(): Boolean {
         return _userDataState.value?.isPremium ?: false
     }
@@ -140,7 +151,7 @@ object UserRepository {
             if (!document.exists()) {
                 val initialData = UserData(
                     uid = user.uid,
-                    displayName = user.displayName, // Nullable String? kabul eder
+                    displayName = user.displayName,
                     email = user.email,
                     isPremium = false,
                     premiumPdfDownloadCount = 0,

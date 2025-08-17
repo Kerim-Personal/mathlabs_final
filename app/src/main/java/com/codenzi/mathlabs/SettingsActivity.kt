@@ -81,9 +81,9 @@ class SettingsActivity : AppCompatActivity() {
         setupPremiumPlanToggle()
         setupBackButton()
 
-        // *** YENİ VE DOĞRU YÖNTEM ***
-        // Arayüzü, kullanıcı verisindeki anlık değişikliklere göre güncelle.
-        // Bu, eski 'checkInitialPremiumStatus' fonksiyonunun yerini alır ve sorunu kökünden çözer.
+        // *** DEĞİŞİKLİK BURADA: Artık tek ve doğru yöntem bu. ***
+        // Kullanıcı verisini canlı olarak dinleyip arayüzü anında güncelliyoruz.
+        // Bu, satın alma sonrası arayüzün güncellenmeme sorununu kökünden çözer.
         observeUserStatusAndUpdateUI()
     }
 
@@ -138,8 +138,9 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     /**
-     * *** EN ÖNEMLİ FONKSİYON ***
-     * Kullanıcı verisini ve premium durumunu canlı olarak dinler, arayüzü anında günceller.
+     * *** YENİ EKLENEN ANA FONKSİYON ***
+     * UserRepository'deki canlı veri akışını (StateFlow) dinler.
+     * Kullanıcı verisi her değiştiğinde (örneğin isPremium true olduğunda) arayüzü anında günceller.
      * Bu fonksiyon, tüm tutarsızlık sorunlarını ortadan kaldırır.
      */
     private fun observeUserStatusAndUpdateUI() {
@@ -147,10 +148,10 @@ class SettingsActivity : AppCompatActivity() {
             UserRepository.userDataState.collectLatest { userData ->
                 val user = auth.currentUser
                 if (userData != null && user != null) {
-                    // Premium Durumunu Güncelle
+                    // 1. Premium Durumuna göre ilgili arayüzü göster/gizle
                     updatePremiumUI(userData.isPremium)
 
-                    // Kullanıcı Bilgilerini Güncelle
+                    // 2. Kullanıcı bilgilerini (isim, email, profil fotoğrafı) güncelle
                     textViewUserName.text = user.displayName
                     textViewUserEmail.text = user.email
                     Glide.with(this@SettingsActivity)
@@ -159,13 +160,17 @@ class SettingsActivity : AppCompatActivity() {
                         .placeholder(R.drawable.ic_premium_badge)
                         .into(userProfileImage)
                 } else {
-                    // Kullanıcı verisi yoksa veya çıkış yapmışsa
+                    // Kullanıcı verisi yoksa veya çıkış yapmışsa giriş ekranına yönlendir.
                     navigateToLogin()
                 }
             }
         }
     }
 
+    /**
+     * *** YENİ EKLENEN YARDIMCI FONKSİYON ***
+     * Premium durumuna göre satın alma ve premium durumu konteynerlerinin görünürlüğünü ayarlar.
+     */
     private fun updatePremiumUI(isPremium: Boolean) {
         if (isPremium) {
             premiumPurchaseContainer.visibility = View.GONE
@@ -175,9 +180,6 @@ class SettingsActivity : AppCompatActivity() {
             premiumStatusContainer.visibility = View.GONE
         }
     }
-
-    // ... DİĞER TÜM FONKSİYONLAR DEĞİŞİKLİK OLMADAN AYNI KALIR ...
-    // ... (setupClickListeners, signOut, navigateToLogin, vs.)
 
     private fun setupClickListeners() {
         layoutThemeSettings.setOnClickListener {
