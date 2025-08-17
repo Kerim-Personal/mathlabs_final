@@ -337,4 +337,5 @@
 
     <string name="no_more_queries_today">You have no more queries for today.</string>
     <string name="premium_activated_toast">Premium Activated!</string>
+    <string name="loading">Loading…</string>
 </resources>

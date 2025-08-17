@@ -16,6 +16,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.os.SystemClock
 
 class ChatAiDialogFragment : BottomSheetDialogFragment() {
 
@@ -27,6 +28,13 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
     private lateinit var buttonGetMoreQueries: Button
     private lateinit var chatAdapter: ChatAdapter
     private lateinit var pdfViewActivity: PdfViewActivity
+
+    // Hızlı tıklamaları engellemek için basit debounce
+    private var lastSuggestionClickTime = 0L
+    private val suggestionClickDebounceMs = 800L
+
+    // Yanıt beklerken yeni soru gönderimini engelle
+    private var isRequestInProgress = false
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         // XML layout dosyasını inflate et
@@ -85,6 +93,10 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
 
     private fun setupClickListeners() {
         buttonSend.setOnClickListener {
+            if (isRequestInProgress) {
+                Toast.makeText(requireContext(), R.string.ai_wait_for_response, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             val question = editTextQuestion.text.toString().trim()
             if (question.isNotEmpty()) {
                 sendQueryToServer(question)
@@ -97,13 +109,27 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
             pdfViewActivity.showWatchAdDialog()
         }
 
-        view?.findViewById<Button>(R.id.btnSuggestion1)?.setOnClickListener { sendQueryToServer((it as Button).text.toString()) }
-        view?.findViewById<Button>(R.id.btnSuggestion2)?.setOnClickListener { sendQueryToServer((it as Button).text.toString()) }
-        view?.findViewById<Button>(R.id.btnSuggestion3)?.setOnClickListener { sendQueryToServer((it as Button).text.toString()) }
+        view?.findViewById<Button>(R.id.btnSuggestion1)?.setOnClickListener { handleSuggestionClick(it as Button) }
+        view?.findViewById<Button>(R.id.btnSuggestion2)?.setOnClickListener { handleSuggestionClick(it as Button) }
+        view?.findViewById<Button>(R.id.btnSuggestion3)?.setOnClickListener { handleSuggestionClick(it as Button) }
 
         view?.findViewById<ImageButton>(R.id.buttonClearChat)?.setOnClickListener {
             clearChat()
         }
+    }
+
+    private fun handleSuggestionClick(button: Button) {
+        if (isRequestInProgress) {
+            Toast.makeText(requireContext(), R.string.ai_wait_for_response, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastSuggestionClickTime < suggestionClickDebounceMs) {
+            // Çok hızlı ardışık tıklama: yoksay
+            return
+        }
+        lastSuggestionClickTime = now
+        sendQueryToServer(button.text.toString())
     }
 
     private fun clearChat() {
@@ -162,6 +188,7 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
      * Kullanıcının sorusunu alır, asenkron olarak sorgu hakkını kontrol eder ve sunucuya gönderir.
      */
     private fun sendQueryToServer(question: String) {
+        if (isRequestInProgress) return
         lifecycleScope.launch {
             // 1. Sorgu göndermeden önce hakkı tekrar kontrol et
             if (!AiQueryManager.canPerformQuery()) {
@@ -170,7 +197,8 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
                 return@launch
             }
 
-            // 2. UI güncellemeleri
+            // 2. İstek durumu ve UI güncellemeleri
+            isRequestInProgress = true
             addMessage(ChatMessage(question, true))
             suggestionScrollView.visibility = View.GONE
             thinkingIndicator.visibility = View.VISIBLE
@@ -198,6 +226,9 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
                         val errorMessage = getString(R.string.ai_chat_error_with_details, error.localizedMessage)
                         addMessage(ChatMessage(errorMessage, false))
                     }
+
+                    // İstek bitti
+                    isRequestInProgress = false
 
                     // 6. Cevap geldikten sonra sorgu hakkını tekrar kontrol et ve UI'ı ayarla
                     lifecycleScope.launch {

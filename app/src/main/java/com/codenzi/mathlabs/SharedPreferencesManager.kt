@@ -31,6 +31,9 @@ object SharedPreferencesManager {
     private const val KEY_PREMIUM_LAST_RESET_TIMESTAMP = "premium_last_reset_timestamp"
     private const val KEY_REWARDED_QUERY_COUNT = "rewarded_query_count"
 
+    // İndirilen PDF kayıtları (cihaz yereli)
+    private const val KEY_DOWNLOADED_PDFS_SET = "downloaded_pdfs_set"
+
     private fun getPreferences(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
@@ -139,6 +142,20 @@ object SharedPreferencesManager {
         val currentCount = getRewardedQueryCount(context)
         if (currentCount > 0) {
             getPreferences(context).edit { putInt(KEY_REWARDED_QUERY_COUNT, currentCount - 1) }
+        }
+    }
+
+    // --- İndirilen PDF kayıtları ---
+    fun hasPdfDownloaded(context: Context, id: String): Boolean {
+        val set = getPreferences(context).getStringSet(KEY_DOWNLOADED_PDFS_SET, emptySet()) ?: emptySet()
+        return set.contains(id)
+    }
+
+    fun markPdfDownloaded(context: Context, id: String) {
+        val prefs = getPreferences(context)
+        val current = prefs.getStringSet(KEY_DOWNLOADED_PDFS_SET, emptySet())?.toMutableSet() ?: mutableSetOf()
+        if (current.add(id)) {
+            prefs.edit { putStringSet(KEY_DOWNLOADED_PDFS_SET, current) }
         }
     }
 }

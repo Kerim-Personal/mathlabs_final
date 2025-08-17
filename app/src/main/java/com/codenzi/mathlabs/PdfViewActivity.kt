@@ -212,8 +212,8 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             // PDF indirme hakkını anlık olarak UserRepository'den kontrol et
             if (UserRepository.canDownloadPdf()) {
                 pdfBytes?.let {
-                    // İndirme sayacını Firestore'da artır
-                    UserRepository.incrementUserCounter("premiumPdfDownloadCount")
+                    // SAYAÇ ARTIRIMINI BURADAN KALDIRDIK.
+                    // Artık sadece başarılı bir yeni indirme gerçekleştiğinde artıracağız.
                     downloadPdf(it)
                 } ?: run {
                     showAnimatedToast(getString(R.string.download_failed))
@@ -235,20 +235,40 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private fun downloadPdf(pdfBytes: ByteArray) {
         val fileName = pdfTitle?.replace(Regex("[^a-zA-Z0-9.-]"), "_") ?: "MathLabs_File"
         val safeFileName = "$fileName.pdf"
+        val pdfId = pdfAssetName ?: safeFileName
+
+        // Daha önce indirildiyse (yerel kayıt), tekrar indirmeye izin verme
+        if (SharedPreferencesManager.hasPdfDownloaded(this, pdfId)) {
+            showAnimatedToast(getString(R.string.pdf_already_downloaded))
+            return
+        }
 
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val existingFile = File(downloadsDir, safeFileName)
 
-        if (existingFile.exists()) {
+        // Android 10+ için MediaStore üzerinden, altı için doğrudan dosya sistemi üzerinden varlık kontrolü
+        val alreadyExists = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            fileExistsInDownloadsApi29Plus(safeFileName)
+        } else {
+            val existingFile = File(downloadsDir, safeFileName)
+            existingFile.exists()
+        }
+
+        if (alreadyExists) {
+            // Dosya diskte varsa da tekrar indirmeyi engelle
+            SharedPreferencesManager.markPdfDownloaded(this, pdfId)
             showAnimatedToast(getString(R.string.pdf_already_downloaded))
             return
         }
 
         showAnimatedToast(getString(R.string.downloading_pdf))
 
+        // Sayaç artırımını doğru kullanıcıya yazmak için UID'i baştan yakala
+        val uidSnapshot = UserRepository.currentUid()
+
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val outputStream: OutputStream? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                var wroteSuccessfully = false
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     val resolver = contentResolver
                     val contentValues = ContentValues().apply {
                         put(MediaStore.MediaColumns.DISPLAY_NAME, safeFileName)
@@ -256,17 +276,35 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                         put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
                     }
                     val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-                    uri?.let { resolver.openOutputStream(it) }
+                    val outputStream = uri?.let { resolver.openOutputStream(it) }
+                    outputStream?.use { os ->
+                        os.write(pdfBytes)
+                        wroteSuccessfully = true
+                    }
                 } else {
                     downloadsDir.mkdirs()
                     val file = File(downloadsDir, safeFileName)
-                    FileOutputStream(file)
+                    FileOutputStream(file).use { os ->
+                        os.write(pdfBytes)
+                        wroteSuccessfully = true
+                    }
                 }
 
-                outputStream?.use { it.write(pdfBytes) }
+                if (wroteSuccessfully) {
+                    // Yerel olarak indirildi olarak işaretle
+                    SharedPreferencesManager.markPdfDownloaded(this@PdfViewActivity, pdfId)
 
-                withContext(Dispatchers.Main) {
-                    showAnimatedToast(getString(R.string.download_successful))
+                    // Başarılı yeni indirme sonrasında sayaç artır (hedef UID'e sabit)
+                    uidSnapshot?.let { safeUid ->
+                        UserRepository.incrementUserCounterFor(safeUid, "premiumPdfDownloadCount")
+                    }
+                    withContext(Dispatchers.Main) {
+                        showAnimatedToast(getString(R.string.download_successful))
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        showAnimatedToast(getString(R.string.download_failed))
+                    }
                 }
             } catch (e: IOException) {
                 withContext(Dispatchers.Main) {
@@ -274,6 +312,28 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                 }
                 Log.e("DownloadPDF", "Error saving PDF", e)
             }
+        }
+    }
+
+    // Android 10+ (API 29+) için Downloads koleksiyonunda aynı isimli PDF var mı kontrolü
+    private fun fileExistsInDownloadsApi29Plus(displayName: String): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+        val projection = arrayOf(
+            MediaStore.MediaColumns._ID,
+            MediaStore.MediaColumns.DISPLAY_NAME,
+            MediaStore.MediaColumns.MIME_TYPE
+        )
+        val selection = "${MediaStore.MediaColumns.DISPLAY_NAME} = ? AND ${MediaStore.MediaColumns.MIME_TYPE} = ?"
+        val selectionArgs = arrayOf(displayName, "application/pdf")
+        contentResolver.query(
+            MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+            projection,
+            selection,
+            selectionArgs,
+            null
+        ).use { cursor ->
+            if (cursor == null) return false
+            return cursor.moveToFirst()
         }
     }
 

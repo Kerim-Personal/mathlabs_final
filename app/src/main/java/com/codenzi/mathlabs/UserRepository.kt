@@ -22,7 +22,7 @@ object UserRepository {
 
     private var userDocumentListener: ListenerRegistration? = null
 
-    // UserData'yı canl�� olarak tutacak ve yayınlayacak StateFlow.
+    // UserData'yı canlı olarak tutacak ve yayınlayacak StateFlow.
     // Arayüz (Activity/Fragment) bu state'i dinleyerek anında güncellenir.
     private val _userDataState = MutableStateFlow<UserData?>(null)
     val userDataState: StateFlow<UserData?> = _userDataState
@@ -38,6 +38,11 @@ object UserRepository {
             }
         }
     }
+
+    /**
+     * Şu anki Firebase kullanıcısının UID'i (varsa)
+     */
+    fun currentUid(): String? = auth.currentUser?.uid
 
     /**
      * Firestore'daki kullanıcı belgesini canlı olarak dinlemeye başlar.
@@ -127,6 +132,20 @@ object UserRepository {
     }
 
     /**
+     * Belirli bir alanı Firestore'da, hedef UID için günceller (hesap değişse bile güvenli).
+     */
+    suspend fun updateUserFieldFor(uid: String, field: String, value: Any): Result<Unit> {
+        return try {
+            firestore.collection("users").document(uid).update(field, value).await()
+            Log.d(TAG, "($uid) $field alanı başarıyla güncellendi.")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "($uid) $field alanı güncellenirken hata oluştu.", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Bir sayaç alanını Firestore'da artırır/azaltır.
      */
     suspend fun incrementUserCounter(fieldName: String, incrementBy: Long = 1): Result<Unit> {
@@ -143,6 +162,21 @@ object UserRepository {
             }
         } else {
             Result.failure(Exception("Kullanıcı oturum açmamış."))
+        }
+    }
+
+    /**
+     * Bir sayaç alanını, hedef UID için Firestore'da artırır/azaltır.
+     */
+    suspend fun incrementUserCounterFor(uid: String, fieldName: String, incrementBy: Long = 1): Result<Unit> {
+        return try {
+            val increment = FieldValue.increment(incrementBy)
+            firestore.collection("users").document(uid).update(fieldName, increment).await()
+            Log.d(TAG, "($uid) $fieldName sayacı $incrementBy artırıldı.")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "($uid) $fieldName sayacı artırılırken hata oluştu.", e)
+            Result.failure(e)
         }
     }
 
@@ -235,6 +269,20 @@ object UserRepository {
             }
         } else {
             Result.failure(Exception("Kullanıcı oturum açmamış."))
+        }
+    }
+
+    /**
+     * Birden fazla alanı, hedef UID için tek seferde atomik olarak günceller.
+     */
+    suspend fun updateUserFieldsFor(uid: String, fields: Map<String, Any>): Result<Unit> {
+        return try {
+            firestore.collection("users").document(uid).update(fields).await()
+            Log.d(TAG, "($uid) Alanlar başarıyla güncellendi: ${fields.keys}")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "($uid) Alanlar güncellenirken hata oluştu.", e)
+            Result.failure(e)
         }
     }
 }

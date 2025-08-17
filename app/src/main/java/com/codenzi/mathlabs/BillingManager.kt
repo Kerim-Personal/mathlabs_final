@@ -143,10 +143,11 @@ class BillingManager(
             // Bu satın alma mevcut Firebase kullanıcısına mı ait?
             val expectedOa = currentObfuscatedAccountId()
             val purchaseOa = purchase.accountIdentifiers?.obfuscatedAccountId
-            if (expectedOa == null || purchaseOa == null || expectedOa != purchaseOa) {
+            val uidAtPurchase = FirebaseAuth.getInstance().currentUser?.uid
+            if (expectedOa == null || purchaseOa == null || expectedOa != purchaseOa || uidAtPurchase == null) {
                 Log.w(
                     "BillingManager",
-                    "Satın alma bu Firebase kullanıcısına ait görünmüyor. expected=$expectedOa, purchase=$purchaseOa"
+                    "Satın alma bu Firebase kullanıcısına ait görünmüyor veya UID alınamadı. expected=$expectedOa, purchase=$purchaseOa"
                 )
                 return
             }
@@ -159,48 +160,52 @@ class BillingManager(
                     if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                         Log.d("BillingManager", "Satın alma başarıyla onaylandı.")
                         appScope.launch {
-                            grantPremiumAccess()
+                            grantPremiumAccess(uidAtPurchase)
                         }
                     }
                 }
             } else {
                 appScope.launch {
-                    grantPremiumAccess()
+                    grantPremiumAccess(uidAtPurchase)
                 }
             }
         }
     }
 
     /**
-     * YENİ/GÜNCELLENMİŞ FONKSİYON: Kullanıcıya premium erişim verir.
+     * Kullanıcıya premium erişim verir (hedef UID'e sabitlenmiş güvenli sürüm).
      * Hem Firestore'u günceller hem de UserRepository aracılığıyla lokal state'i ANINDA tetikler.
      */
-    private suspend fun grantPremiumAccess() {
+    private suspend fun grantPremiumAccess(targetUid: String) {
         // Bu blok iptal edilemez; kullanıcı ekranı değiştirse de tamamlanır.
         withContext(NonCancellable) {
             withContext(Dispatchers.IO) {
                 try {
                     val now = System.currentTimeMillis()
-                    // Tek seferde atomik güncelleme
-                    UserRepository.updateUserFields(
+                    // Tek seferde atomik güncelleme (hedef UID için)
+                    UserRepository.updateUserFieldsFor(
+                        targetUid,
                         mapOf(
                             "isPremium" to true,
                             "lastPdfDownloadReset" to now,
                             "premiumPdfDownloadCount" to 0
                         )
                     ).getOrThrow()
-                    Log.d("BillingManager", "Firestore'da isPremium ve ilgili alanlar güncellendi.")
+                    Log.d("BillingManager", "($targetUid) Firestore'da isPremium ve ilgili alanlar güncellendi.")
 
-                    // Lokal veriyi anında güncelle
-                    val currentUserData = UserRepository.userDataState.value
-                    if (currentUserData != null) {
-                        val updatedLocalData = currentUserData.copy(
-                            isPremium = true,
-                            lastPdfDownloadReset = now,
-                            premiumPdfDownloadCount = 0
-                        )
-                        withContext(Dispatchers.Main) {
-                            UserRepository.triggerLocalUpdate(updatedLocalData)
+                    // Lokal veriyi anında güncelle (yalnızca bu UID hala aktifse)
+                    val activeUid = UserRepository.currentUid()
+                    if (activeUid == targetUid) {
+                        val currentUserData = UserRepository.userDataState.value
+                        if (currentUserData != null) {
+                            val updatedLocalData = currentUserData.copy(
+                                isPremium = true,
+                                lastPdfDownloadReset = now,
+                                premiumPdfDownloadCount = 0
+                            )
+                            withContext(Dispatchers.Main) {
+                                UserRepository.triggerLocalUpdate(updatedLocalData)
+                            }
                         }
                     }
 
@@ -231,7 +236,8 @@ class BillingManager(
         }
 
         val myObfuscatedId = currentObfuscatedAccountId()
-        if (myObfuscatedId == null) {
+        val uidSnapshot = FirebaseAuth.getInstance().currentUser?.uid
+        if (myObfuscatedId == null || uidSnapshot == null) {
             Log.w("BillingManager", "Firebase kullanıcısı yok, senkronizasyon atlandı.")
             return
         }
@@ -254,15 +260,18 @@ class BillingManager(
                             "Senkronizasyon: Play durumu (${isSubscribedOnPlay}) ile Firestore durumu (${userData.isPremium}) farklı. Güncelleniyor..."
                         )
                         if (isSubscribedOnPlay) {
-                            // Yükseltme: arka planda güvenli şekilde ver
-                            appScope.launch { grantPremiumAccess() }
+                            // Yükseltme: arka planda hedef UID'e güvenli şekilde ver
+                            appScope.launch { grantPremiumAccess(uidSnapshot) }
                         } else {
-                            // Düşürme: cihazda hiç aktif abonelik yoksa güvenle false yap
+                            // Düşürme: cihazda hiç aktif abonelik yoksa güvenle false yap (hedef UID)
                             if (!hasAnyActiveSubs) {
-                                UserRepository.updateUserField("isPremium", false)
-                                val updatedData = userData.copy(isPremium = false)
-                                withContext(Dispatchers.Main) {
-                                    UserRepository.triggerLocalUpdate(updatedData)
+                                UserRepository.updateUserFieldFor(uidSnapshot, "isPremium", false)
+                                val activeUid = UserRepository.currentUid()
+                                if (activeUid == uidSnapshot) {
+                                    val updatedData = userData.copy(isPremium = false)
+                                    withContext(Dispatchers.Main) {
+                                        UserRepository.triggerLocalUpdate(updatedData)
+                                    }
                                 }
                             } else {
                                 Log.d(
