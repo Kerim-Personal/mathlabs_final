@@ -3,6 +3,7 @@ package com.codenzi.mathlabs
 import android.app.Activity
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.android.billingclient.api.*
@@ -11,15 +12,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// *** YENİ YAPI: Sınıfın kendisi artık bir dinleyici (Listener) ***
 class BillingManager(
     private val context: Context,
     private val coroutineScope: CoroutineScope
 ) : PurchasesUpdatedListener {
 
     private lateinit var billingClient: BillingClient
-    private var monthlyPlanDetails: ProductDetails? = null
-    private var yearlyPlanDetails: ProductDetails? = null
 
     private val _productDetails = MutableLiveData<Map<String, ProductDetails>>()
     val productDetails: LiveData<Map<String, ProductDetails>> = _productDetails
@@ -33,7 +31,7 @@ class BillingManager(
 
     private fun setupBillingClient() {
         billingClient = BillingClient.newBuilder(context)
-            .setListener(this) // 'this' -> bu sınıfın kendisini dinleyici olarak ayarla
+            .setListener(this)
             .enablePendingPurchases()
             .build()
 
@@ -50,14 +48,11 @@ class BillingManager(
 
             override fun onBillingServiceDisconnected() {
                 Log.w("BillingManager", "Billing Client bağlantısı koptu.")
+                // Gerekirse yeniden bağlanma mantığı eklenebilir.
             }
         })
     }
 
-    /**
-     * *** YENİ YAPI: Dinleyici metodu artık sınıfın içinde ***
-     * Satın alma işlemi tamamlandığında veya iptal edildiğinde bu fonksiyon çağrılır.
-     */
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
         if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
             for (purchase in purchases) {
@@ -84,7 +79,7 @@ class BillingManager(
         val params = QueryProductDetailsParams.newBuilder().setProductList(productList)
 
         billingClient.queryProductDetailsAsync(params.build()) { result, detailsList ->
-            if (result.responseCode == BillingClient.BillingResponseCode.OK && detailsList.isNotEmpty()) {
+            if (result.responseCode == BillingClient.BillingResponseCode.OK && !detailsList.isNullOrEmpty()) {
                 _productDetails.postValue(detailsList.associateBy { it.productId })
             }
         }
@@ -121,16 +116,35 @@ class BillingManager(
         }
     }
 
+    // *** DEĞİŞTİRİLEN VE SORUNU ÇÖZEN FONKSİYON ***
     private suspend fun grantPremiumAccess() {
         withContext(Dispatchers.IO) {
             try {
-                UserRepository.updateUserField("isPremium", true)
+                // 1. Önce Firestore'daki veriyi güncelle. Bu sunucu tarafındaki asıl işlemdir.
+                UserRepository.updateUserField("isPremium", true).getOrThrow()
                 Log.d("BillingManager", "Firestore'da isPremium alanı başarıyla true yapıldı.")
+
+                // 2. LOKAL VERİYİ ANINDA GÜNCELLE!
+                // Mevcut kullanıcı verisini alıp, isPremium alanını lokalde true yaparak
+                // StateFlow'u ve dolayısıyla arayüzü anında tetikliyoruz.
+                val currentUserData = UserRepository.userDataState.value
+                if (currentUserData != null) {
+                    val updatedLocalData = currentUserData.copy(isPremium = true)
+                    withContext(Dispatchers.Main) {
+                        UserRepository.triggerLocalUpdate(updatedLocalData)
+                    }
+                }
+
+                // 3. Kullanıcıya Toast mesajı gibi ek geri bildirimler için Event'i tetikle.
                 withContext(Dispatchers.Main) {
                     _newPurchaseEvent.postValue(Event(true))
                 }
+
             } catch (e: Exception) {
                 Log.e("BillingManager", "Firestore isPremium güncelleme hatası", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Premium aktivasyonunda bir sorun oluştu. Lütfen uygulamayı yeniden başlatın.", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
@@ -139,10 +153,6 @@ class BillingManager(
         val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS)
         billingClient.queryPurchasesAsync(params.build()) { billingResult, activeSubs ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                // Firestore'daki veriyi Google Play'den gelen bilgiyle senkronize eden
-                // sorunlu blok kaldırıldı. Uygulama artık premium durumu için tek doğru
-                // kaynak olarak Firestore'u kabul ediyor.
-
                 // Bu fonksiyonun ana görevi, uygulamanın çökmesi gibi durumlarda
                 // yarım kalmış veya onaylanmamış satın alımları tamamlamaktır.
                 activeSubs.forEach { purchase ->

@@ -22,7 +22,7 @@ object UserRepository {
 
     private var userDocumentListener: ListenerRegistration? = null
 
-    // Değişiklik 1: UserData'yı canlı olarak tutacak ve yayınlayacak StateFlow.
+    // UserData'yı canlı olarak tutacak ve yayınlayacak StateFlow.
     private val _userDataState = MutableStateFlow<UserData?>(null)
     val userDataState: StateFlow<UserData?> = _userDataState
 
@@ -38,7 +38,7 @@ object UserRepository {
     }
 
     /**
-     * Değişiklik 2: Firestore'daki kullanıcı belgesini canlı olarak dinlemeye başlar.
+     * Firestore'daki kullanıcı belgesini canlı olarak dinlemeye başlar.
      * Herhangi bir değişiklik olduğunda _userDataState'i günceller.
      */
     private fun startListeningForUserData() {
@@ -47,7 +47,7 @@ object UserRepository {
 
         val userDocRef = firestore.collection("users").document(userId)
         userDocumentListener = userDocRef.addSnapshotListener { snapshot, error ->
-            if (error != null) { // HATA DÜZELTİLDİ: 'nil' -> 'null'
+            if (error != null) {
                 Log.e(TAG, "Kullanıcı verisi dinlenirken hata oluştu.", error)
                 _userDataState.value = null
                 return@addSnapshotListener
@@ -59,13 +59,13 @@ object UserRepository {
                 Log.d(TAG, "Kullanıcı verisi güncellendi: $userData")
             } else {
                 Log.d(TAG, "Kullanıcı belgesi bulunamadı.")
-                _userDataState.value = null // HATA DÜZELTİLDİ: 'nil' -> 'null'
+                _userDataState.value = null
             }
         }
     }
 
     /**
-     * Değişiklik 3: Dinleyiciyi durdurur ve StateFlow'u temizler (kullanıcı çıkış yaptığında).
+     * Dinleyiciyi durdurur ve StateFlow'u temizler (kullanıcı çıkış yaptığında).
      */
     private fun stopListeningForUserData() {
         userDocumentListener?.remove()
@@ -74,8 +74,19 @@ object UserRepository {
         Log.d(TAG, "Kullanıcı verisi dinleyicisi durduruldu.")
     }
 
+    // YENİ EKLENEN FONKSİYON
     /**
-     * Değişiklik 4: Premium kontrolü artık doğrudan canlı veriyi tutan StateFlow üzerinden yapılır.
+     * StateFlow'daki mevcut kullanıcı verisini lokal olarak günceller.
+     * Bu, Firestore dinleyicisinin gecikmesini beklemeden arayüzü anında
+     * güncellemek için kullanılır (örneğin, premium satın alımından hemen sonra).
+     */
+    fun triggerLocalUpdate(updatedUserData: UserData) {
+        _userDataState.value = updatedUserData
+        Log.d(TAG, "Lokal kullanıcı verisi anında güncellendi: $updatedUserData")
+    }
+
+    /**
+     * Premium kontrolü artık doğrudan canlı veriyi tutan StateFlow üzerinden yapılır.
      */
     fun isCurrentUserPremium(): Boolean {
         return _userDataState.value?.isPremium ?: false
@@ -97,7 +108,7 @@ object UserRepository {
 
     suspend fun updateUserField(field: String, value: Any): Result<Unit> {
         val userId = auth.currentUser?.uid
-        return if (userId != null) { // HATA DÜZELTİLDİ: 'nil' -> 'null'
+        return if (userId != null) {
             try {
                 firestore.collection("users").document(userId).update(field, value).await()
                 Log.d(TAG, "$field alanı başarıyla güncellendi.")
@@ -113,7 +124,7 @@ object UserRepository {
 
     suspend fun incrementUserCounter(fieldName: String, incrementBy: Long = 1): Result<Unit> {
         val userId = auth.currentUser?.uid
-        return if (userId != null) { // HATA DÜZELTİLDİ: 'nil' -> 'null'
+        return if (userId != null) {
             try {
                 val increment = FieldValue.increment(incrementBy)
                 firestore.collection("users").document(userId).update(fieldName, increment).await()
@@ -134,7 +145,6 @@ object UserRepository {
             return false
         }
         val limit = 20
-        // HATA DÜZELTİLDİ: UserData'ya eklenen yeni alan kullanılıyor.
         return userData.premiumPdfDownloadCount < limit
     }
 
