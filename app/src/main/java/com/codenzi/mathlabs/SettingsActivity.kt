@@ -52,6 +52,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var textViewUserName: TextView
     private lateinit var textViewUserEmail: TextView
     private lateinit var buttonSignOut: Button
+    private lateinit var textViewYearlyDiscount: TextView
 
     // --- Diğer Değişkenler ---
     private lateinit var billingManager: BillingManager
@@ -71,19 +72,15 @@ class SettingsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_settings)
 
         auth = Firebase.auth
-        val toolbar: MaterialToolbar = findViewById(R.id.settingsToolbar)
 
         initializeViews()
-        setupToolbar(toolbar)
+        setupToolbar(findViewById(R.id.settingsToolbar))
         setupBilling()
         setupClickListeners()
         setupSwitches()
         setupPremiumPlanToggle()
         setupBackButton()
 
-        // Kullanıcı verisini canlı olarak dinleyip arayüzü anında güncelliyoruz.
-        // Bu, satın alma sonrası veya oturum durumu değiştiğinde arayüzün
-        // tutarlı kalmasını sağlar.
         observeUserStatusAndUpdateUI()
     }
 
@@ -115,17 +112,16 @@ class SettingsActivity : AppCompatActivity() {
         textViewUserName = findViewById(R.id.textViewUserName)
         textViewUserEmail = findViewById(R.id.textViewUserEmail)
         buttonSignOut = findViewById(R.id.buttonSignOut)
+        textViewYearlyDiscount = findViewById(R.id.textViewYearlyDiscount)
     }
 
     private fun setupBilling() {
         billingManager = BillingManager(this, lifecycleScope)
-
         billingManager.productDetails.observe(this) { detailsMap ->
             monthlyPlanDetails = detailsMap["monthly_premium_plan"]
             yearlyPlanDetails = detailsMap["yearly_premium_plan"]
             updatePriceDisplay()
         }
-
         billingManager.newPurchaseEvent.observe(this) { event ->
             event.getContentIfNotHandled()?.let { isPremium ->
                 if (isPremium) {
@@ -135,27 +131,17 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * UserRepository'deki canlı veri akışını (StateFlow) dinler.
-     * Kullanıcı verisi her değiştiğinde (örneğin isPremium true olduğunda) arayüzü anında günceller.
-     * Bu fonksiyon, tüm tutarsızlık sorunlarını ortadan kaldırır.
-     */
     private fun observeUserStatusAndUpdateUI() {
         lifecycleScope.launch {
             UserRepository.userDataState.collectLatest { userData ->
                 val user = auth.currentUser
 
-                // 1. KESİN KONTROL: Eğer kullanıcı oturumu gerçekten kapalıysa, giriş ekranına yönlendir.
-                // En güvenilir kontrol budur.
                 if (user == null) {
                     navigateToLogin()
                     return@collectLatest
                 }
 
-                // 2. SABIRLI BEKLEYİŞ: Oturum açıksa ama Firestore'dan veri henüz gelmediyse (userData == null ise),
-                // yönlendirme YAPMA, sadece bekle veya geçici bir "yükleniyor" durumu göster.
                 if (userData != null) {
-                    // Veri geldiğinde arayüzü güncelle.
                     updatePremiumUI(userData.isPremium)
                     textViewUserName.text = user.displayName
                     textViewUserEmail.text = user.email
@@ -165,41 +151,23 @@ class SettingsActivity : AppCompatActivity() {
                         .placeholder(R.drawable.ic_premium_badge)
                         .into(userProfileImage)
                 } else {
-                    // userData henüz null. Bu durum, verinin yüklendiği anlamına gelir.
-                    // Arayüze geçici bilgi basabiliriz ama ASLA yönlendirme yapmayız.
-                    textViewUserName.text = getString(R.string.loading) // Örnek: "Yükleniyor..."
-                    textViewUserEmail.text = user.email // E-posta bilgisi zaten `user` objesinde var.
+                    textViewUserName.text = getString(R.string.loading)
+                    textViewUserEmail.text = user.email
                 }
             }
         }
     }
 
-    /**
-     * Premium durumuna göre satın alma ve premium durumu konteynerlerinin görünürlüğünü ayarlar.
-     */
     private fun updatePremiumUI(isPremium: Boolean) {
-        if (isPremium) {
-            premiumPurchaseContainer.visibility = View.GONE
-            premiumStatusContainer.visibility = View.VISIBLE
-        } else {
-            premiumPurchaseContainer.visibility = View.VISIBLE
-            premiumStatusContainer.visibility = View.GONE
-        }
+        premiumPurchaseContainer.visibility = if (isPremium) View.GONE else View.VISIBLE
+        premiumStatusContainer.visibility = if (isPremium) View.VISIBLE else View.GONE
     }
 
     private fun setupClickListeners() {
-        layoutThemeSettings.setOnClickListener {
-            UIFeedbackHelper.provideFeedback(it)
-            showThemeDialog()
-        }
-        layoutLanguageSettings.setOnClickListener {
-            UIFeedbackHelper.provideFeedback(it)
-            showLanguageDialog()
-        }
-        buttonSignOut.setOnClickListener {
-            UIFeedbackHelper.provideFeedback(it)
-            showSignOutConfirmationDialog()
-        }
+        layoutThemeSettings.setOnClickListener { UIFeedbackHelper.provideFeedback(it); showThemeDialog() }
+        layoutLanguageSettings.setOnClickListener { UIFeedbackHelper.provideFeedback(it); showLanguageDialog() }
+        buttonSignOut.setOnClickListener { UIFeedbackHelper.provideFeedback(it); showSignOutConfirmationDialog() }
+
         layoutContactUs.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
@@ -213,12 +181,14 @@ class SettingsActivity : AppCompatActivity() {
                 Toast.makeText(this, "Uygun bir e-posta uygulaması bulunamadı.", Toast.LENGTH_SHORT).show()
             }
         }
+
         layoutPrivacyPolicy.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
-            val url = "https://www.codenzi.com/privacy-math-labs.html"
+            val url = "https.www.codenzi.com/privacy-math-labs.html"
             val privacyIntent = Intent(Intent.ACTION_VIEW, url.toUri())
             startActivity(privacyIntent)
         }
+
         buttonSubscribe.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
             val selectedPlanDetails = if (togglePlan.checkedButtonId == R.id.buttonMonthly) {
@@ -226,21 +196,8 @@ class SettingsActivity : AppCompatActivity() {
             } else {
                 yearlyPlanDetails
             }
-            selectedPlanDetails?.let { planDetails ->
-                billingManager.launchPurchaseFlow(this, planDetails)
-            } ?: run {
-                Toast.makeText(this, "Abonelik planı detayları henüz yüklenmedi.", Toast.LENGTH_SHORT).show()
-            }
+            selectedPlanDetails?.let { billingManager.launchPurchaseFlow(this, it) }
         }
-    }
-
-    private fun setupBackButton() {
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                setResult(RESULT_OK)
-                finish()
-            }
-        })
     }
 
     private fun showSignOutConfirmationDialog() {
@@ -256,11 +213,6 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun signOut() {
-        // --- EKLENECEK EN ÖNEMLİ KISIM ---
-        // Önce lokal veriyi temizle
-        UserRepository.clearLocalUserData()
-        // --- EKLENECEK KISIM SONU ---
-
         auth.signOut()
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
@@ -296,33 +248,36 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * "Smart cast" HATALARININ ÇÖZÜLDÜĞÜ FONKSİYON
+     * Değişkenler null kontrolünden hemen sonra yerel (local) bir değişkene atanır.
+     * Bu, derleyiciye bu değişkenlerin artık değişmeyeceğini garanti eder.
+     */
     private fun updatePriceDisplay() {
         val isMonthly = togglePlan.checkedButtonId == R.id.buttonMonthly
-        val monthlyDetails = monthlyPlanDetails
-        val yearlyDetails = yearlyPlanDetails
+        // Hata çözümü: Değişkenleri yerel sabitlere ata
+        val monthlyDetails = this.monthlyPlanDetails
+        val yearlyDetails = this.yearlyPlanDetails
+
         val currentPlanDetails = if (isMonthly) monthlyDetails else yearlyDetails
+
         currentPlanDetails?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.let { pricingPhase ->
             textViewPrice.text = pricingPhase.formattedPrice
             textViewPricePeriod.text = if (isMonthly) getString(R.string.price_period_monthly) else getString(R.string.price_period_yearly)
-            buttonSubscribe.visibility = View.VISIBLE
-            textViewPrice.visibility = View.VISIBLE
-            textViewPricePeriod.visibility = View.VISIBLE
+            buttonSubscribe.isEnabled = true
         } ?: run {
-            textViewPrice.text = ""
-            textViewPricePeriod.text = ""
-            buttonSubscribe.visibility = View.GONE
-            textViewPrice.visibility = View.INVISIBLE
-            textViewPricePeriod.visibility = View.INVISIBLE
+            buttonSubscribe.isEnabled = false
         }
-        val textViewYearlyDiscount: TextView = findViewById(R.id.textViewYearlyDiscount)
+
+        // Hata çözümü: Yerel sabitler üzerinden null kontrolü yap
         if (!isMonthly && monthlyDetails != null && yearlyDetails != null) {
             val monthlyPrice = monthlyDetails.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.priceAmountMicros
             val yearlyPrice = yearlyDetails.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.priceAmountMicros
-            if (monthlyPrice != null && yearlyPrice != null && yearlyPrice > 0) {
+            if (monthlyPrice != null && yearlyPrice != null && yearlyPrice > 0 && monthlyPrice > 0) {
                 val yearlyPriceFromMonthly = monthlyPrice * 12
-                val discount = ((yearlyPriceFromMonthly - yearlyPrice) * 100 / yearlyPriceFromMonthly)
+                val discount = ((yearlyPriceFromMonthly - yearlyPrice) * 100 / yearlyPriceFromMonthly).toInt()
                 if (discount > 0) {
-                    textViewYearlyDiscount.text = getString(R.string.premium_yearly_discount, "%$discount")
+                    textViewYearlyDiscount.text = getString(R.string.premium_yearly_discount, discount.toString())
                     textViewYearlyDiscount.visibility = View.VISIBLE
                 } else {
                     textViewYearlyDiscount.visibility = View.GONE
@@ -380,6 +335,15 @@ class SettingsActivity : AppCompatActivity() {
             .setNegativeButton(getString(R.string.cancel), null)
             .create()
             .show()
+    }
+
+    private fun setupBackButton() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                setResult(RESULT_OK)
+                finish()
+            }
+        })
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

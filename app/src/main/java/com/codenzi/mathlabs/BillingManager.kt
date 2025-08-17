@@ -11,6 +11,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.google.firebase.auth.FirebaseAuth
+import java.security.MessageDigest
 
 class BillingManager(
     private val context: Context,
@@ -42,23 +44,18 @@ class BillingManager(
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     Log.d("BillingManager", "Billing Client başarıyla kuruldu.")
                     queryProductDetails()
-                    // Kurulum bitince listener'ı tetikle
                     onBillingSetupFinishedListener?.invoke()
                 } else {
                     Log.e("BillingManager", "Billing Client kurulum hatası: ${billingResult.debugMessage}")
                 }
             }
             override fun onBillingServiceDisconnected() {
-                Log.w("BillingManager", "Billing Client bağlantısı koptu.")
-                // Yeniden bağlanmayı dene
+                Log.w("BillingManager", "Billing Client bağlantısı koptu. Yeniden deneniyor...")
                 setupBillingClient()
             }
         })
     }
 
-    /**
-     * BillingClient hazır olduğunda bir işlem gerçekleştirmek için kullanılır.
-     */
     fun executeOnBillingSetupFinished(listener: () -> Unit) {
         if (billingClient.isReady) {
             listener()
@@ -99,23 +96,56 @@ class BillingManager(
         }
     }
 
+    // Firebase kullanıcısına bağlı obfuscatedAccountId üretir (SHA-256(uid))
+    private fun currentObfuscatedAccountId(): String? {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return null
+        return sha256(uid)
+    }
+
+    private fun sha256(input: String): String {
+        val md = MessageDigest.getInstance("SHA-256")
+        val bytes = md.digest(input.toByteArray())
+        val hex = StringBuilder(bytes.size * 2)
+        for (b in bytes) {
+            val i = b.toInt() and 0xff
+            if (i < 0x10) hex.append('0')
+            hex.append(i.toString(16))
+        }
+        return hex.toString()
+    }
+
     fun launchPurchaseFlow(activity: Activity, productDetails: ProductDetails) {
         val offerToken = productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken ?: return
-        val productDetailsParamsList = listOf(
-            BillingFlowParams.ProductDetailsParams.newBuilder()
-                .setProductDetails(productDetails)
-                .setOfferToken(offerToken)
-                .build()
-        )
-        val billingFlowParams = BillingFlowParams.newBuilder()
-            .setProductDetailsParamsList(productDetailsParamsList)
+        val productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
+            .setProductDetails(productDetails)
+            .setOfferToken(offerToken)
             .build()
+
+        val billingParamsBuilder = BillingFlowParams.newBuilder()
+            .setProductDetailsParamsList(listOf(productDetailsParams))
+
+        // Satın almayı bu Firebase kullanıcısına bağla
+        currentObfuscatedAccountId()?.let { oa ->
+            billingParamsBuilder.setObfuscatedAccountId(oa)
+        }
+
+        val billingFlowParams = billingParamsBuilder.build()
         billingClient.launchBillingFlow(activity, billingFlowParams)
     }
 
     private fun handlePurchase(purchase: Purchase) {
         if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-            // Satın alma başarılı
+            // Bu satın alma mevcut Firebase kullanıcısına mı ait?
+            val expectedOa = currentObfuscatedAccountId()
+            val purchaseOa = purchase.accountIdentifiers?.obfuscatedAccountId
+            if (expectedOa == null || purchaseOa == null || expectedOa != purchaseOa) {
+                Log.w(
+                    "BillingManager",
+                    "Satın alma bu Firebase kullanıcısına ait görünmüyor. expected=$expectedOa, purchase=$purchaseOa"
+                )
+                return
+            }
+
             if (!purchase.isAcknowledged) {
                 val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
                     .setPurchaseToken(purchase.purchaseToken)
@@ -129,7 +159,6 @@ class BillingManager(
                     }
                 }
             } else {
-                // Zaten onaylanmış, sadece premium erişimi ver
                 coroutineScope.launch {
                     grantPremiumAccess()
                 }
@@ -137,20 +166,20 @@ class BillingManager(
         }
     }
 
+    /**
+     * YENİ/GÜNCELLENMİŞ FONKSİYON: Kullanıcıya premium erişim verir.
+     * Hem Firestore'u günceller hem de UserRepository aracılığıyla lokal state'i ANINDA tetikler.
+     */
     private suspend fun grantPremiumAccess() {
         withContext(Dispatchers.IO) {
             try {
-                // Firestore'da isPremium'u true yap
+                // 1. Firestore'u güncelle
                 UserRepository.updateUserField("isPremium", true).getOrThrow()
-
-                // PDF indirme kotası için son sıfırlama zamanını ayarla
                 UserRepository.updateUserField("lastPdfDownloadReset", System.currentTimeMillis()).getOrThrow()
                 UserRepository.updateUserField("premiumPdfDownloadCount", 0).getOrThrow()
-
                 Log.d("BillingManager", "Firestore'da isPremium alanı başarıyla true yapıldı.")
 
-                // --- EKLENECEK EN ÖNEMLİ KISIM BURASI ---
-                // Lokal state'i anında güncelle. Bu, arayüzün anında yenilenmesini sağlar.
+                // 2. Lokal veriyi ANINDA güncelle
                 val currentUserData = UserRepository.userDataState.value
                 if (currentUserData != null) {
                     val updatedLocalData = currentUserData.copy(
@@ -163,10 +192,8 @@ class BillingManager(
                         UserRepository.triggerLocalUpdate(updatedLocalData)
                     }
                 }
-                // --- EKLENECEK KISIM SONU ---
 
-
-                // Event'i tetikle (Bu zaten vardı, yerinde kalmalı)
+                // 3. Satın alma olayını dinleyen (varsa) diğer arayüzlere haber ver
                 withContext(Dispatchers.Main) {
                     _newPurchaseEvent.postValue(Event(true))
                 }
@@ -180,61 +207,66 @@ class BillingManager(
     }
 
     /**
-     * Google Play'deki abonelik durumunu kontrol eder ve Firestore ile senkronize eder
+     * Google Play'deki abonelik durumunu kontrol eder ve Firestore ile senkronize eder.
      */
     fun checkAndSyncSubscriptions() {
         if (!billingClient.isReady) {
-            Log.w("BillingManager", "BillingClient hazır değil, senkronizasyon atlanıyor.")
+            Log.w("BillingManager", "BillingClient hazır değil, senkronizasyon planlandı.")
+            // Hazır olduğunda tekrar dene
+            onBillingSetupFinishedListener = {
+                checkAndSyncSubscriptions()
+            }
+            return
+        }
+
+        val myObfuscatedId = currentObfuscatedAccountId()
+        if (myObfuscatedId == null) {
+            Log.w("BillingManager", "Firebase kullanıcısı yok, senkronizasyon atlandı.")
             return
         }
 
         val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS)
         billingClient.queryPurchasesAsync(params.build()) { billingResult, activeSubs ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                coroutineScope.launch {
-                    try {
-                        val userData = UserRepository.getUserDataOnce()
-                        if (userData == null) {
-                            Log.w("BillingManager", "Kullanıcı verisi alınamadı, senkronizasyon atlanıyor.")
-                            return@launch
-                        }
+                coroutineScope.launch(Dispatchers.IO) {
+                    val userData = UserRepository.getUserDataOnce() ?: return@launch
 
-                        val isSubscribedOnPlay = !activeSubs.isNullOrEmpty() &&
-                                activeSubs.any { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-                        val isPremiumOnFirestore = userData.isPremium
+                    // Cihazda herhangi bir aktif abonelik var mı?
+                    val hasAnyActiveSubs = activeSubs?.any { it.purchaseState == Purchase.PurchaseState.PURCHASED } == true
+                    // Sadece bu kullanıcıya ait abonelikleri dikkate al
+                    val myActiveSubs = activeSubs?.filter { it.accountIdentifiers?.obfuscatedAccountId == myObfuscatedId }
+                    val isSubscribedOnPlay = myActiveSubs?.any { it.purchaseState == Purchase.PurchaseState.PURCHASED } == true
 
-                        when {
-                            !isSubscribedOnPlay && isPremiumOnFirestore -> {
-                                // Abonelik iptal edilmiş veya süresi dolmuş
-                                Log.d("BillingManager", "Senkronizasyon: Google Play'de aktif abonelik yok. Premium geri alınıyor.")
+                    if (isSubscribedOnPlay != userData.isPremium) {
+                        Log.d(
+                            "BillingManager",
+                            "Senkronizasyon: Play durumu (${isSubscribedOnPlay}) ile Firestore durumu (${userData.isPremium}) farklı. Güncelleniyor..."
+                        )
+                        if (isSubscribedOnPlay) {
+                            // Yükseltme: yalnızca bu kullanıcıya ait aktif abonelik varsa ver
+                            grantPremiumAccess()
+                        } else {
+                            // Düşürme: cihazda hiç aktif abonelik yoksa güvenle false yap
+                            if (!hasAnyActiveSubs) {
                                 UserRepository.updateUserField("isPremium", false)
-
-                                // Lokal state'i güncelle
                                 val updatedData = userData.copy(isPremium = false)
                                 withContext(Dispatchers.Main) {
                                     UserRepository.triggerLocalUpdate(updatedData)
-                                    Toast.makeText(context, "Premium aboneliğiniz sona erdi.", Toast.LENGTH_LONG).show()
                                 }
-                            }
-                            isSubscribedOnPlay && !isPremiumOnFirestore -> {
-                                // Abonelik var ama Firestore'da yok
-                                Log.d("BillingManager", "Senkronizasyon: Google Play'de aktif abonelik bulundu. Premium veriliyor.")
-                                grantPremiumAccess()
-                            }
-                            else -> {
-                                Log.d("BillingManager", "Senkronizasyon: Durumlar eşleşiyor, işlem yapılmadı.")
+                            } else {
+                                Log.d(
+                                    "BillingManager",
+                                    "Diğer bir Google hesabında aktif abonelik var; bu kullanıcıya ait olmadığı için düşürme yapılmadı."
+                                )
                             }
                         }
-
-                        // Onaylanmamış satın almaları onayla
-                        activeSubs?.forEach { purchase ->
-                            if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
-                                handlePurchase(purchase)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.e("BillingManager", "Abonelik senkronizasyonu sırasında hata", e)
+                    } else {
+                        Log.d("BillingManager", "Senkronizasyon: Durumlar eşleşiyor, işlem yapılmadı.")
                     }
+
+                    // Onaylanmamışları onayla (sadece bu kullanıcıya ait olanları)
+                    myActiveSubs?.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED && !it.isAcknowledged }
+                        ?.forEach { handlePurchase(it) }
                 }
             } else {
                 Log.e("BillingManager", "Abonelikler sorgulanırken hata: ${billingResult.debugMessage}")
@@ -242,11 +274,8 @@ class BillingManager(
         }
     }
 
-    /**
-     * BillingClient'ı temizle
-     */
     fun dispose() {
-        if (::billingClient.isInitialized) {
+        if (::billingClient.isInitialized && billingClient.isReady) {
             billingClient.endConnection()
         }
     }

@@ -64,7 +64,6 @@ class LoginActivity : AppCompatActivity() {
         auth.signInWithCredential(credential)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    val user = auth.currentUser
                     val isNewUser = task.result?.additionalUserInfo?.isNewUser ?: false
 
                     // Kullanıcı verisi oluştur veya güncelle
@@ -73,10 +72,8 @@ class LoginActivity : AppCompatActivity() {
                             // Her kullanıcı için Firestore kaydı oluştur/kontrol et
                             UserRepository.createOrUpdateUserData()
 
-                            // Abonelik kontrolü yap
-                            billingManager.executeOnBillingSetupFinished {
-                                billingManager.checkAndSyncSubscriptions()
-                            }
+                            // Abonelik kontrolü yap (Billing hazır değilse kendisi planlar)
+                            billingManager.checkAndSyncSubscriptions()
 
                             // Yönlendirme yap
                             if (isNewUser) {
