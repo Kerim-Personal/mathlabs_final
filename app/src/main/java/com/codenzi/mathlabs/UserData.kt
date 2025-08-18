@@ -21,9 +21,10 @@ data class UserData(
     val lastAiQueryReset: Date? = null,
     var rewardedQueries: Int = 0,
 
-    // PDF İndirme Kotaları (Hata çözümü için eklendi)
+    // PDF İndirme Kotaları (Timestamp olarak tutulur)
     var premiumPdfDownloadCount: Int = 0,
-    var lastPdfDownloadReset: Long = 0L, // Zaman damgası için Long kullanmak daha güvenilirdir.
+    @ServerTimestamp
+    var lastPdfDownloadReset: Date? = null,
 
     @ServerTimestamp
     val registrationDate: Date? = null

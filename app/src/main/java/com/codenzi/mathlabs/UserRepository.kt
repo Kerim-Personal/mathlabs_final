@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.tasks.await
 import java.util.Calendar
+import java.util.Date
+import com.google.firebase.Timestamp
 
 /**
  * Kullanıcı verilerini Firestore üzerinden yöneten merkezi singleton nesne.
@@ -61,9 +63,25 @@ object UserRepository {
             }
 
             if (snapshot != null && snapshot.exists()) {
-                val userData = snapshot.toObject(UserData::class.java)
-                _userDataState.value = userData
-                Log.d(TAG, "Kullanıcı verisi Firestore'dan güncellendi: $userData")
+                try {
+                    // Geriye dönük uyumluluk: lastPdfDownloadReset sayısal ise Timestamp'e çevir
+                    val raw = snapshot.get("lastPdfDownloadReset")
+                    if (raw is Number) {
+                        val ms = raw.toLong()
+                        val ts = Timestamp(Date(ms))
+                        // Sessiz migrasyon
+                        userDocRef.update("lastPdfDownloadReset", ts)
+                            .addOnSuccessListener { Log.d(TAG, "lastPdfDownloadReset alanı Timestamp'e migrasyon edildi.") }
+                            .addOnFailureListener { e -> Log.w(TAG, "lastPdfDownloadReset migrasyonu başarısız.", e) }
+                    }
+
+                    val userData = snapshot.toObject(UserData::class.java)
+                    _userDataState.value = userData
+                    Log.d(TAG, "Kullanıcı verisi Firestore'dan güncellendi: $userData")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Snapshot parse edilirken hata oluştu.", e)
+                    _userDataState.value = null
+                }
             } else {
                 Log.d(TAG, "Kullanıcı belgesi bulunamadı.")
                 _userDataState.value = null
@@ -192,18 +210,24 @@ object UserRepository {
         }
 
         val currentTime = System.currentTimeMillis()
-        val lastResetTime = userData.lastPdfDownloadReset
+        val lastResetTimeMs = userData.lastPdfDownloadReset?.time ?: 0L
         val currentCal = Calendar.getInstance().apply { timeInMillis = currentTime }
-        val lastResetCal = Calendar.getInstance().apply { timeInMillis = lastResetTime }
+        val lastResetCal = Calendar.getInstance().apply { timeInMillis = lastResetTimeMs }
 
         if (currentCal.get(Calendar.MONTH) != lastResetCal.get(Calendar.MONTH) ||
             currentCal.get(Calendar.YEAR) != lastResetCal.get(Calendar.YEAR)) {
 
             updateUserField("premiumPdfDownloadCount", 0)
-            updateUserField("lastPdfDownloadReset", currentTime)
+            // Sunucu zaman damgası kullan
+            updateUserField("lastPdfDownloadReset", FieldValue.serverTimestamp())
 
             // Lokal state'i de anında güncelle
-            triggerLocalUpdate(userData.copy(premiumPdfDownloadCount = 0, lastPdfDownloadReset = currentTime))
+            triggerLocalUpdate(
+                userData.copy(
+                    premiumPdfDownloadCount = 0,
+                    lastPdfDownloadReset = Date()
+                )
+            )
             return true
         }
 
@@ -229,7 +253,8 @@ object UserRepository {
                     lastAiQueryReset = null,
                     rewardedQueries = 0,
                     premiumPdfDownloadCount = 0,
-                    lastPdfDownloadReset = System.currentTimeMillis(),
+                    // Sunucu tarafında @ServerTimestamp ile doldurulsun
+                    lastPdfDownloadReset = null,
                     registrationDate = null // Firestore bunu sunucu zaman damgasıyla dolduracak
                 )
                 userDocRef.set(initialData).await()

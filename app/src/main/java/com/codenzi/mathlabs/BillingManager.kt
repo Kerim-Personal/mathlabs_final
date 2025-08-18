@@ -14,6 +14,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import java.security.MessageDigest
 
 class BillingManager(
@@ -205,13 +206,13 @@ class BillingManager(
         withContext(NonCancellable) {
             withContext(Dispatchers.IO) {
                 try {
-                    val now = System.currentTimeMillis()
                     // Tek seferde atomik güncelleme (hedef UID için)
                     UserRepository.updateUserFieldsFor(
                         targetUid,
                         mapOf(
                             "isPremium" to true,
-                            "lastPdfDownloadReset" to now,
+                            // Sunucu zamanı kullan
+                            "lastPdfDownloadReset" to FieldValue.serverTimestamp(),
                             "premiumPdfDownloadCount" to 0
                         )
                     ).getOrThrow()
@@ -224,7 +225,7 @@ class BillingManager(
                         if (currentUserData != null) {
                             val updatedLocalData = currentUserData.copy(
                                 isPremium = true,
-                                lastPdfDownloadReset = now,
+                                lastPdfDownloadReset = java.util.Date(),
                                 premiumPdfDownloadCount = 0
                             )
                             withContext(Dispatchers.Main) {
