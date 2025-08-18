@@ -3,31 +3,16 @@
     <string name="app_name">MathLabs</string>
     <string name="expand_arrow_description">Genişletme veya daraltma oku</string>
     <string name="splash_text">Codenzi</string>
-    <string name="app_title_on_main_screen">MathLabs</string>
-    <string name="course_selection_prompt">Lütfen ders seçiniz:</string>
-    <string name="content_desc_foreground">foreground</string>
-
-    <string name="dil_seciniz">Dil seçiniz</string>
-    <string name="language_turkish">Türkçe</string>
-    <string name="language_english">English</string>
-    <string name="desc_turkish_flag">Türk Bayrağı</string>
-    <string name="desc_uk_flag">İngiltere Bayrağı</string>
 
     <string name="settings_title">Ayarlar</string>
     <string name="language_settings">Dil Ayarları</string>
     <string name="action_settings">Ayarlar</string>
     <string name="touch_sound">Tuş Sesi</string>
-    <string name="haptic_feedback">Dokunsal Geribildirim</string>
 
-    <string name="theme_settings">Görünüm</string>
     <string name="theme_title">Uygulama Teması</string>
     <string name="theme_light">Açık</string>
     <string name="theme_dark">Koyu</string>
     <string name="theme_system_default">Sistem Varsayılanı</string>
-    <string name="name_prompt">Merhaba! Şimdi adın ne?</string>
-    <string name="name_hint">Adınız</string>
-    <string name="continue_button">Devam Et</string>
-    <string name="enter_valid_name_toast">Lütfen geçerli bir ad girin.</string>
 
     <string name="pdf_not_found">PDF dosyası bulunamadı.</string>
     <string name="pdf_loaded_toast">PDF Yüklendi (%1$d sayfa)</string>
@@ -194,9 +179,6 @@
     <string name="ai_assistant_button_desc">Yapay Zeka Asistanı</string>
     <string name="ai_chat_title">AI Çalışma Asistanı</string>
     <string name="ai_chat_question_hint">PDF hakkında bir soru sorun…</string>
-    <string name="ai_chat_thinking">Düşünüyorum…</string>
-    <string name="ai_chat_error">Üzgünüm, bir hata oluştu. Lütfen tekrar deneyin.</string>
-    <string name="ai_chat_info">Cevaplar yapay zeka tarafından kaynak içeriğine göre üretilmektedir.</string> <string name="send_question_desc">Soruyu gönder</string>
 
     <string name="reading_mode_description">Okuma Modu</string>
     <string name="toggle_drawing_description">Çizimi Aç/Kapat</string>
@@ -216,30 +198,11 @@
     <string name="size_medium_description">Orta boyut</string>
     <string name="size_large_description">Büyük boyut</string>
 
-    <string name="ai_assistant_api_key_not_configured">AI Asistanı için API anahtarı yapılandırılmamış.</string>
-    <string name="ai_feature_api_key_not_set">AI özelliği için API anahtarı ayarlanmamış.</string>
     <string name="pdf_text_not_ready">PDF metni henüz hazır değil, lütfen bekleyin.</string>
-    <string name="please_enter_a_question">Lütfen bir soru girin.</string>
     <string name="pdf_load_failed_with_error">PDF yüklenemedi: %1$s</string>
-    <string name="pdf_text_extraction_failed">PDF metni çıkarılırken hata: %1$s</string>
-    <string name="pdf_text_blank_or_empty">PDF\'ten metin çıkarılamadı veya PDF boş.</string>
 
-    <string name="app_color_title">Uygulama Rengi</string>
-    <string name="theme_color_serene_blue">Sakin Mavi</string>
-    <string name="theme_color_red">Kırmızı</string>
-    <string name="theme_color_green">Yeşil</string>
-    <string name="theme_color_purple">Mor</string>
-    <string name="theme_color_orange">Turuncu</string>
-    <string name="theme_color_deep_purple">Koyu Mor</string>
-    <string name="theme_color_indigo">İndigo</string>
-    <string name="theme_color_cyan">Turkuaz</string>
-    <string name="theme_color_pink">Pembe</string>
-    <string name="theme_color_brown">Kahverengi</string>
-    <string name="theme_color_unknown">Bilinmeyen Renk</string>
     <string name="ai_chat_error_with_details">Üzgünüm, bir hata oluştu: %1$s</string>
-    <string name="ai_assistant_rate_limit">AI Asistanını tekrar kullanmak için %1$d saat %2$d dakika bekleyiniz.</string>
 
-    <string name="ai_info_not_found">Sorunuzla ilgili spesifik bir bilgi PDF\'te bulunamadı. Lütfen daha farklı kelimelerle veya genel bir konu başlığı ile tekrar deneyin.</string>
     <string name="knowledge_awaits">Bilgi seni bekliyor</string>
 
     <string name="settings_category_general">Genel</string>
@@ -266,25 +229,17 @@
     <string name="topic_general_problem_solving">Genel Soru Çözümü</string>
 
     <string name="settings_category_premium">Premium</string>
-    <string name="premium_features_title">Premium Özellikler</string>
     <string name="premium_feature_downloads">Aylık 20 PDF indirme hakkı</string>
     <string name="premium_feature_screenshot">Ekran görüntüsü alabilme</string>
     <string name="premium_feature_no_ads">Reklamsız bir deneyim</string>
     <string name="premium_feature_ai_queries">Aylık 500 AI sorgu hakkı</string>
-    <string name="premium_monthly_plan">Aylık Plan</string>
-    <string name="premium_yearly_plan">Yıllık Plan</string>
-    <string name="premium_monthly_price">49.99 TL/ay</string>
-    <string name="premium_yearly_price">499.99 TL/yıl</string>
     <string name="subscribe_button">Abone Ol</string>
-    <string name="premium_toast_message">Premium özellikler yakında!</string>
     <string name="monthly">Aylık</string>
     <string name="yearly">Yıllık</string>
     <string name="price_period_monthly">/ay</string>
     <string name="price_period_yearly">/yıl</string>
 
     <string name="ai_quota_exceeded">"%1$s AI sorgu limitinizi aştınız."</string>
-    <string name="period_daily">Günlük</string>
-    <string name="period_monthly">Aylık</string>
 
     <string name="ai_quota_exceeded_title">Sorgu Hakkınız Bitti</string>
     <string name="watch_ad_for_reward_prompt">3 ek sorgu hakkı kazanmak için kısa bir reklam izlemek ister misiniz?</string>
@@ -294,7 +249,6 @@
 
     <string name="ad_not_ready_toast">Reklam henüz hazır değil. Lütfen daha sonra tekrar deneyin.</string>
     <string name="premium_pdf_limit_reached">Aylık PDF indirme limitinize ulaştınız.</string>
-    <string name="premium_required_toast">Bu özelliği kullanmak için Premium üye olmalısınız.</string>
     <string name="download_pdf">İndir</string>
     <string name="downloading_pdf">PDF indiriliyor…</string>
     <string name="download_successful">PDF başarıyla İndirilenler klasörüne kaydedildi.</string>
@@ -306,38 +260,24 @@
     <string name="suggestion_keywords">Anahtar kavramlar neler?</string>
     <string name="suggestion_question">Bir örnek soru oluştur</string>
     <string name="clear_chat_history">Sohbeti Temizle</string>
-    <string name="reward_granted_toast_chat">+3 sorgu hakkı kazandınız! Şimdi sorunuzu tekrar gönderebilirsiniz.</string>
     <string name="premium_unlock_potential_title">Potansiyelini Ortaya Çıkar</string>
     <string name="premium_unlock_potential_desc">Premium\'a geçerek reklamsız bir deneyimin, yüzlerce yapay zeka sorgusunun ve çok daha fazlasının keyfini çıkarın.</string>
-    <string name="subscribe_now">DEVAM ET</string>
-    <string name="premium_active">Premium Aktif</string>
     <string name="cancel">İptal</string>
     <string name="premium_yearly_discount">%s AVANTAJLI</string>
     <string name="ai_chat_welcome_message">Merhaba! Bu PDF hakkında ne öğrenmek istersin? Sayfayı özetleyebilir veya anahtar kavramları sorabilirsin.</string>
     <string name="get_more_queries_button">✨ Sorgu Hakkı Kazan</string>
-    <string name="go_back">Geri Git</string>
-    <string name="premium_enjoy_features">Premium özelliklerin keyfini çıkarın!</string>
 
     <string name="premium_member_title">Premium Üye</string>
     <string name="premium_member_desc">Tüm premium özelliklere erişiminiz var:</string>
 
-    <string name="connection_error">Bağlantı Hatası</string>
     <string name="retry">Tekrar Dene</string>
-
-    <string name="welcome_to_mathlabs">MathLabs\'e Hoş Geldiniz</string>
-    <string name="login_prompt">Devam etmek için giriş yapın</string>
-    <string name="google_sign_in_failed">Google ile giriş yapılamadı.</string>
-    <string name="firebase_auth_failed">Kimlik doğrulama başarısız oldu.</string>
 
     <string name="settings_category_account">Hesap</string>
     <string name="sign_out">Çıkış Yap</string>
-    <string name="sign_out_desc">Mevcut oturumu sonlandır</string>
-    <string name="logged_in_as">Şu anki kullanıcı:</string>
     <string name="sign_out_confirm_title">Çıkış Yap</string>
     <string name="sign_out_confirm_message">Çıkış yapmak istediğinizden emin misiniz?</string>
     <string name="confirm">Onayla</string>
 
-    <string name="no_more_queries_today">Bugünlük sorgu hakkınız doldu.</string>
     <string name="premium_activated_toast">Premium Aktif!</string>
     <string name="loading">Yükleniyor…</string>
     <string name="ai_wait_for_response">Lütfen mevcut yanıtı bekleyin.</string>

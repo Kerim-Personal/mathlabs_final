@@ -1,5 +1,6 @@
 package com.codenzi.mathlabs
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -20,6 +21,10 @@ import android.view.animation.DecelerateInterpolator
 import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleHelper.onAttach(newBase))
+    }
 
     private lateinit var binding: ActivityLoginBinding
     private lateinit var googleSignInClient: GoogleSignInClient
