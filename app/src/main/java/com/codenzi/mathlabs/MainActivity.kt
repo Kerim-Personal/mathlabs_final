@@ -3,6 +3,7 @@ package com.codenzi.mathlabs
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
@@ -28,6 +29,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import java.util.Locale
 import kotlin.math.abs
 
 @AndroidEntryPoint
@@ -53,6 +55,39 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Otomatik saat ve tarih ayarlarını kontrol et
+        val isAutoTimeEnabled = Settings.Global.getInt(contentResolver, Settings.Global.AUTO_TIME, 0) == 1
+        val isAutoTimeZoneEnabled = Settings.Global.getInt(contentResolver, Settings.Global.AUTO_TIME_ZONE, 0) == 1
+
+        if (!isAutoTimeEnabled || !isAutoTimeZoneEnabled) {
+            val currentLocale = resources.configuration.locales[0]
+            val message = if (currentLocale.language == "en") {
+                "Please enable automatic date and time settings on your device!"
+            } else {
+                "Lütfen cihazınızın tarih ve saat ayarlarını otomatik olarak ayarlayın!"
+            }
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            finish() // Uygulamayı kapat
+            return
+        }
+
+        // Sistem saatini kontrol et
+        val currentTime = System.currentTimeMillis()
+        val calendar = Calendar.getInstance()
+        val systemTime = calendar.timeInMillis
+
+        if (abs(currentTime - systemTime) > 10000) { // 10 saniyeden fazla fark varsa
+            val currentLocale = resources.configuration.locales[0]
+            val message = if (currentLocale.language == "en") {
+                "The system time on your device is incorrect!"
+            } else {
+                "Cihaz sistem saati doğru değil!"
+            }
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            finish() // Uygulamayı kapat
+            return
+        }
+
         val themeMode = SharedPreferencesManager.getTheme(this)
         AppCompatDelegate.setDefaultNightMode(themeMode)
         setTheme(R.style.Theme_Pdf)
