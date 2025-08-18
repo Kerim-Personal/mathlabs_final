@@ -205,16 +205,13 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
             editTextQuestion.isEnabled = false
             buttonSend.isEnabled = false
 
-            // 3. Sorgu sayısını artır
-            AiQueryManager.incrementQueryCount()
-
-            // 4. PDF'ten ilgili metni al
+            // 3. PDF'ten ilgili metni al
             val relevantContext = withContext(Dispatchers.IO) {
                 pdfViewActivity.extractTextForAI()
             }
             val prompt = createPrompt(question, relevantContext)
 
-            // 5. Sunucudan cevabı al
+            // 4. Sunucudan cevabı al (sunucu kotayı atomik olarak tüketecek)
             AiQueryManager.getResponseFromServer(prompt) { result ->
                 // UI'ı ana thread'de güncelle
                 requireActivity().runOnUiThread {
@@ -230,7 +227,7 @@ class ChatAiDialogFragment : BottomSheetDialogFragment() {
                     // İstek bitti
                     isRequestInProgress = false
 
-                    // 6. Cevap geldikten sonra sorgu hakkını tekrar kontrol et ve UI'ı ayarla
+                    // 5. Cevap geldikten sonra sorgu hakkını tekrar kontrol et ve UI'ı ayarla
                     lifecycleScope.launch {
                         if (!AiQueryManager.canPerformQuery()) {
                             // Haklar bu sorgu ile bittiyse, reklam izleme diyaloğunu göster.

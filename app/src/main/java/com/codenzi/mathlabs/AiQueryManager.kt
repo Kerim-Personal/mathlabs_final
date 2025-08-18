@@ -1,90 +1,35 @@
 package com.codenzi.mathlabs
 
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
-import java.util.Calendar
-import java.util.Date
+import kotlinx.coroutines.tasks.await
 import kotlin.Result
 
 /**
  * AI sorgularını yöneten singleton nesne.
- * Bu sınıf, güvenli bir şekilde Firebase Cloud Function'a istek gönderir
- * ve kullanıcı kota yönetimini UserRepository üzerinden yapar.
+ * Tüm kota kontrolü ve tüketimi sunucudaki Cloud Functions üzerinden yapılır.
  */
 object AiQueryManager {
 
     private val functions: FirebaseFunctions = Firebase.functions
 
-    private const val FREE_QUERY_LIMIT = 3
-    private const val PREMIUM_QUERY_LIMIT = 500
-
     /**
      * Kullanıcının AI sorgusu yapma hakkı olup olmadığını kontrol eder.
-     * Veriyi Cloud Firestore'dan çeker.
+     * Sunucudaki 'checkAiQuota' callable fonksiyonunu çağırır.
      * @return Sorgu hakkı varsa true, yoksa false döner.
      */
     suspend fun canPerformQuery(): Boolean {
-        val userData = UserRepository.getUserDataOnce() ?: return false
+        return try {
+            val result = functions
+                .getHttpsCallable("checkAiQuota")
+                .call()
+                .await()
 
-        // 1. Öncelik: Ödüllü sorgu hakkı var mı?
-        if (userData.rewardedQueries > 0) {
-            return true
-        }
-
-        val lastResetDate = userData.lastAiQueryReset ?: Date(0)
-        val lastResetCal = Calendar.getInstance().apply { time = lastResetDate }
-        val currentCal = Calendar.getInstance()
-        var needsReset = false
-
-        if (userData.isPremium) {
-            // 2. Premium Kullanıcı: Aylık kontrol
-            if (lastResetCal.get(Calendar.MONTH) != currentCal.get(Calendar.MONTH) ||
-                lastResetCal.get(Calendar.YEAR) != currentCal.get(Calendar.YEAR)) {
-                needsReset = true
-            }
-        } else {
-            // 3. Ücretsiz Kullanıcı: Günlük kontrol
-            if (lastResetCal.get(Calendar.DAY_OF_YEAR) != currentCal.get(Calendar.DAY_OF_YEAR) ||
-                lastResetCal.get(Calendar.YEAR) != currentCal.get(Calendar.YEAR)) {
-                needsReset = true
-            }
-        }
-
-        // Eğer yeni bir periyoda girildiyse, sayacı sıfırla.
-        if (needsReset) {
-            // HATA DÜZELTİLDİ: 'updateUserData' yerine 'updateUserField' kullanılıyor.
-            UserRepository.updateUserField("aiQueriesUsed", 0)
-            UserRepository.updateUserField("lastAiQueryReset", FieldValue.serverTimestamp())
-            return true // Sayacı sıfırlandığı için hakkı var.
-        }
-
-        // Mevcut periyottaki hakkını kontrol et.
-        val limit = if (userData.isPremium) PREMIUM_QUERY_LIMIT else FREE_QUERY_LIMIT
-        return userData.aiQueriesUsed < limit
-    }
-
-    /**
-     * Kullanıcının sorgu sayısını artırır.
-     * Önce ödüllü hakkı kullanır, yoksa normal sorgu sayacını artırır.
-     */
-    suspend fun incrementQueryCount() {
-        val userData = UserRepository.getUserDataOnce() ?: return
-
-        if (userData.rewardedQueries > 0) {
-            // Ödüllü sayaç için 'incrementUserCounter' kullanmak daha güvenlidir.
-            UserRepository.incrementUserCounter("rewardedQueries", -1)
-            return
-        }
-
-        // Eğer sayaç daha önce hiç sıfırlanmamışsa, ilk sorguyla birlikte sıfırlama tarihini de ata.
-        if (userData.lastAiQueryReset == null) {
-            // HATA DÜZELTİLDİ: 'updateUserData' yerine yeni fonksiyonlar kullanılıyor.
-            UserRepository.incrementUserCounter("aiQueriesUsed")
-            UserRepository.updateUserField("lastAiQueryReset", FieldValue.serverTimestamp())
-        } else {
-            UserRepository.incrementUserCounter("aiQueriesUsed")
+            val data = result.data as? Map<*, *>
+            (data?.get("allowed") as? Boolean) == true
+        } catch (_: Exception) {
+            false
         }
     }
 
@@ -102,7 +47,7 @@ object AiQueryManager {
             .call(data)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    val resultData = task.result?.data as? Map<String, Any>
+                    val resultData = task.result?.data as? Map<*, *>
                     val geminiResult = resultData?.get("result") as? String
 
                     if (geminiResult != null) {
