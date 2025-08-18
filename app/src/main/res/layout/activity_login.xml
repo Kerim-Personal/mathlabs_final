@@ -116,7 +116,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:layout_marginTop="12dp"
-                android:gravity="center_horizontal">
+                android:gravity="start">
 
                 <!-- Madde 1 -->
                 <TextView
