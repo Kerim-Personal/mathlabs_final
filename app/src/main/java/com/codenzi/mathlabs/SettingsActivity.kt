@@ -84,6 +84,17 @@ class SettingsActivity : AppCompatActivity() {
         observeUserStatusAndUpdateUI()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Play Console’da fiyat değişmişse ekrana döner dönmez tazele
+        billingManager.refreshProductDetails()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::billingManager.isInitialized) billingManager.dispose()
+    }
+
     private fun setupToolbar(toolbar: MaterialToolbar) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         ViewCompat.setOnApplyWindowInsetsListener(toolbar) { view, insets ->
@@ -184,19 +195,21 @@ class SettingsActivity : AppCompatActivity() {
 
         layoutPrivacyPolicy.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
-            val url = "https.www.codenzi.com/privacy-math-labs.html"
+            val url = "https://www.codenzi.com/privacy-math-labs.html"
             val privacyIntent = Intent(Intent.ACTION_VIEW, url.toUri())
             startActivity(privacyIntent)
         }
 
         buttonSubscribe.setOnClickListener {
             UIFeedbackHelper.provideFeedback(it)
-            val selectedPlanDetails = if (togglePlan.checkedButtonId == R.id.buttonMonthly) {
+            val isMonthly = togglePlan.checkedButtonId == R.id.buttonMonthly
+            val selectedPlanDetails = if (isMonthly) {
                 monthlyPlanDetails
             } else {
                 yearlyPlanDetails
             }
-            selectedPlanDetails?.let { billingManager.launchPurchaseFlow(this, it) }
+            val period = if (isMonthly) "P1M" else "P1Y"
+            selectedPlanDetails?.let { details -> billingManager.launchPurchaseFlow(this, details, period) }
         }
     }
 
@@ -249,19 +262,19 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     /**
-     * "Smart cast" HATALARININ ÇÖZÜLDÜĞÜ FONKSİYON
+     * "Smart cast" HATALARININ ÇÖZÜLDÜ��Ü FONKSİYON
      * Değişkenler null kontrolünden hemen sonra yerel (local) bir değişkene atanır.
      * Bu, derleyiciye bu değişkenlerin artık değişmeyeceğini garanti eder.
      */
     private fun updatePriceDisplay() {
         val isMonthly = togglePlan.checkedButtonId == R.id.buttonMonthly
-        // Hata çözümü: Değişkenleri yerel sabitlere ata
         val monthlyDetails = this.monthlyPlanDetails
         val yearlyDetails = this.yearlyPlanDetails
 
         val currentPlanDetails = if (isMonthly) monthlyDetails else yearlyDetails
 
-        currentPlanDetails?.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.let { pricingPhase ->
+        val currentRecurringPhase = recurringPhaseOf(currentPlanDetails)
+        currentRecurringPhase?.let { pricingPhase ->
             textViewPrice.text = pricingPhase.formattedPrice
             textViewPricePeriod.text = if (isMonthly) getString(R.string.price_period_monthly) else getString(R.string.price_period_yearly)
             buttonSubscribe.isEnabled = true
@@ -269,25 +282,34 @@ class SettingsActivity : AppCompatActivity() {
             buttonSubscribe.isEnabled = false
         }
 
-        // Hata çözümü: Yerel sabitler üzerinden null kontrolü yap
-        if (!isMonthly && monthlyDetails != null && yearlyDetails != null) {
-            val monthlyPrice = monthlyDetails.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.priceAmountMicros
-            val yearlyPrice = yearlyDetails.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.priceAmountMicros
-            if (monthlyPrice != null && yearlyPrice != null && yearlyPrice > 0 && monthlyPrice > 0) {
-                val yearlyPriceFromMonthly = monthlyPrice * 12
-                val discount = ((yearlyPriceFromMonthly - yearlyPrice) * 100 / yearlyPriceFromMonthly).toInt()
-                if (discount > 0) {
-                    textViewYearlyDiscount.text = getString(R.string.premium_yearly_discount, discount.toString())
-                    textViewYearlyDiscount.visibility = View.VISIBLE
-                } else {
-                    textViewYearlyDiscount.visibility = View.GONE
-                }
+        // Yıllık indirim, her iki planın tekrarlayan faz fiyatları üzerinden hesaplanır
+        val monthlyRecurringMicros = recurringPhaseOf(monthlyDetails)?.priceAmountMicros
+        val yearlyRecurringMicros = recurringPhaseOf(yearlyDetails)?.priceAmountMicros
+        if (!isMonthly && monthlyRecurringMicros != null && yearlyRecurringMicros != null && yearlyRecurringMicros > 0 && monthlyRecurringMicros > 0) {
+            val yearlyPriceFromMonthly = monthlyRecurringMicros * 12
+            val discount = ((yearlyPriceFromMonthly - yearlyRecurringMicros) * 100 / yearlyPriceFromMonthly).toInt()
+            if (discount > 0) {
+                textViewYearlyDiscount.text = getString(R.string.premium_yearly_discount, discount.toString())
+                textViewYearlyDiscount.visibility = View.VISIBLE
             } else {
                 textViewYearlyDiscount.visibility = View.GONE
             }
         } else {
             textViewYearlyDiscount.visibility = View.GONE
         }
+    }
+
+    /**
+     * Bir ProductDetails içindeki tekrarlayan (sonsuz) fiyat fazını döndürür.
+     * Bulunamazsa mevcut fazlar içinden sonuncuyu döndürür.
+     */
+    private fun recurringPhaseOf(details: ProductDetails?): ProductDetails.PricingPhase? {
+        val offers = details?.subscriptionOfferDetails ?: return null
+        // Base plan (offerId == null) öncelikli; yoksa tüm teklifler üzerinden bak
+        val basePlanOffers = offers.filter { it.offerId == null }
+        val searchSet = if (basePlanOffers.isNotEmpty()) basePlanOffers else offers
+        val phases = searchSet.flatMap { it.pricingPhases.pricingPhaseList }
+        return phases.lastOrNull { it.billingCycleCount == 0 } ?: phases.lastOrNull()
     }
 
     private fun showThemeDialog() {

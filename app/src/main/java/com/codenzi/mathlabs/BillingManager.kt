@@ -32,7 +32,8 @@ class BillingManager(
     private val _newPurchaseEvent = MutableLiveData<Event<Boolean>>()
     val newPurchaseEvent: LiveData<Event<Boolean>> = _newPurchaseEvent
 
-    private var onBillingSetupFinishedListener: (() -> Unit)? = null
+    // Birden fazla bekleyen iş için callback listesi
+    private val onReadyCallbacks = mutableListOf<() -> Unit>()
 
     init {
         setupBillingClient()
@@ -49,7 +50,10 @@ class BillingManager(
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     Log.d("BillingManager", "Billing Client başarıyla kuruldu.")
                     queryProductDetails()
-                    onBillingSetupFinishedListener?.invoke()
+                    // Hazır olunca bekleyen tüm işlerin çalıştırılması
+                    val toRun = onReadyCallbacks.toList()
+                    onReadyCallbacks.clear()
+                    toRun.forEach { it.invoke() }
                 } else {
                     Log.e("BillingManager", "Billing Client kurulum hatası: ${billingResult.debugMessage}")
                 }
@@ -62,10 +66,10 @@ class BillingManager(
     }
 
     fun executeOnBillingSetupFinished(listener: () -> Unit) {
-        if (billingClient.isReady) {
+        if (::billingClient.isInitialized && billingClient.isReady) {
             listener()
         } else {
-            onBillingSetupFinishedListener = listener
+            onReadyCallbacks.add(listener)
         }
     }
 
@@ -101,6 +105,16 @@ class BillingManager(
         }
     }
 
+    // Ürün detaylarını yeniden çekmek için public API
+    fun refreshProductDetails() {
+        if (::billingClient.isInitialized && billingClient.isReady) {
+            queryProductDetails()
+        } else {
+            // Hazır olduğunda tekrar dene (diğer bekleyen işleri etkilemeden sıraya ekle)
+            onReadyCallbacks.add { queryProductDetails() }
+        }
+    }
+
     // Firebase kullanıcısına bağlı obfuscatedAccountId üretir (SHA-256(uid))
     private fun currentObfuscatedAccountId(): String? {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return null
@@ -119,8 +133,19 @@ class BillingManager(
         return hex.toString()
     }
 
-    fun launchPurchaseFlow(activity: Activity, productDetails: ProductDetails) {
-        val offerToken = productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken ?: return
+    fun launchPurchaseFlow(activity: Activity, productDetails: ProductDetails, preferredRecurringPeriod: String? = null) {
+        // Tercih edilen döneme (ör. "P1M" veya "P1Y") sahip tekrarlayan fazı içeren teklifi bul
+        val chosenOffer = productDetails.subscriptionOfferDetails
+            ?.firstOrNull { offer ->
+                if (preferredRecurringPeriod == null) return@firstOrNull true
+                offer.pricingPhases.pricingPhaseList.any { phase ->
+                    phase.billingCycleCount == 0 && phase.billingPeriod == preferredRecurringPeriod
+                }
+            }
+            ?: productDetails.subscriptionOfferDetails?.firstOrNull()
+            ?: return
+
+        val offerToken = chosenOffer.offerToken
         val productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
             .setProductDetails(productDetails)
             .setOfferToken(offerToken)
@@ -129,7 +154,6 @@ class BillingManager(
         val billingParamsBuilder = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(listOf(productDetailsParams))
 
-        // Satın almayı bu Firebase kullanıcısına bağla
         currentObfuscatedAccountId()?.let { oa ->
             billingParamsBuilder.setObfuscatedAccountId(oa)
         }
@@ -226,12 +250,10 @@ class BillingManager(
      * Google Play'deki abonelik durumunu kontrol eder ve Firestore ile senkronize eder.
      */
     fun checkAndSyncSubscriptions() {
-        if (!billingClient.isReady) {
+        if (!::billingClient.isInitialized || !billingClient.isReady) {
             Log.w("BillingManager", "BillingClient hazır değil, senkronizasyon planlandı.")
-            // Hazır olduğunda tekrar dene
-            onBillingSetupFinishedListener = {
-                checkAndSyncSubscriptions()
-            }
+            // Hazır olduğunda tekrar dene (sıraya ekle)
+            onReadyCallbacks.add { checkAndSyncSubscriptions() }
             return
         }
 
@@ -249,10 +271,10 @@ class BillingManager(
                     val userData = UserRepository.getUserDataOnce() ?: return@launch
 
                     // Cihazda herhangi bir aktif abonelik var mı?
-                    val hasAnyActiveSubs = activeSubs?.any { it.purchaseState == Purchase.PurchaseState.PURCHASED } == true
+                    val hasAnyActiveSubs = activeSubs.any { it.purchaseState == Purchase.PurchaseState.PURCHASED }
                     // Sadece bu kullanıcıya ait abonelikleri dikkate al
-                    val myActiveSubs = activeSubs?.filter { it.accountIdentifiers?.obfuscatedAccountId == myObfuscatedId }
-                    val isSubscribedOnPlay = myActiveSubs?.any { it.purchaseState == Purchase.PurchaseState.PURCHASED } == true
+                    val myActiveSubs = activeSubs.filter { it.accountIdentifiers?.obfuscatedAccountId == myObfuscatedId }
+                    val isSubscribedOnPlay = myActiveSubs.any { it.purchaseState == Purchase.PurchaseState.PURCHASED }
 
                     if (isSubscribedOnPlay != userData.isPremium) {
                         Log.d(
@@ -285,8 +307,8 @@ class BillingManager(
                     }
 
                     // Onaylanmamışları onayla (sadece bu kullanıcıya ait olanları)
-                    myActiveSubs?.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED && !it.isAcknowledged }
-                        ?.forEach { handlePurchase(it) }
+                    myActiveSubs.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED && !it.isAcknowledged }
+                        .forEach { handlePurchase(it) }
                 }
             } else {
                 Log.e("BillingManager", "Abonelikler sorgulanırken hata: ${billingResult.debugMessage}")
