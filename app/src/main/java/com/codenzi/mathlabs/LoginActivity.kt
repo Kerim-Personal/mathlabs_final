@@ -76,8 +76,6 @@ class LoginActivity : AppCompatActivity() {
         auth.signInWithCredential(credential)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    val isNewUser = task.result?.additionalUserInfo?.isNewUser ?: false
-
                     // Kullanıcı verisi oluştur veya güncelle
                     lifecycleScope.launch {
                         try {
@@ -87,12 +85,8 @@ class LoginActivity : AppCompatActivity() {
                             // Abonelik kontrolü yap (Billing hazır değilse kendisi planlar)
                             billingManager.checkAndSyncSubscriptions()
 
-                            // Yönlendirme yap
-                            if (isNewUser) {
-                                startActivity(Intent(this@LoginActivity, NameEntryActivity::class.java))
-                            } else {
-                                startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                            }
+                            // Yönlendirme yap (yeni kullanıcılar dahil hepsi MainActivity'ye)
+                            startActivity(Intent(this@LoginActivity, MainActivity::class.java))
                             finish()
                         } catch (e: Exception) {
                             Log.e("LoginActivity", "Kullanıcı verisi oluşturulurken hata", e)
