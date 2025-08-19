@@ -59,7 +59,6 @@ import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.OutputStream
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -418,7 +417,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             lifecycleScope.launch(Dispatchers.IO) {
                 try {
                     val request = Request.Builder().url(uri.toString()).build()
-                    val response = okhttp3.OkHttpClient().newCall(request).execute()
+                    val response = OkHttpClient().newCall(request).execute()
                     if (response.isSuccessful) {
                         val downloadedBytes = response.body?.bytes() ?: throw IOException("Response body is null")
                         this@PdfViewActivity.pdfBytes = downloadedBytes
@@ -464,19 +463,9 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
             return
         }
 
-        lifecycleScope.launch {
-            if (AiQueryManager.canPerformQuery()) {
-                val chatDialog = ChatAiDialogFragment()
-                chatDialog.show(supportFragmentManager, "ChatAiDialog")
-            } else {
-                if (chatMessages.isEmpty()) {
-                    showWatchAdDialog()
-                } else {
-                    val chatDialog = ChatAiDialogFragment()
-                    chatDialog.show(supportFragmentManager, "ChatAiDialog")
-                }
-            }
-        }
+        // Diyaloğu anında aç; kota kontrolü diyalog içinde asenkron yapılacak
+        val chatDialog = ChatAiDialogFragment()
+        chatDialog.show(supportFragmentManager, "ChatAiDialog")
     }
 
     suspend fun extractTextForAI(): String {
