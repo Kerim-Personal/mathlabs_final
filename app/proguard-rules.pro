@@ -52,17 +52,30 @@
 -dontwarn org.bouncycastle.**
 
 # ===============================================
-# AndroidPdfViewer Kütüphanesi
+# PDFBox-Android (com.tom_roush.*)
+# Android portu, paketleri com.tom_roush altında yeniden adlandırır.
+# Reflection ve kaynak yüklemeleri sebebiyle koruma gerekiyor.
 # ===============================================
--keep class com.github.barteksc.pdfviewer.** { *; }
--dontwarn com.github.barteksc.pdfviewer.**
+-keep class com.tom_roush.pdfbox.** { *; }
+-keep class com.tom_roush.fontbox.** { *; }
+-keep class com.tom_roush.xmpbox.** { *; }
+-dontwarn com.tom_roush.**
+
+# Bazı derlemelerde commons-logging referansları uyarı üretebilir
+-dontwarn org.apache.commons.logging.**
 
 # ===============================================
-# OkHttp ve Coroutines
+# Glide (Görüntü Yükleme)
+# AppGlideModule veya eski GlideModule tanımları için.
 # ===============================================
--dontwarn okhttp3.**
--dontwarn okio.**
--dontwarn kotlinx.coroutines.debug.**
+-keep public enum com.bumptech.glide.load.ImageHeaderParser$** { *; }
+-dontwarn com.bumptech.glide.**
+
+# ===============================================
+# AndroidPdfViewer -> Pdfium (com.shockwave.pdfium)
+# Bazı cihaz/sürümlerde eksik sınıf uyarılarını susturmak için
+# ===============================================
+-dontwarn com.shockwave.**
 
 # ===============================================
 # Custom View'ler

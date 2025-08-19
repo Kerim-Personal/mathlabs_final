@@ -88,6 +88,8 @@ class SettingsActivity : AppCompatActivity() {
         super.onResume()
         // Play Console’da fiyat değişmişse ekrana döner dönmez tazele
         billingManager.refreshProductDetails()
+        // Abonelik durumunu da Play’den çekip Firestore ile senkronize et
+        billingManager.checkAndSyncSubscriptions()
     }
 
     override fun onDestroy() {

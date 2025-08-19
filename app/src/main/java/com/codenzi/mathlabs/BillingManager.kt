@@ -253,7 +253,6 @@ class BillingManager(
     fun checkAndSyncSubscriptions() {
         if (!::billingClient.isInitialized || !billingClient.isReady) {
             Log.w("BillingManager", "BillingClient hazır değil, senkronizasyon planlandı.")
-            // Hazır olduğunda tekrar dene (sıraya ekle)
             onReadyCallbacks.add { checkAndSyncSubscriptions() }
             return
         }
@@ -268,12 +267,11 @@ class BillingManager(
         val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS)
         billingClient.queryPurchasesAsync(params.build()) { billingResult, activeSubs ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                coroutineScope.launch(Dispatchers.IO) {
+                // UI scope yerine uygulama-ömrü scope'u kullan
+                appScope.launch(Dispatchers.IO) {
                     val userData = UserRepository.getUserDataOnce() ?: return@launch
 
-                    // Cihazda herhangi bir aktif abonelik var mı?
-                    val hasAnyActiveSubs = activeSubs.any { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-                    // Sadece bu kullanıcıya ait abonelikleri dikkate al
+                    // Sadece bu kullanıcıya ait abonelikleri dikkate al (OA eşleşmeli)
                     val myActiveSubs = activeSubs.filter { it.accountIdentifiers?.obfuscatedAccountId == myObfuscatedId }
                     val isSubscribedOnPlay = myActiveSubs.any { it.purchaseState == Purchase.PurchaseState.PURCHASED }
 
@@ -283,24 +281,17 @@ class BillingManager(
                             "Senkronizasyon: Play durumu (${isSubscribedOnPlay}) ile Firestore durumu (${userData.isPremium}) farklı. Güncelleniyor..."
                         )
                         if (isSubscribedOnPlay) {
-                            // Yükseltme: arka planda hedef UID'e güvenli şekilde ver
-                            appScope.launch { grantPremiumAccess(uidSnapshot) }
+                            // Yükseltme: hedef UID için güvenli ver
+                            grantPremiumAccess(uidSnapshot)
                         } else {
-                            // Düşürme: cihazda hiç aktif abonelik yoksa güvenle false yap (hedef UID)
-                            if (!hasAnyActiveSubs) {
-                                UserRepository.updateUserFieldFor(uidSnapshot, "isPremium", false)
-                                val activeUid = UserRepository.currentUid()
-                                if (activeUid == uidSnapshot) {
-                                    val updatedData = userData.copy(isPremium = false)
-                                    withContext(Dispatchers.Main) {
-                                        UserRepository.triggerLocalUpdate(updatedData)
-                                    }
+                            // Düşürme: OA eşleşmiyor veya aktif abonelik yok; kesin olarak premium'u kaldır
+                            UserRepository.updateUserFieldFor(uidSnapshot, "isPremium", false)
+                            val activeUid = UserRepository.currentUid()
+                            if (activeUid == uidSnapshot) {
+                                val updatedData = userData.copy(isPremium = false)
+                                withContext(Dispatchers.Main) {
+                                    UserRepository.triggerLocalUpdate(updatedData)
                                 }
-                            } else {
-                                Log.d(
-                                    "BillingManager",
-                                    "Diğer bir Google hesabında aktif abonelik var; bu kullanıcıya ait olmadığı için düşürme yapılmadı."
-                                )
                             }
                         }
                     } else {

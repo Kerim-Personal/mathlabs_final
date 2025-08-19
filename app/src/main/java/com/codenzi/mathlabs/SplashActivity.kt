@@ -7,6 +7,7 @@ import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 class SplashActivity : AppCompatActivity() {
 
@@ -21,9 +22,17 @@ class SplashActivity : AppCompatActivity() {
         if (user != null) {
             billingManager = BillingManager(applicationContext, lifecycleScope)
 
-            // DEĞİŞİKLİK BURADA: Senkronizasyon işlemini, billing client hazır olduğunda başlat.
+            // DEĞİŞİKLİK: Billing hazır olunca önce kullanıcı kaydını garantiye al, sonra aboneliği senkronize et.
             billingManager.executeOnBillingSetupFinished {
-                billingManager.checkAndSyncSubscriptions()
+                lifecycleScope.launch {
+                    try {
+                        UserRepository.createOrUpdateUserData()
+                    } catch (_: Exception) {
+                        // Sessiz geç: Splash'ta kullanıcı akışını bloklama
+                    } finally {
+                        billingManager.checkAndSyncSubscriptions()
+                    }
+                }
             }
         }
 
