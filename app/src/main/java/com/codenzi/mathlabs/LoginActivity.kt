@@ -19,6 +19,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import android.view.animation.DecelerateInterpolator
 import kotlinx.coroutines.launch
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
 
 class LoginActivity : AppCompatActivity() {
 
@@ -30,6 +33,11 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var auth: FirebaseAuth
     private lateinit var billingManager: BillingManager
+
+    // ExoPlayer
+    private var player: ExoPlayer? = null
+    private var playerListener: Player.Listener? = null
+    private var isInForeground: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,6 +65,9 @@ class LoginActivity : AppCompatActivity() {
         binding.signInButton.setOnClickListener {
             signIn()
         }
+
+        // Arka plan video başlat
+        initializePlayer()
     }
 
     private fun signIn() {
@@ -123,21 +134,84 @@ class LoginActivity : AppCompatActivity() {
             .setStartDelay(150)
             .setInterpolator(DecelerateInterpolator())
             .start()
+    }
 
-        // Baloncuklar hafif fade-in
-        binding.bubbleTopLeft.alpha = 0f
-        binding.bubbleTopLeft.animate()
-            .alpha(0.45f)
-            .setDuration(700)
-            .setInterpolator(DecelerateInterpolator())
-            .start()
+    // --- ExoPlayer ile arka plan video ---
+    private fun initializePlayer() {
+        if (player != null) {
+            // Zaten var ise devam ettir
+            player?.playWhenReady = true
+            return
+        }
+        val exo = ExoPlayer.Builder(this).build()
+        player = exo
+        binding.videoBackground.player = exo
+        exo.repeatMode = Player.REPEAT_MODE_ALL
+        exo.volume = 0f
+        exo.playWhenReady = true
 
-        binding.bubbleBottomRight.alpha = 0f
-        binding.bubbleBottomRight.animate()
-            .alpha(0.35f)
-            .setDuration(800)
-            .setStartDelay(100)
-            .setInterpolator(DecelerateInterpolator())
-            .start()
+        // assets klasöründen oynat
+        val mediaItem = MediaItem.fromUri("asset:///compressedlogin.mp4")
+        exo.setMediaItem(mediaItem)
+
+        // Dayanıklı oynatma: durursa/bozulursa otomatik devam
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                when (playbackState) {
+                    Player.STATE_ENDED -> {
+                        exo.seekTo(0)
+                        if (isInForeground) exo.playWhenReady = true
+                    }
+                    Player.STATE_IDLE -> {
+                        if (isInForeground && !exo.isPlaying) {
+                            exo.prepare()
+                            exo.playWhenReady = true
+                        }
+                    }
+                }
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (!isPlaying && isInForeground && exo.playbackState == Player.STATE_READY) {
+                    exo.playWhenReady = true
+                }
+            }
+
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                Log.w("LoginActivity", "Arka plan video hatası: ${error.errorCodeName}")
+                exo.seekTo(0)
+                exo.prepare()
+                if (isInForeground) exo.playWhenReady = true
+            }
+        }
+        playerListener = listener
+        exo.addListener(listener)
+
+        exo.prepare()
+    }
+
+    private fun releasePlayer() {
+        binding.videoBackground.player = null
+        playerListener?.let { listener -> player?.removeListener(listener) }
+        playerListener = null
+        player?.release()
+        player = null
+    }
+
+    override fun onResume() {
+        super.onResume()
+        isInForeground = true
+        initializePlayer()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        isInForeground = false
+        player?.pause()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        releasePlayer()
     }
 }
