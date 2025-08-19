@@ -103,7 +103,7 @@
     <string name="topic_algebra_rings_fields">Halkalar, İdealler, Cisimler ve Galois Teorisi</string>
     <string name="topic_algebra_module_theory">Modül Teorisi</string>
 
-    <string name="topic_number_divisibility">B������lünebilme ve Öklid Algoritması</string>
+    <string name="topic_number_divisibility">Bölünebilme ve Öklid Algoritması</string>
     <string name="topic_number_prime_numbers">Asal Sayılar</string>
     <string name="topic_number_modular_arithmetic">Modüler Aritmetik</string>
     <string name="topic_number_chinese_remainder">Çin Kalan Teoremi</string>

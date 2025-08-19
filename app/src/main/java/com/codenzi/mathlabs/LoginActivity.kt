@@ -2,6 +2,7 @@ package com.codenzi.mathlabs
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -150,8 +151,8 @@ class LoginActivity : AppCompatActivity() {
         exo.volume = 0f
         exo.playWhenReady = true
 
-        // assets klasöründen oynat
-        val mediaItem = MediaItem.fromUri("asset:///compressedlogin.mp4")
+        // res/raw klasöründen oynat
+        val mediaItem = MediaItem.fromUri(Uri.parse("android.resource://" + packageName + "/raw/compressedlogin"))
         exo.setMediaItem(mediaItem)
 
         // Dayanıklı oynatma: durursa/bozulursa otomatik devam
