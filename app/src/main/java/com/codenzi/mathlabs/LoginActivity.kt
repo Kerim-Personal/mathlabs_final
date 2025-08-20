@@ -2,9 +2,9 @@ package com.codenzi.mathlabs
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -20,9 +20,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import android.view.animation.DecelerateInterpolator
 import kotlinx.coroutines.launch
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
+import android.graphics.ImageDecoder
+import android.graphics.drawable.AnimatedImageDrawable
+import android.os.Build
 
 class LoginActivity : AppCompatActivity() {
 
@@ -34,11 +34,6 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var auth: FirebaseAuth
     private lateinit var billingManager: BillingManager
-
-    // ExoPlayer
-    private var player: ExoPlayer? = null
-    private var playerListener: Player.Listener? = null
-    private var isInForeground: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,8 +62,11 @@ class LoginActivity : AppCompatActivity() {
             signIn()
         }
 
-        // Arka plan video başlat
-        initializePlayer()
+        // Animated WebP (Android 9+): decode ve başlat
+        startAnimatedBackgroundIfSupported()
+
+        // Google Sign-In buton metnini yerel dizeyle ayarla
+        updateGoogleButtonText()
     }
 
     private fun signIn() {
@@ -137,82 +135,50 @@ class LoginActivity : AppCompatActivity() {
             .start()
     }
 
-    // --- ExoPlayer ile arka plan video ---
-    private fun initializePlayer() {
-        if (player != null) {
-            // Zaten var ise devam ettir
-            player?.playWhenReady = true
-            return
-        }
-        val exo = ExoPlayer.Builder(this).build()
-        player = exo
-        binding.videoBackground.player = exo
-        exo.repeatMode = Player.REPEAT_MODE_ALL
-        exo.volume = 0f
-        exo.playWhenReady = true
-
-        // res/raw klasöründen oynat
-        val mediaItem = MediaItem.fromUri(Uri.parse("android.resource://" + packageName + "/raw/compressedlogin"))
-        exo.setMediaItem(mediaItem)
-
-        // Dayanıklı oynatma: durursa/bozulursa otomatik devam
-        val listener = object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                when (playbackState) {
-                    Player.STATE_ENDED -> {
-                        exo.seekTo(0)
-                        if (isInForeground) exo.playWhenReady = true
-                    }
-                    Player.STATE_IDLE -> {
-                        if (isInForeground && !exo.isPlaying) {
-                            exo.prepare()
-                            exo.playWhenReady = true
-                        }
-                    }
+    private fun startAnimatedBackgroundIfSupported() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            try {
+                val src = ImageDecoder.createSource(resources, R.drawable.login)
+                val drawable = ImageDecoder.decodeDrawable(src)
+                binding.imageBackground.setImageDrawable(drawable)
+                (drawable as? AnimatedImageDrawable)?.apply {
+                    repeatCount = AnimatedImageDrawable.REPEAT_INFINITE
+                    start()
                 }
-            }
-
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                if (!isPlaying && isInForeground && exo.playbackState == Player.STATE_READY) {
-                    exo.playWhenReady = true
-                }
-            }
-
-            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                Log.w("LoginActivity", "Arka plan video hatası: ${error.errorCodeName}")
-                exo.seekTo(0)
-                exo.prepare()
-                if (isInForeground) exo.playWhenReady = true
+            } catch (e: Throwable) {
+                Log.w("LoginActivity", "Animated WebP yüklenemedi: ${e.message}")
             }
         }
-        playerListener = listener
-        exo.addListener(listener)
-
-        exo.prepare()
-    }
-
-    private fun releasePlayer() {
-        binding.videoBackground.player = null
-        playerListener?.let { listener -> player?.removeListener(listener) }
-        playerListener = null
-        player?.release()
-        player = null
     }
 
     override fun onResume() {
         super.onResume()
-        isInForeground = true
-        initializePlayer()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            (binding.imageBackground.drawable as? AnimatedImageDrawable)?.start()
+        }
+        // Yeniden çizim sonrası metni tekrar uygula
+        updateGoogleButtonText()
+    }
+
+    private fun updateGoogleButtonText() {
+        try {
+            val tv = (0 until binding.signInButton.childCount)
+                .map { binding.signInButton.getChildAt(it) }
+                .filterIsInstance<TextView>()
+                .firstOrNull()
+            val text = getString(R.string.sign_in_with_google)
+            tv?.text = text
+            tv?.isAllCaps = false
+            binding.signInButton.contentDescription = text
+        } catch (e: Exception) {
+            Log.w("LoginActivity", "Google buton metni ayarlanamadı: ${e.message}")
+        }
     }
 
     override fun onPause() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            (binding.imageBackground.drawable as? AnimatedImageDrawable)?.stop()
+        }
         super.onPause()
-        isInForeground = false
-        player?.pause()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        releasePlayer()
     }
 }

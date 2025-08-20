@@ -10,18 +10,17 @@
     android:fitsSystemWindows="true"
     tools:context=".LoginActivity">
 
-    <!-- Arka plan video için PlayerView (cover) -->
-    <androidx.media3.ui.PlayerView
-        android:id="@+id/videoBackground"
+    <!-- Arka plan: statik WebP görsel -->
+    <ImageView
+        android:id="@+id/imageBackground"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:use_controller="false"
-        app:resize_mode="zoom"
-        app:surface_type="texture_view"
+        android:scaleType="centerCrop"
+        android:src="@drawable/login"
         android:importantForAccessibility="no"
         android:contentDescription="@null"
         android:clickable="false"

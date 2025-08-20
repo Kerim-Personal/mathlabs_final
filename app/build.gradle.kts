@@ -167,8 +167,6 @@ dependencies {
     implementation("com.android.billingclient:billing-ktx:7.0.0")
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
-    implementation("androidx.media3:media3-exoplayer:1.4.1")
-    implementation("androidx.media3:media3-ui:1.4.1")
 
     // ---- TEST KÜTÜPHANELERİ ----
     testImplementation(libs.junit)

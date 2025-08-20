@@ -286,4 +286,5 @@
     <string name="hero_bullet_2">Quickly access and search topics</string>
     <string name="hero_bullet_3">Get explanations and summaries with the AI Assistant</string>
     <string name="login_disclaimer">By continuing, you agree to the Terms of Use and Privacy Policy.</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
 </resources>
