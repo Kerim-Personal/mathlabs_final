@@ -23,6 +23,25 @@ if (localPropertiesFile.exists() && localPropertiesFile.isFile) {
     println("Warning: local.properties file not found in project root.")
 }
 
+// --- Secrets okuma yardımcıları: önce Gradle properties, sonra env, en son local.properties ---
+fun readGradleProperty(name: String): String? = (findProperty(name) as String?)?.trim()?.takeIf { it.isNotEmpty() }
+fun readEnv(name: String): String? = System.getenv(name)?.trim()?.takeIf { it.isNotEmpty() }
+fun readLocalProp(name: String): String? = localProperties.getProperty(name)?.trim()?.takeIf { it.isNotEmpty() }
+fun getSecret(name: String): String = readGradleProperty(name)
+    ?: readEnv(name)
+    ?: readLocalProp(name)
+    ?: ""
+
+fun resolvePathMaybe(str: String): String {
+    if (str.isBlank()) return str
+    val expanded = if (str.startsWith("~")) {
+        val home = System.getProperty("user.home") ?: ""
+        home + str.removePrefix("~")
+    } else str
+    val f = file(expanded)
+    return f.path
+}
+
 android {
     namespace = "com.codenzi.mathlabs"
     compileSdk = 35
@@ -31,36 +50,32 @@ android {
         applicationId = "com.codenzi.mathlabs"
         minSdk = 24
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.0.8"
+        versionCode = 10
+        versionName = "1.0.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
 
 
-        val admobAppId = localProperties.getProperty("ADMOB_APP_ID") ?: ""
+        val admobAppId = getSecret("ADMOB_APP_ID")
         resValue("string", "admob_app_id", admobAppId)
-        val admobBannerUnitId = localProperties.getProperty("ADMOB_BANNER_UNIT_ID") ?: ""
+        val admobBannerUnitId = getSecret("ADMOB_BANNER_UNIT_ID")
         resValue("string", "admob_banner_unit_id", admobBannerUnitId)
-        val admobInterstitialUnitId = localProperties.getProperty("ADMOB_INTERSTITIAL_UNIT_ID") ?: ""
+        val admobInterstitialUnitId = getSecret("ADMOB_INTERSTITIAL_UNIT_ID")
         resValue("string", "admob_interstitial_unit_id", admobInterstitialUnitId)
-        val admobRewardedUnitId = localProperties.getProperty("ADMOB_REWARDED_UNIT_ID") ?: ""
+        val admobRewardedUnitId = getSecret("ADMOB_REWARDED_UNIT_ID")
         resValue("string", "admob_rewarded_unit_id", admobRewardedUnitId)
+
+        if (admobAppId.isBlank()) println("Warning: ADMOB_APP_ID boş. Reklamlar yüklenmeyebilir.")
     }
 
-    // Release keystore bilgileri (varsa) okunur, yoksa debug imzasına düşülür
-    val relStoreFilePath = (localProperties.getProperty("RELEASE_STORE_FILE")
-        ?: localProperties.getProperty("KEYSTORE_PATH")
-        ?: "").trim()
-    val relStorePassword = (localProperties.getProperty("RELEASE_STORE_PASSWORD")
-        ?: localProperties.getProperty("KEYSTORE_PASSWORD")
-        ?: "").trim()
-    val relKeyAlias = (localProperties.getProperty("RELEASE_KEY_ALIAS")
-        ?: localProperties.getProperty("KEY_ALIAS")
-        ?: "").trim()
-    val relKeyPassword = (localProperties.getProperty("RELEASE_KEY_PASSWORD")
-        ?: localProperties.getProperty("KEY_PASSWORD")
-        ?: "").trim()
+    // Release keystore bilgileri: Gradle properties -> Env -> local.properties
+    val relStoreFilePathRaw = getSecret("RELEASE_STORE_FILE").ifBlank { getSecret("KEYSTORE_PATH") }
+    val relStorePassword = getSecret("RELEASE_STORE_PASSWORD").ifBlank { getSecret("KEYSTORE_PASSWORD") }
+    val relKeyAlias = getSecret("RELEASE_KEY_ALIAS").ifBlank { getSecret("KEY_ALIAS") }
+    val relKeyPassword = getSecret("RELEASE_KEY_PASSWORD").ifBlank { getSecret("KEY_PASSWORD") }
+
+    val relStoreFilePath = resolvePathMaybe(relStoreFilePathRaw)
     val haveReleaseKeystore = relStoreFilePath.isNotBlank() &&
             relStorePassword.isNotBlank() &&
             relKeyAlias.isNotBlank() &&

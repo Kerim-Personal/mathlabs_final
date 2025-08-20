@@ -286,6 +286,6 @@
     <string name="hero_bullet_1">PDF’leri aç, sayfa sayfa ilerle</string>
     <string name="hero_bullet_2">Konulara hızlı eriş ve ara</string>
     <string name="hero_bullet_3">AI Asistan ile açıklama ve özet al</string>
-    <string name="login_disclaimer">Devam ederek Kullanım Koşulları ve Gizlilik Politikasını kabul etmiş olursun.</string>
+    <string name="login_disclaimer">Devam ederek &lt;a href="https://www.codenzi.com/mathlabs-term-of-use.html"&gt;Kullanım Koşulları&lt;/a&gt; ve &lt;a href="https://www.codenzi.com/privacy-math-labs.html"&gt;Gizlilik Politikası&lt;/a&gt;nı kabul etmiş olursun.</string>
     <string name="sign_in_with_google">Google ile oturum aç</string>
 </resources>

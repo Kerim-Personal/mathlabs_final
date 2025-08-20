@@ -23,6 +23,8 @@ import kotlinx.coroutines.launch
 import android.graphics.ImageDecoder
 import android.graphics.drawable.AnimatedImageDrawable
 import android.os.Build
+import android.text.Html
+import android.text.method.LinkMovementMethod
 
 class LoginActivity : AppCompatActivity() {
 
@@ -61,6 +63,10 @@ class LoginActivity : AppCompatActivity() {
         binding.signInButton.setOnClickListener {
             signIn()
         }
+
+        // login_disclaimer TextView'ını ayarla
+        binding.loginDisclaimer.text = Html.fromHtml(getString(R.string.login_disclaimer), Html.FROM_HTML_MODE_COMPACT)
+        binding.loginDisclaimer.movementMethod = LinkMovementMethod.getInstance()
 
         // Animated WebP (Android 9+): decode ve başlat
         startAnimatedBackgroundIfSupported()

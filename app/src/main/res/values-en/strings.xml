@@ -285,6 +285,6 @@
     <string name="hero_bullet_1">Open PDFs, navigate page by page</string>
     <string name="hero_bullet_2">Quickly access and search topics</string>
     <string name="hero_bullet_3">Get explanations and summaries with the AI Assistant</string>
-    <string name="login_disclaimer">By continuing, you agree to the Terms of Use and Privacy Policy.</string>
+    <string name="login_disclaimer">By continuing, you agree to the &lt;a href="https://www.codenzi.com/mathlabs-term-of-use.html"&gt;Terms of Use&lt;/a&gt; and &lt;a href="https://www.codenzi.com/privacy-math-labs.html"&gt;Privacy Policy&lt;/a&gt;.</string>
     <string name="sign_in_with_google">Sign in with Google</string>
 </resources>
