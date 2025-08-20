@@ -97,3 +97,30 @@
 # Please add these rules to your existing keep rules in order to suppress warnings.
 # This is generated automatically by the Android Gradle plugin.
 -dontwarn com.gemalto.jp2.JP2Decoder
+
+# ===============================================
+# Google Sign-In & Firebase Auth Kuralları
+# Google ile giriş özelliğinin release modda
+# sorunsuz çalışması için bu kurallar zorunludur.
+# ===============================================
+-keep class com.google.android.gms.auth.** { *; }
+-keep class com.google.firebase.auth.** { *; }
+
+# Google Play servislerinin temel sınıflarını koru
+-keep class com.google.android.gms.common.** { *; }
+-keep interface com.google.android.gms.common.** { *; }
+
+# Google API istemci sınıflarını koru
+-keep class com.google.android.gms.common.api.** { *; }
+-keep interface com.google.android.gms.common.api.** { *; }
+
+# SignInHubActivity gibi iç aktivitelerin korunması
+-keep class com.google.android.gms.auth.api.signin.internal.* { *; }
+
+# ===============================================
+# Firestore Model Sınıfları (UserData)
+# Release modda toObject() ile alan eşleşmesi bozulmaması için
+# sınıfı ve tüm üyelerini obfuscation/shrinking dışında tut.
+# ===============================================
+-keep class com.codenzi.mathlabs.UserData { *; }
+-keepclassmembers class com.codenzi.mathlabs.UserData { *; }

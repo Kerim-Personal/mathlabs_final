@@ -48,10 +48,44 @@ android {
         resValue("string", "admob_rewarded_unit_id", admobRewardedUnitId)
     }
 
+    // Release keystore bilgileri (varsa) okunur, yoksa debug imzasına düşülür
+    val relStoreFilePath = (localProperties.getProperty("RELEASE_STORE_FILE")
+        ?: localProperties.getProperty("KEYSTORE_PATH")
+        ?: "").trim()
+    val relStorePassword = (localProperties.getProperty("RELEASE_STORE_PASSWORD")
+        ?: localProperties.getProperty("KEYSTORE_PASSWORD")
+        ?: "").trim()
+    val relKeyAlias = (localProperties.getProperty("RELEASE_KEY_ALIAS")
+        ?: localProperties.getProperty("KEY_ALIAS")
+        ?: "").trim()
+    val relKeyPassword = (localProperties.getProperty("RELEASE_KEY_PASSWORD")
+        ?: localProperties.getProperty("KEY_PASSWORD")
+        ?: "").trim()
+    val haveReleaseKeystore = relStoreFilePath.isNotBlank() &&
+            relStorePassword.isNotBlank() &&
+            relKeyAlias.isNotBlank() &&
+            relKeyPassword.isNotBlank() &&
+            file(relStoreFilePath).exists()
+
+    signingConfigs {
+        if (haveReleaseKeystore) {
+            create("release") {
+                storeFile = file(relStoreFilePath)
+                storePassword = relStorePassword
+                keyAlias = relKeyAlias
+                keyPassword = relKeyPassword
+                enableV3Signing = true
+                enableV4Signing = true
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            // Release keystore yoksa, signing report alabilmek ve local release APK’da Google Sign-In test edebilmek için debug imzasına düş
+            signingConfig = if (haveReleaseKeystore) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
