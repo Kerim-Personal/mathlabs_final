@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MathLabs</string>
+    <string name="app_name">MathLabs Edu</string>
 
     <string name="settings_title">Settings</string>
     <string name="language_settings">Language Settings</string>
@@ -281,10 +281,13 @@
 
     <string name="ai_wait_for_response">Please wait for response.</string>
     <string name="login_subtitle">AI-powered solutions, topic summaries</string>
-    <string name="hero_title">What can you do with MathLabs?</string>
+    <string name="hero_title">What can you do with MathLabs Edu?</string>
     <string name="hero_bullet_1">Open PDFs, navigate page by page</string>
     <string name="hero_bullet_2">Quickly access and search topics</string>
     <string name="hero_bullet_3">Get explanations and summaries with the AI Assistant</string>
-    <string name="login_disclaimer">By continuing, you agree to the &lt;a href="https://www.codenzi.com/mathlabs-term-of-use.html"&gt;Terms of Use&lt;/a&gt; and &lt;a href="https://www.codenzi.com/privacy-math-labs.html"&gt;Privacy Policy&lt;/a&gt;.</string>
+    <string name="login_disclaimer">By continuing, you agree to the &lt;a href="https://www.codenzi.com/mathlabs-edu-term-of-use.html"&gt;Terms of Use&lt;/a&gt; and &lt;a href="https://www.codenzi.com/mathlabs-edu-privacy-policy.html"&gt;Privacy Policy&lt;/a&gt;.</string>
     <string name="sign_in_with_google">Sign in with Google</string>
+
+    <string name="premium_activated_successfully">Your premium membership has been successfully activated!</string>
+    <string name="premium_activation_failed">An error occurred during premium activation. Please try again.</string>
 </resources>

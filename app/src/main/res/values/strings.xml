@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MathLabs</string>
+    <string name="app_name">MathLabs Edu</string>
     <string name="expand_arrow_description">Genişletme veya daraltma oku</string>
     <string name="splash_text">Codenzi</string>
 
@@ -282,10 +282,13 @@
     <string name="loading">Yükleniyor…</string>
     <string name="ai_wait_for_response">Lütfen mevcut yanıtı bekleyin.</string>
     <string name="login_subtitle">Akıllı soru çözme, konu özetleri</string>
-    <string name="hero_title">MathLabs ile neler yapabilirsin?</string>
+    <string name="hero_title">MathLabs Edu ile neler yapabilirsin?</string>
     <string name="hero_bullet_1">PDF’leri aç, sayfa sayfa ilerle</string>
     <string name="hero_bullet_2">Konulara hızlı eriş ve ara</string>
     <string name="hero_bullet_3">AI Asistan ile açıklama ve özet al</string>
-    <string name="login_disclaimer">Devam ederek &lt;a href="https://www.codenzi.com/mathlabs-term-of-use.html"&gt;Kullanım Koşulları&lt;/a&gt; ve &lt;a href="https://www.codenzi.com/privacy-math-labs.html"&gt;Gizlilik Politikası&lt;/a&gt;nı kabul etmiş olursun.</string>
+    <string name="login_disclaimer">Devam ederek &lt;a href="https://www.codenzi.com/mathlabs-edu-term-of-use.html"&gt;Kullanım Koşulları&lt;/a&gt; ve &lt;a href="https://www.codenzi.com/mathlabs-edu-privacy-policy.html"&gt;Gizlilik Politikası&lt;/a&gt;nı kabul etmiş olursun.</string>
     <string name="sign_in_with_google">Google ile oturum aç</string>
+
+    <string name="premium_activated_successfully">Premium üyeliğiniz başarıyla aktifleştirildi!</string>
+    <string name="premium_activation_failed">Premium aktivasyonu sırasında bir hata oluştu. Lütfen tekrar deneyin.</string>
 </resources>
