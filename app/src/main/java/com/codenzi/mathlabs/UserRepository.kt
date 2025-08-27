@@ -5,6 +5,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.functions.ktx.functions
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.functions.FirebaseFunctions
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.tasks.await
@@ -21,6 +24,7 @@ object UserRepository {
     private const val TAG = "UserRepository"
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    private val functions: FirebaseFunctions = Firebase.functions
 
     private var userDocumentListener: ListenerRegistration? = null
 
@@ -150,20 +154,6 @@ object UserRepository {
     }
 
     /**
-     * Belirli bir alanı Firestore'da, hedef UID için günceller (hesap değişse bile güvenli).
-     */
-    suspend fun updateUserFieldFor(uid: String, field: String, value: Any): Result<Unit> {
-        return try {
-            firestore.collection("users").document(uid).update(field, value).await()
-            Log.d(TAG, "($uid) $field alanı başarıyla güncellendi.")
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "($uid) $field alanı güncellenirken hata oluştu.", e)
-            Result.failure(e)
-        }
-    }
-
-    /**
      * Bir sayaç alanını Firestore'da artırır/azaltır.
      */
     suspend fun incrementUserCounter(fieldName: String, incrementBy: Long = 1): Result<Unit> {
@@ -184,54 +174,41 @@ object UserRepository {
     }
 
     /**
-     * Bir sayaç alanını, hedef UID için Firestore'da artırır/azaltır.
+     * PDF indirme hakkını kontrol eder ve gerekirse sıfırlar.
      */
-    suspend fun incrementUserCounterFor(uid: String, fieldName: String, incrementBy: Long = 1): Result<Unit> {
+    suspend fun requestPdfDownloadSlot(): Result<Boolean> {
         return try {
-            val increment = FieldValue.increment(incrementBy)
-            firestore.collection("users").document(uid).update(fieldName, increment).await()
-            Log.d(TAG, "($uid) $fieldName sayacı $incrementBy artırıldı.")
-            Result.success(Unit)
+            val data = functions.getHttpsCallable("registerPdfDownload").call()
+                .continueWith { it.result?.data as? Map<*, *> }.await()
+            val allowed = (data?.get("allowed") as? Boolean) == true
+            if (allowed) {
+                // Lokal state'i tek seferlik yenile
+                val refreshed = getUserDataOnce()
+                refreshed?.let { triggerLocalUpdate(it) }
+            }
+            Result.success(allowed)
         } catch (e: Exception) {
-            Log.e(TAG, "($uid) $fieldName sayacı artırılırken hata oluştu.", e)
+            Log.e(TAG, "requestPdfDownloadSlot hata", e)
             Result.failure(e)
         }
     }
 
-    /**
-     * PDF indirme hakkını kontrol eder ve gerekirse sıfırlar.
-     */
-    suspend fun canDownloadPdf(): Boolean {
-        // Kontrol için her zaman en güncel veriyi (önce lokal, yoksa remote) kullanır.
-        val userData = _userDataState.value ?: getUserDataOnce() ?: return false
-
-        if (!userData.isPremium) {
-            return false
+    suspend fun grantAdReward(amount: Int = 3): Result<Int> {
+        return try {
+            val payload = mapOf("amount" to amount)
+            val data = functions.getHttpsCallable("grantAdReward").call(payload)
+                .continueWith { it.result?.data as? Map<*, *> }.await()
+            val granted = (data?.get("granted") as? Boolean) == true
+            val added = if (granted) (data?.get("added") as? Number)?.toInt() ?: 0 else 0
+            if (granted) {
+                val refreshed = getUserDataOnce()
+                refreshed?.let { triggerLocalUpdate(it) }
+            }
+            if (granted) Result.success(added) else Result.failure(Exception("Reward not granted"))
+        } catch (e: Exception) {
+            Log.e(TAG, "grantAdReward hata", e)
+            Result.failure(e)
         }
-
-        val currentTime = System.currentTimeMillis()
-        val lastResetTimeMs = userData.lastPdfDownloadReset?.time ?: 0L
-        val currentCal = Calendar.getInstance().apply { timeInMillis = currentTime }
-        val lastResetCal = Calendar.getInstance().apply { timeInMillis = lastResetTimeMs }
-
-        if (currentCal.get(Calendar.MONTH) != lastResetCal.get(Calendar.MONTH) ||
-            currentCal.get(Calendar.YEAR) != lastResetCal.get(Calendar.YEAR)) {
-
-            updateUserField("premiumPdfDownloadCount", 0)
-            // Sunucu zaman damgası kullan
-            updateUserField("lastPdfDownloadReset", FieldValue.serverTimestamp())
-
-            // Lokal state'i de anında güncelle
-            triggerLocalUpdate(
-                userData.copy(
-                    premiumPdfDownloadCount = 0,
-                    lastPdfDownloadReset = Date()
-                )
-            )
-            return true
-        }
-
-        return userData.premiumPdfDownloadCount < 20
     }
 
     /**
@@ -294,20 +271,6 @@ object UserRepository {
             }
         } else {
             Result.failure(Exception("Kullanıcı oturum açmamış."))
-        }
-    }
-
-    /**
-     * Birden fazla alanı, hedef UID için tek seferde atomik olarak günceller.
-     */
-    suspend fun updateUserFieldsFor(uid: String, fields: Map<String, Any>): Result<Unit> {
-        return try {
-            firestore.collection("users").document(uid).update(fields).await()
-            Log.d(TAG, "($uid) Alanlar başarıyla güncellendi: ${fields.keys}")
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "($uid) Alanlar güncellenirken hata oluştu.", e)
-            Result.failure(e)
         }
     }
 }

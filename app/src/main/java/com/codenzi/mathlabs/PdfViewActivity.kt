@@ -208,17 +208,14 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private fun handleDownloadClick() {
         UIFeedbackHelper.provideFeedback(pdfToolbar)
         lifecycleScope.launch {
-            // PDF indirme hakkını anlık olarak UserRepository'den kontrol et
-            if (UserRepository.canDownloadPdf()) {
+            val slotResult = UserRepository.requestPdfDownloadSlot()
+            if (slotResult.isSuccess && slotResult.getOrNull() == true) {
                 pdfBytes?.let {
-                    // SAYAÇ ARTIRIMINI BURADAN KALDIRDIK.
-                    // Artık sadece başarılı bir yeni indirme gerçekleştiğinde artıracağız.
                     downloadPdf(it)
                 } ?: run {
                     showAnimatedToast(getString(R.string.download_failed))
                 }
             } else {
-                // Hakkı yoksa bilgilendir ve premium ekranına yönlendir
                 val message = if (UserRepository.isCurrentUserPremium()) {
                     getString(R.string.premium_pdf_limit_reached)
                 } else {
@@ -290,13 +287,7 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                 }
 
                 if (wroteSuccessfully) {
-                    // Yerel olarak indirildi olarak işaretle
                     SharedPreferencesManager.markPdfDownloaded(this@PdfViewActivity, pdfId)
-
-                    // Başarılı yeni indirme sonrasında sayaç artır (hedef UID'e sabit)
-                    uidSnapshot?.let { safeUid ->
-                        UserRepository.incrementUserCounterFor(safeUid, "premiumPdfDownloadCount")
-                    }
                     withContext(Dispatchers.Main) {
                         showAnimatedToast(getString(R.string.download_successful))
                     }
@@ -499,9 +490,12 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
                     activity = this,
                     onRewardEarned = {
                         lifecycleScope.launch {
-                            // Ödül hakkını doğrudan Firestore'da artır
-                            UserRepository.incrementUserCounter("rewardedQueries", 3)
-                            showAnimatedToast(getString(R.string.reward_granted_toast, 3))
+                            val rewardResult = UserRepository.grantAdReward(3)
+                            if (rewardResult.isSuccess) {
+                                showAnimatedToast(getString(R.string.reward_granted_toast, rewardResult.getOrNull() ?: 0))
+                            } else {
+                                showAnimatedToast(getString(R.string.ad_not_ready_toast))
+                            }
                         }
                     },
                     onAdFailedToShow = {

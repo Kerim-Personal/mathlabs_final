@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      // Sadece profil alanları (displayName, email) güncellenebilir; diğer hassas alanlar client tarafından değiştirilemez.
+      allow update: if request.auth != null && request.auth.uid == userId &&
+        // isPremium değişmiyor
+        (request.resource.data.isPremium == resource.data.isPremium) &&
+        (request.resource.data.rewardedQueries == resource.data.rewardedQueries) &&
+        (request.resource.data.aiQueriesUsed == resource.data.aiQueriesUsed) &&
+        (request.resource.data.premiumPdfDownloadCount == resource.data.premiumPdfDownloadCount) &&
+        (request.resource.data.lastAiQueryReset == resource.data.lastAiQueryReset) &&
+        (request.resource.data.lastPdfDownloadReset == resource.data.lastPdfDownloadReset) &&
+        (request.resource.data.usageMode == resource.data.usageMode) &&
+        (request.resource.data.registrationDate == resource.data.registrationDate) &&
+        // Sadece değişmesine izin verilen anahtarlar + hassas olmayan mevcut anahtarlar
+        request.resource.data.keys().hasOnly(resource.data.keys()) &&
+        // Değiştirilen alanlar sadece displayName veya email olabilir
+        (
+          (request.resource.data.displayName != resource.data.displayName) ||
+          (request.resource.data.email != resource.data.email) ||
+          (request.resource.data.displayName == resource.data.displayName && request.resource.data.email == resource.data.email)
+        );
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+
