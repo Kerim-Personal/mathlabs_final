@@ -11,9 +11,12 @@ import com.google.firebase.functions.FirebaseFunctions
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.tasks.await
-import java.util.Calendar
 import java.util.Date
 import com.google.firebase.Timestamp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 /**
  * Kullanıcı verilerini Firestore üzerinden yöneten merkezi singleton nesne.
@@ -33,11 +36,17 @@ object UserRepository {
     private val _userDataState = MutableStateFlow<UserData?>(null)
     val userDataState: StateFlow<UserData?> = _userDataState
 
+    // Spam engelleme için refresh debounce
+    private var lastRefreshCallMs: Long = 0
+    private const val REFRESH_MIN_INTERVAL_MS = 15_000L
+    private val repoScope = CoroutineScope(Dispatchers.IO + Job())
+
     init {
         // Kullanıcı oturum açtığında veya kapattığında dinleyiciyi otomatik olarak yönet.
         auth.addAuthStateListener { firebaseAuth ->
             if (firebaseAuth.currentUser != null) {
                 startListeningForUserData()
+                repoScope.launch { refreshPremiumStatus(force = true) }
             } else {
                 // Oturum kapandığında dinleyiciyi durdur ve lokal veriyi temizle.
                 stopListeningForUserData()
@@ -82,6 +91,8 @@ object UserRepository {
                     val userData = snapshot.toObject(UserData::class.java)
                     _userDataState.value = userData
                     Log.d(TAG, "Kullanıcı verisi Firestore'dan güncellendi: $userData")
+                    // Expiry sonrası server henüz düşürmediyse tetikle
+                    userData?.let { maybeDowngradeIfExpired(it) }
                 } catch (e: Exception) {
                     Log.e(TAG, "Snapshot parse edilirken hata oluştu.", e)
                     _userDataState.value = null
@@ -94,7 +105,22 @@ object UserRepository {
     }
 
     /**
-     * Dinleyiciyi durdurur ve StateFlow'u temizler. Oturum kapatıldığında çağrılır.
+     * Premium durumunu (lifetime veya süresi dolmamış abonelik) hesaplar.
+     */
+    fun hasActiveSubscription(now: Long = System.currentTimeMillis()): Boolean {
+        val data = _userDataState.value ?: return false
+        return data.isSubscriptionActive(now)
+    }
+
+    private fun maybeDowngradeIfExpired(data: UserData) {
+        val exp = data.subscriptionExpiryMillis
+        if (exp != null && exp > 0 && System.currentTimeMillis() > exp) {
+            repoScope.launch { refreshPremiumStatus(force = true) }
+        }
+    }
+
+    /**
+     * Dinleyiciyi durdurır ve StateFlow'u temizler. Oturum kapatıldığında çağrılır.
      */
     private fun stopListeningForUserData() {
         userDocumentListener?.remove()
@@ -117,8 +143,8 @@ object UserRepository {
     /**
      * Premium durumunu doğrudan canlı state üzerinden kontrol eder.
      */
-    fun isCurrentUserPremium(): Boolean {
-        return _userDataState.value?.isPremium ?: false
+    fun isCurrentUserPremium(): Boolean { // geriye dönük isim; abonelik aktifliğini döner
+        return hasActiveSubscription()
     }
 
     /**
@@ -137,78 +163,45 @@ object UserRepository {
     /**
      * Belirli bir alanı Firestore'da günceller.
      */
-    suspend fun updateUserField(field: String, value: Any): Result<Unit> {
-        val userId = auth.currentUser?.uid
-        return if (userId != null) {
-            try {
-                firestore.collection("users").document(userId).update(field, value).await()
-                Log.d(TAG, "$field alanı başarıyla güncellendi.")
-                Result.success(Unit)
-            } catch (e: Exception) {
-                Log.e(TAG, "$field alanı güncellenirken hata oluştu.", e)
-                Result.failure(e)
-            }
-        } else {
-            Result.failure(Exception("Kullanıcı oturum açmamış."))
-        }
+    suspend fun updateUserField(field: String, value: Any) = runCatching {
+        val userId = auth.currentUser?.uid ?: error("Kullanıcı yok")
+        firestore.collection("users").document(userId).update(field, value).await()
     }
 
     /**
      * Bir sayaç alanını Firestore'da artırır/azaltır.
      */
-    suspend fun incrementUserCounter(fieldName: String, incrementBy: Long = 1): Result<Unit> {
-        val userId = auth.currentUser?.uid
-        return if (userId != null) {
-            try {
-                val increment = FieldValue.increment(incrementBy)
-                firestore.collection("users").document(userId).update(fieldName, increment).await()
-                Log.d(TAG, "$fieldName sayacı $incrementBy artırıldı.")
-                Result.success(Unit)
-            } catch (e: Exception) {
-                Log.e(TAG, "$fieldName sayacı artırılırken hata oluştu.", e)
-                Result.failure(e)
-            }
-        } else {
-            Result.failure(Exception("Kullanıcı oturum açmamış."))
-        }
+    suspend fun incrementUserCounter(fieldName: String, incrementBy: Long = 1) = runCatching {
+        val userId = auth.currentUser?.uid ?: error("Kullanıcı yok")
+        val increment = FieldValue.increment(incrementBy)
+        firestore.collection("users").document(userId).update(fieldName, increment).await()
     }
 
     /**
      * PDF indirme hakkını kontrol eder ve gerekirse sıfırlar.
      */
-    suspend fun requestPdfDownloadSlot(): Result<Boolean> {
-        return try {
-            val data = functions.getHttpsCallable("registerPdfDownload").call()
-                .continueWith { it.result?.data as? Map<*, *> }.await()
-            val allowed = (data?.get("allowed") as? Boolean) == true
-            if (allowed) {
-                // Lokal state'i tek seferlik yenile
-                val refreshed = getUserDataOnce()
-                refreshed?.let { triggerLocalUpdate(it) }
-            }
-            Result.success(allowed)
-        } catch (e: Exception) {
-            Log.e(TAG, "requestPdfDownloadSlot hata", e)
-            Result.failure(e)
-        }
+    suspend fun requestPdfDownloadSlot(): Result<Boolean> = try {
+        val data = functions.getHttpsCallable("registerPdfDownload").call()
+            .continueWith { it.result?.data as? Map<*, *> }.await()
+        val allowed = (data?.get("allowed") as? Boolean) == true
+        if (allowed) getUserDataOnce()?.let { triggerLocalUpdate(it) }
+        Result.success(allowed)
+    } catch (e: Exception) {
+        Log.e(TAG, "requestPdfDownloadSlot hata", e)
+        Result.failure(e)
     }
 
-    suspend fun grantAdReward(amount: Int = 3): Result<Int> {
-        return try {
-            val payload = mapOf("amount" to amount)
-            val data = functions.getHttpsCallable("grantAdReward").call(payload)
-                .continueWith { it.result?.data as? Map<*, *> }.await()
-            val granted = (data?.get("granted") as? Boolean) == true
-            val added = if (granted) (data?.get("added") as? Number)?.toInt() ?: 0 else 0
-            if (granted) {
-                val refreshed = getUserDataOnce()
-                refreshed?.let { triggerLocalUpdate(it) }
-            }
-            if (granted) Result.success(added) else Result.failure(Exception("Reward not granted"))
-        } catch (e: Exception) {
-            Log.e(TAG, "grantAdReward hata", e)
-            Result.failure(e)
-        }
+    suspend fun grantAdReward(amount: Int = 3): Result<Int> = try {
+        val payload = mapOf("amount" to amount)
+        val data = functions.getHttpsCallable("grantAdReward").call(payload)
+            .continueWith { it.result?.data as? Map<*, *> }.await()
+        val granted = (data?.get("granted") as? Boolean) == true
+        val added = if (granted) (data?.get("added") as? Number)?.toInt() ?: 0 else 0
+        if (granted) getUserDataOnce()?.let { triggerLocalUpdate(it) }
+        if (granted) Result.success(added) else Result.failure(Exception("Reward not granted"))
+    } catch (e: Exception) {
+        Log.e(TAG, "grantAdReward hata", e)
+        Result.failure(e)
     }
 
     /**
@@ -225,7 +218,7 @@ object UserRepository {
                     uid = user.uid,
                     displayName = user.displayName,
                     email = user.email,
-                    isPremium = false,
+                    subscriptionExpiryMillis = null,
                     aiQueriesUsed = 0,
                     lastAiQueryReset = null,
                     rewardedQueries = 0,
@@ -258,19 +251,34 @@ object UserRepository {
     /**
      * Birden fazla alanı Firestore'da tek seferde atomik olarak günceller.
      */
-    suspend fun updateUserFields(fields: Map<String, Any>): Result<Unit> {
-        val userId = auth.currentUser?.uid
-        return if (userId != null) {
-            try {
-                firestore.collection("users").document(userId).update(fields).await()
-                Log.d(TAG, "Alanlar başarıyla güncellendi: ${fields.keys}")
-                Result.success(Unit)
-            } catch (e: Exception) {
-                Log.e(TAG, "Alanlar güncellenirken hata oluştu.", e)
-                Result.failure(e)
+    suspend fun updateUserFields(fields: Map<String, Any>) = runCatching {
+        val userId = auth.currentUser?.uid ?: error("Kullanıcı yok")
+        firestore.collection("users").document(userId).update(fields).await()
+    }
+
+    /**
+     * Premium durumunu ve süresini sunucudan yeniler.
+     * @param force Zorla yenileme, en son yenileme zamanından bağımsız olarak.
+     * @return Kullanıcının premium olup olmadığı bilgisi.
+     */
+    suspend fun refreshPremiumStatus(force: Boolean = false): Boolean {
+        val now = System.currentTimeMillis()
+        if (!force && now - lastRefreshCallMs < REFRESH_MIN_INTERVAL_MS) {
+            return hasActiveSubscription()
+        }
+        lastRefreshCallMs = now
+        return try {
+            val data = functions.getHttpsCallable("refreshPremiumStatus").call()
+                .continueWith { it.result?.data as? Map<*, *> }.await()
+            val expiry = (data?.get("expiry") as? Number)?.toLong()
+            val current = _userDataState.value
+            if (current != null && current.subscriptionExpiryMillis != expiry) {
+                triggerLocalUpdate(current.copy(subscriptionExpiryMillis = expiry))
             }
-        } else {
-            Result.failure(Exception("Kullanıcı oturum açmamış."))
+            expiry != null && expiry > System.currentTimeMillis()
+        } catch (e: Exception) {
+            Log.w(TAG, "refreshPremiumStatus hata", e)
+            hasActiveSubscription()
         }
     }
 }

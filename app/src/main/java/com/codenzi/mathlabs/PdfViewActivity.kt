@@ -37,9 +37,11 @@ import com.github.barteksc.pdfviewer.listener.OnErrorListener
 import com.github.barteksc.pdfviewer.listener.OnLoadCompleteListener
 import com.github.barteksc.pdfviewer.listener.OnPageChangeListener
 import com.github.barteksc.pdfviewer.listener.OnPageErrorListener
+import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.card.MaterialCardView
@@ -148,20 +150,18 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
     private fun observeUserStatusAndUpdateUI() {
         lifecycleScope.launch {
             UserRepository.userDataState.collectLatest { userData ->
-                val isPremium = userData?.isPremium ?: false
-
-                // 1. Reklamları yönet
-                if (isPremium) {
+                val active = userData?.isSubscriptionActive() ?: false
+                Log.d("PdfViewActivity", "observeUserStatus activeSub=$active")
+                if (active) {
                     adContainerView.visibility = View.GONE
                     adView?.destroy()
                     adView = null
                 } else {
+                    adView?.destroy(); adView = null
                     adContainerView.visibility = View.VISIBLE
                     loadBanner()
                 }
-
-                // 2. Ekran görüntüsü iznini yönet
-                if (isPremium) {
+                if (active) {
                     window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
                 } else {
                     window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
@@ -170,15 +170,38 @@ class PdfViewActivity : AppCompatActivity(), OnLoadCompleteListener, OnErrorList
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        lifecycleScope.launch { UserRepository.refreshPremiumStatus() }
+    }
+
+    private var bannerRetryAttempt = 0
+    private val bannerHandler = Handler(Looper.getMainLooper())
+
     private fun loadBanner() {
-        if (adView != null || !isAdLoadable()) return
-        MobileAds.initialize(this) {}
+        if (adView != null || !isAdLoadable()) { Log.d("PdfViewActivity", "loadBanner skip adView=$adView isAdLoadable=${isAdLoadable()}"); return }
         adView = AdView(this)
         adView?.adUnitId = getString(R.string.admob_banner_unit_id)
         adContainerView.removeAllViews()
         adContainerView.addView(adView)
         adView?.setAdSize(adSize)
+        adView?.adListener = object : AdListener() {
+            override fun onAdFailedToLoad(error: LoadAdError) {
+                Log.w("PdfViewActivity", "Banner yüklenemedi: ${error.message} code=${error.code}")
+                adView = null
+                if (bannerRetryAttempt < 5) {
+                    val delay = (1000L * (1 shl bannerRetryAttempt).coerceAtMost(32))
+                    bannerRetryAttempt++
+                    bannerHandler.postDelayed({ loadBanner() }, delay)
+                }
+            }
+            override fun onAdLoaded() {
+                Log.d("PdfViewActivity", "Banner yüklendi")
+                bannerRetryAttempt = 0
+            }
+        }
         val adRequest = AdRequest.Builder().build()
+        Log.d("PdfViewActivity", "Banner request gönderiliyor")
         adView?.loadAd(adRequest)
     }
 

@@ -155,7 +155,8 @@ class SettingsActivity : AppCompatActivity() {
                 }
 
                 if (userData != null) {
-                    updatePremiumUI(userData.isPremium)
+                    val active = userData.isSubscriptionActive()
+                    updatePremiumUI(active)
                     textViewUserName.text = user.displayName
                     textViewUserEmail.text = user.email
                     Glide.with(this@SettingsActivity)
@@ -171,9 +172,9 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun updatePremiumUI(isPremium: Boolean) {
-        premiumPurchaseContainer.visibility = if (isPremium) View.GONE else View.VISIBLE
-        premiumStatusContainer.visibility = if (isPremium) View.VISIBLE else View.GONE
+    private fun updatePremiumUI(activeSub: Boolean) {
+        premiumPurchaseContainer.visibility = if (activeSub) View.GONE else View.VISIBLE
+        premiumStatusContainer.visibility = if (activeSub) View.VISIBLE else View.GONE
     }
 
     private fun setupClickListeners() {

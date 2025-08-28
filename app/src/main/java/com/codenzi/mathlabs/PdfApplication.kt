@@ -5,6 +5,8 @@ import android.content.Context
 import android.provider.Settings
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
+import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.RequestConfiguration
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
@@ -17,37 +19,33 @@ class PdfApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-
-        // --- SADELEŞTİRİLMİŞ APP CHECK YAPILANDIRMASI ---
-
-        // 1. Firebase ana uygulamasını başlat
+        // Firebase init + App Check
         FirebaseApp.initializeApp(this)
-
-        // 2. Firebase App Check örneğini al
         val firebaseAppCheck = FirebaseAppCheck.getInstance()
+        firebaseAppCheck.installAppCheckProviderFactory(PlayIntegrityAppCheckProviderFactory.getInstance())
 
-        // 3. Doğrudan Play Integrity sağlayıcısını kur.
-        //    Bu, uygulamanın sadece Google Play'den indirilen orijinal versiyonlarda
-        //    Firebase servislerine erişmesini sağlar.
-        firebaseAppCheck.installAppCheckProviderFactory(
-            PlayIntegrityAppCheckProviderFactory.getInstance()
-        )
+        // Reklam SDK sadece 1 kez initialize
+        try {
+            MobileAds.initialize(this) {}
+            // Debug derlemelerinde test cihazı tanımla (gerçek cihaz id'sini ekleyin)
+            if (BuildConfig.DEBUG) {
+                val config = RequestConfiguration.Builder()
+                    .setTestDeviceIds(listOf("TEST_DEVICE_ID")) // Gerekirse gerçek test id ile değiştirin
+                    .build()
+                MobileAds.setRequestConfiguration(config)
+            }
+        } catch (e: Exception) {
+            // Sessiz log; uygulama çökmesin
+        }
 
-        // --- YAPILANDIRMA BİTTİ ---
-
-
-        // Mevcut kodlarınız
         AppCompatDelegate.setDefaultNightMode(SharedPreferencesManager.getTheme(this))
         UIFeedbackHelper.init(this)
 
-        // Uygulama herhangi bir aktiviteye geri döndüğünde tarih/saat bütünlüğünü doğrula.
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             // ...existing code...
             override fun onActivityResumed(activity: android.app.Activity) {
-                // Otomatik saat ve tarih ayarlarını kontrol et
                 val isAutoTimeEnabled = Settings.Global.getInt(activity.contentResolver, Settings.Global.AUTO_TIME, 0) == 1
                 val isAutoTimeZoneEnabled = Settings.Global.getInt(activity.contentResolver, Settings.Global.AUTO_TIME_ZONE, 0) == 1
-
                 if (!isAutoTimeEnabled || !isAutoTimeZoneEnabled) {
                     val currentLocale = activity.resources.configuration.locales[0]
                     val message = if (currentLocale.language == "en") {
@@ -56,17 +54,12 @@ class PdfApplication : Application() {
                         "Lütfen cihazınızın tarih ve saat ayarlarını otomatik olarak ayarlayın!"
                     }
                     Toast.makeText(activity, message, Toast.LENGTH_LONG).show()
-                    // Tüm back stack'i kapat
-                    activity.finishAffinity()
-                    return
+                    activity.finishAffinity(); return
                 }
-
-                // Sistem saatini kontrol et
                 val currentTime = System.currentTimeMillis()
                 val calendar = Calendar.getInstance()
                 val systemTime = calendar.timeInMillis
-
-                if (abs(currentTime - systemTime) > 10000) { // 10 saniyeden fazla fark varsa
+                if (abs(currentTime - systemTime) > 10000) {
                     val currentLocale = activity.resources.configuration.locales[0]
                     val message = if (currentLocale.language == "en") {
                         "The system time on your device is incorrect!"
@@ -74,8 +67,7 @@ class PdfApplication : Application() {
                         "Cihaz sistem saati doğru değil!"
                     }
                     Toast.makeText(activity, message, Toast.LENGTH_LONG).show()
-                    activity.finishAffinity()
-                    return
+                    activity.finishAffinity(); return
                 }
             }
 

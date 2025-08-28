@@ -3,6 +3,8 @@ package com.codenzi.mathlabs
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.Menu
@@ -29,7 +31,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.util.Calendar
-import java.util.Locale
 import kotlin.math.abs
 
 @AndroidEntryPoint
@@ -44,8 +45,11 @@ class MainActivity : AppCompatActivity() {
     private var mInterstitialAd: InterstitialAd? = null
     private val TAG = "MainActivity"
 
+    private var bannerRetryAttempt = 0
+    private val bannerHandler = Handler(Looper.getMainLooper())
+
     private val settingsLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
+        if (result.resultCode == RESULT_OK) {
             recreate()
         }
     }
@@ -121,15 +125,16 @@ class MainActivity : AppCompatActivity() {
     private fun observeUserStatusAndUpdateUI() {
         lifecycleScope.launch {
             UserRepository.userDataState.collectLatest { userData ->
-                val isPremium = userData?.isPremium ?: false
-                if (isPremium) {
-                    // KULLANICI PREMIUM İSE: Reklamları kaldır ve yok et.
+                val active = userData?.isSubscriptionActive() ?: false
+                if (active) {
                     adContainerView.visibility = View.GONE
                     adView?.destroy()
                     adView = null
                     mInterstitialAd = null
                 } else {
-                    // KULLANICI PREMIUM DEĞİLSE: Reklamları yükle ve göster.
+                    adView?.destroy()
+                    adView = null
+                    mInterstitialAd = null
                     adContainerView.visibility = View.VISIBLE
                     loadBanner()
                     loadInterstitialAd()
@@ -139,14 +144,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadBanner() {
-        // Aktivite yok ediliyorsa veya reklam zaten varsa yükleme yapma.
         if (adView != null || !isAdLoadable()) return
-        MobileAds.initialize(this) {}
         adView = AdView(this)
         adView?.adUnitId = getString(R.string.admob_banner_unit_id)
         adContainerView.removeAllViews()
         adContainerView.addView(adView)
         adView?.setAdSize(adSize)
+        adView?.adListener = object : AdListener() {
+            override fun onAdFailedToLoad(error: LoadAdError) {
+                Log.w(TAG, "Banner yüklenemedi: ${error.message} code=${error.code}")
+                adView = null
+                if (bannerRetryAttempt < 5) {
+                    val delay = (1000L * (1 shl bannerRetryAttempt).coerceAtMost(32))
+                    bannerRetryAttempt++
+                    bannerHandler.postDelayed({ loadBanner() }, delay)
+                }
+            }
+            override fun onAdLoaded() {
+                Log.d(TAG, "Banner yüklendi")
+                bannerRetryAttempt = 0
+            }
+        }
         val adRequest = AdRequest.Builder().build()
         adView?.loadAd(adRequest)
     }
@@ -223,16 +241,16 @@ class MainActivity : AppCompatActivity() {
     private fun setupToolbar() {
         setSupportActionBar(binding.topToolbar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
-        toolbarTitle.text = getGreetingMessage(this)
-        binding.appBar.addOnOffsetChangedListener(AppBarLayout.OnOffsetChangedListener { appBarLayout, verticalOffset ->
+        toolbarTitle.text = getGreetingMessage()
+        binding.appBar.addOnOffsetChangedListener { appBarLayout, verticalOffset ->
             val totalScrollRange = appBarLayout.totalScrollRange
             val percentage = (abs(verticalOffset).toFloat() / totalScrollRange.toFloat())
             toolbarTitle.alpha = percentage
             binding.expandedHeader.alpha = 1 - (percentage * 1.5f)
-        })
+        }
     }
 
-    private fun getGreetingMessage(context: android.content.Context): String {
+    private fun getGreetingMessage(): String {
         val user = FirebaseAuth.getInstance().currentUser
         val name = user?.displayName
         if (user == null || name.isNullOrEmpty()) {
@@ -276,6 +294,14 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Sunucudan premium süresi dolduysa hızla güncelle
+        lifecycleScope.launch {
+            UserRepository.refreshPremiumStatus()
         }
     }
 

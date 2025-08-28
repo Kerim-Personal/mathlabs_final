@@ -14,9 +14,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
 import java.security.MessageDigest
+import java.util.Collections
 import kotlinx.coroutines.tasks.await
 
 class BillingManager(
@@ -39,6 +41,9 @@ class BillingManager(
     private val onReadyCallbacks = mutableListOf<() -> Unit>()
 
     private val functions: FirebaseFunctions = Firebase.functions
+
+    // Aynı token için birden fazla paralel aktivasyon denemesini engellemek için
+    private val activatingTokens = Collections.synchronizedSet(mutableSetOf<String>())
 
     init {
         setupBillingClient()
@@ -202,48 +207,39 @@ class BillingManager(
         val productId = purchase.products.firstOrNull() ?: return@withContext false
         val packageName = context.packageName
         val purchaseToken = purchase.purchaseToken
+        if (!activatingTokens.add(purchaseToken)) { Log.d("BillingManager", "activatePremium zaten işleniyor token=$purchaseToken"); return@withContext false }
         try {
-            val data = mapOf(
-                "packageName" to packageName,
-                "productId" to productId,
-                "purchaseToken" to purchaseToken
-            )
-            val result = functions
-                .getHttpsCallable("activatePremium")
-                .call(data)
-                .continueWith { task -> task.result?.data as? Map<*, *> }
-                .await()
-
+            val data = mapOf("packageName" to packageName, "productId" to productId, "purchaseToken" to purchaseToken)
+            val result = functions.getHttpsCallable("activatePremium").call(data).continueWith { it.result?.data as? Map<*, *> }.await()
             val success = (result?.get("success") as? Boolean) == true
             val bypass = (result?.get("bypass") as? Boolean) == true
-
+            val expiry = (result?.get("expiry") as? Number)?.toLong()
             if (success) {
-                // Firestore güncellemesi gelmeden UI'ı hemen premium yap (optimistic update)
                 val current = UserRepository.userDataState.value
-                if (current != null && !current.isPremium) {
-                    UserRepository.triggerLocalUpdate(current.copy(isPremium = true))
+                if (current != null && expiry != null && current.subscriptionExpiryMillis != expiry) {
+                    UserRepository.triggerLocalUpdate(current.copy(subscriptionExpiryMillis = expiry))
                 }
-                if (bypass) {
-                    Log.w("BillingManager", "activatePremium BYPASS ile başarıya işaretlendi (sadece test için)!")
-                }
-                // Sunucu acknowledgement tamamladıysa lokal ack yine de kontrol edildi.
-                if (!purchase.isAcknowledged) {
-                    acknowledgePurchaseSafely(purchase.purchaseToken)
-                }
+                if (bypass) Log.w("BillingManager", "activatePremium BYPASS (test)!" )
+                if (!purchase.isAcknowledged) { acknowledgePurchaseSafely(purchase.purchaseToken) }
             } else {
                 Log.e("BillingManager", "activatePremium sunucu sonucu success=false result=$result")
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Premium aktivasyonu doğrulanamadı.", Toast.LENGTH_LONG).show()
-                }
+                withContext(Dispatchers.Main) { Toast.makeText(context, "Abonelik doğrulanamadı.", Toast.LENGTH_LONG).show() }
             }
             success
         } catch (e: Exception) {
-            Log.e("BillingManager", "Sunucu premium aktivasyonu hatası", e)
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Premium aktivasyonu hata: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-            }
+            Log.e("BillingManager", "Sunucu abonelik aktivasyonu hatası", e)
+            val userMessage = if (e is FirebaseFunctionsException) {
+                when (e.code) {
+                    FirebaseFunctionsException.Code.INVALID_ARGUMENT -> "Satın alma verileri geçersiz."
+                    FirebaseFunctionsException.Code.FAILED_PRECONDITION -> "Google Play doğrulaması başarısız."
+                    FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED -> "Çok hızlı deneme yapıldı."
+                    FirebaseFunctionsException.Code.UNAUTHENTICATED -> "Oturum geçersiz, yeniden giriş yapın."
+                    else -> "Aktivasyon başarısız: ${e.code.name}"
+                }
+            } else "Aktivasyon hata: ${e.localizedMessage}"
+            withContext(Dispatchers.Main) { Toast.makeText(context, userMessage, Toast.LENGTH_LONG).show() }
             false
-        }
+        } finally { activatingTokens.remove(purchaseToken) }
     }
 
     private fun acknowledgePurchaseSafely(token: String) {
@@ -295,18 +291,13 @@ class BillingManager(
                 appScope.launch(Dispatchers.IO) {
                     val userData = UserRepository.getUserDataOnce() ?: return@launch
                     val myActiveSubs = activeSubs.filter { it.accountIdentifiers?.obfuscatedAccountId == myObfuscatedId }
-                    val hasActivePlayPurchase = myActiveSubs.any { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-
-                    if (hasActivePlayPurchase && userData.isPremium.not()) {
-                        myActiveSubs.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }.forEach {
-                            activatePremiumOnServer(it)
-                        }
-                    } else if (!hasActivePlayPurchase && userData.isPremium) {
-                        revokePremiumOnServer()
+                    val purchasedSubs = myActiveSubs.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+                    // Google Play tarafında abonelik yoksa ve bizde geleceğe dönük bir expiry varsa refresh tetikle
+                    if (purchasedSubs.isEmpty()) {
+                        UserRepository.refreshPremiumStatus(force = true)
+                    } else {
+                        UserRepository.refreshPremiumStatus(force = true)
                     }
-
-                    myActiveSubs.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED && !it.isAcknowledged }
-                        .forEach { acknowledgePurchaseSafely(it.purchaseToken) }
                 }
             } else {
                 Log.e("BillingManager", "Abonelikler sorgulanırken hata: ${billingResult.debugMessage}")
